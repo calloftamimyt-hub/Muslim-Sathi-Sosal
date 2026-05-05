@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Film, 
@@ -1282,8 +1282,11 @@ const ProfileView = () => {
         );
 
         const unsubscribePosts = onSnapshot(q, async (snapshot) => {
-            const postsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            let postsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             
+            // Only show approved posts in the profile
+            postsData = postsData.filter((p: any) => p.status === 'approved' || !p.status);
+
             // Sort client-side to avoid needing a composite index
             postsData.sort((a: any, b: any) => {
                 const timeA = a.createdAt?.seconds || 0;
@@ -1569,6 +1572,8 @@ export const ToolsView = () => {
         return () => mainElement.removeEventListener('scroll', handleScroll);
     }, [activeToolId]);
 
+    const sessionSalt = useMemo(() => Math.floor(Math.random() * 1000000), []);
+
     // Fetch Posts
     useEffect(() => {
         setIsPostsLoading(true);
@@ -1588,6 +1593,20 @@ export const ToolsView = () => {
             const postsData = snapshot.docs
                 .map(doc => ({ id: doc.id, ...doc.data() }))
                 .filter((p: any) => p.status === 'approved' || !p.status); // Fallback for older posts without status
+            
+            // Randomize feed except the absolute newest
+            const getSortValue = (post: any) => {
+                let hash = 0;
+                for (let i = 0; i < post.id.length; i++) {
+                    hash = post.id.charCodeAt(i) + ((hash << 5) - hash);
+                }
+                const time = post.createdAt?.seconds || 0;
+                // Add up to 3 days of variance to randomize the position
+                return time + (Math.abs(hash + sessionSalt) % 259200); 
+            };
+            
+            postsData.sort((a, b) => getSortValue(b) - getSortValue(a));
+
             setPosts(postsData);
             setIsPostsLoading(false);
         }, (error) => {
@@ -1678,21 +1697,21 @@ export const ToolsView = () => {
         {!activeToolId ? (
             <div className="flex flex-col w-full">
                 {/* Top Row: Brand and Menu */}
-                <div className="flex items-center justify-between pl-4 pr-6 h-[44px]">
-                    <h1 className="text-2xl font-black text-blue-600 dark:text-blue-500 tracking-tighter">
+                <div className="flex items-center justify-between pl-4 pr-6 h-[52px]">
+                    <h1 className="text-[26px] font-black text-blue-600 dark:text-blue-500 tracking-tighter">
                       MuslimFeed
                     </h1>
                     
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-2">
                         <button 
                             onClick={() => setIsUploadSheetOpen(true)}
-                            className="w-7 h-7 rounded-full bg-slate-900 dark:bg-white flex items-center justify-center text-white dark:text-slate-900 transition-all active:scale-95 shadow-sm"
+                            className="w-8 h-8 rounded-full bg-slate-900 dark:bg-white flex items-center justify-center text-white dark:text-slate-900 transition-all active:scale-95 shadow-sm"
                         >
-                            <Plus className="w-4 h-4 stroke-[2.5]" />
+                            <Plus className="w-5 h-5 stroke-[2.5]" />
                         </button>
                         <button 
                             onClick={handleOpenSidebar}
-                            className="w-9 h-9 flex items-center justify-center text-slate-900 dark:text-white transition-colors hover:text-blue-600"
+                            className="w-10 h-10 flex items-center justify-center text-slate-900 dark:text-white transition-colors hover:text-blue-600"
                         >
                             <Menu className="w-6 h-6" />
                         </button>
@@ -1771,7 +1790,7 @@ export const ToolsView = () => {
       </header>
 
       <AnimatePresence mode="wait">
-        {isPostsLoading && (
+        {(isPostsLoading || isToolsTabLoading) && (
             <motion.div 
                 initial={{ opacity: 1 }}
                 exit={{ opacity: 0, scaleX: 1, transition: { duration: 0.2 } }}
@@ -2266,10 +2285,7 @@ export const ToolsView = () => {
                 
                 {/* Categories Bar */}
                 <div 
-                    className="w-full overflow-x-auto hide-scrollbar h-12 px-4 flex items-center gap-2 border-none sticky z-[130] bg-white dark:bg-slate-900 transition-all duration-300"
-                    style={{
-                        top: isHeaderVisible ? 'calc(84px + max(env(safe-area-inset-top), 24px))' : 'max(env(safe-area-inset-top), 24px)'
-                    }}
+                    className="w-full overflow-x-auto hide-scrollbar h-12 px-4 flex items-center gap-2 border-none bg-white dark:bg-slate-900 transition-all duration-300"
                 >
                     {categories.map((cat) => (
                         <button
@@ -2345,38 +2361,38 @@ export const ToolsView = () => {
                         initial={{ opacity: 0, scale: 0.95, y: -10, transformOrigin: 'top right' }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                        className="fixed right-4 w-48 bg-white dark:bg-slate-900 z-[301] rounded-2xl shadow-[0_10px_40px_rgb(0,0,0,0.15)] border border-slate-100 dark:border-slate-800 overflow-hidden"
+                        className="fixed right-4 w-36 bg-white dark:bg-slate-900 z-[301] rounded-2xl shadow-[0_10px_40px_rgb(0,0,0,0.15)] border border-slate-100 dark:border-slate-800 overflow-hidden"
                         style={{
-                            top: 'calc(56px + env(safe-area-inset-top, 0px))'
+                            top: 'calc(62px + env(safe-area-inset-top, 0px))'
                         }}
                     >
                         <div className="flex flex-col py-2">
                             <button 
                                 onClick={handleCameraClick}
-                                className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                             >
-                                <Camera className="w-5 h-5 text-black dark:text-white" />
-                                <span className="font-bold text-slate-700 dark:text-slate-200 text-[15px]">
+                                <Camera className="w-4 h-4 text-black dark:text-white" />
+                                <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">
                                     {language === 'bn' ? 'ক্যামেরা' : 'Camera'}
                                 </span>
                             </button>
 
                             <button 
                                 onClick={handlePhotoClick}
-                                className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                             >
-                                <Image className="w-5 h-5 text-black dark:text-white" />
-                                <span className="font-bold text-slate-700 dark:text-slate-200 text-[15px]">
+                                <Image className="w-4 h-4 text-black dark:text-white" />
+                                <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">
                                     {language === 'bn' ? 'ফটো' : 'Photo'}
                                 </span>
                             </button>
 
                             <button 
                                 onClick={handleVideoClick}
-                                className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                             >
-                                <Video className="w-5 h-5 text-black dark:text-white" />
-                                <span className="font-bold text-slate-700 dark:text-slate-200 text-[15px]">
+                                <Video className="w-4 h-4 text-black dark:text-white" />
+                                <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">
                                     {language === 'bn' ? 'ভিডিও' : 'Video'}
                                 </span>
                             </button>
