@@ -1452,15 +1452,20 @@ export const ToolsView = () => {
     
     const photoInputRef = useRef<HTMLInputElement>(null);
     const videoInputRef = useRef<HTMLInputElement>(null);
+    const mixedInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
     
     const lastScrollY = useRef(0);
 
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'photo' | 'video' | 'camera') => {
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'photo' | 'video' | 'camera' | 'mixed') => {
         const file = e.target.files?.[0];
         if (file) {
             setPendingPostFile(file);
-            setPendingPostFileType(type === 'photo' ? 'photo' : 'video');
+            let finalType: 'photo' | 'video' = type === 'photo' ? 'photo' : 'video';
+            if (type === 'mixed') {
+                finalType = file.type.startsWith('video/') ? 'video' : 'photo';
+            }
+            setPendingPostFileType(finalType);
             setIsUploadSheetOpen(false);
             setIsPostingOpen(true);
             window.history.pushState({ view: 'posting' }, "");
@@ -2213,7 +2218,7 @@ export const ToolsView = () => {
           >
             <div className="flex flex-col w-full mx-auto max-w-2xl">
                 <div className="pt-safe">
-                    <div className="transition-all duration-300 pt-[84px]">
+                    <div className="transition-all duration-300 pt-[92px]">
                         {activeTab === 'analytics' && !activeToolId ? (
                     <AnalyticsDashboard />
                 ) : activeTab === 'profile' && !activeToolId ? (
@@ -2257,7 +2262,7 @@ export const ToolsView = () => {
                 {/* Attached "What's on your mind?" - Attached directly with border-t */}
                 <div className="bg-white dark:bg-slate-900 px-4 pt-3 pb-2">
                     <button 
-                        onClick={() => setIsUploadSheetOpen(true)}
+                        onClick={() => mixedInputRef.current?.click()}
                         className="w-full flex items-center gap-3 active:scale-95 transition-transform text-left"
                     >
                         <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 shadow-sm flex items-center justify-center shrink-0 overflow-hidden border border-slate-200 dark:border-slate-700">
@@ -2424,6 +2429,13 @@ export const ToolsView = () => {
             accept="video/*" 
             className="hidden" 
             onChange={(e) => handleFileSelect(e, 'video')}
+        />
+        <input 
+            ref={mixedInputRef}
+            type="file" 
+            accept="image/*,video/*" 
+            className="hidden" 
+            onChange={(e) => handleFileSelect(e, 'mixed')}
         />
 
       <AnimatePresence>
