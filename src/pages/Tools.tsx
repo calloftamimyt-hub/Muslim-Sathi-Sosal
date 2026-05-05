@@ -92,6 +92,11 @@ import {
   SquarePen,
   BookOpen,
   Clapperboard,
+  BadgeCheck,
+  Lock,
+  Bookmark,
+  HelpCircle,
+  Rss,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { cn, getApiUrl } from "@/lib/utils";
@@ -953,16 +958,17 @@ const PostCard = ({ post }: { post: any }) => {
         }
     };
 
-    const canDelete = auth.currentUser && (
-        auth.currentUser.uid === post.authorUid || 
-        auth.currentUser.email === "its.me.calloftamim@gmail.com"
-    );
+    const canDelete = auth.currentUser && auth.currentUser.uid === post.authorUid;
 
-    const avatarSrc = authorAvatar 
+    let avatarSrc = authorAvatar 
         ? authorAvatar
         : ((auth.currentUser?.uid === post.authorUid && auth.currentUser?.photoURL) 
             ? auth.currentUser.photoURL 
             : (post.authorAvatarUrl && !post.authorAvatarUrl.includes('dicebear') ? post.authorAvatarUrl : null));
+
+    if (avatarSrc?.startsWith('/api')) {
+        avatarSrc = getApiUrl(avatarSrc);
+    }
 
     return (
         <motion.div 
@@ -1265,8 +1271,9 @@ const ProfileView = () => {
                 const userDoc = await getDoc(doc(db, "users", auth.currentUser!.uid));
                 if (userDoc.exists()) {
                     const data = userDoc.data();
-                    if (data.photoUrl || data.photoURL) {
-                        setCurrentUserAvatar(data.photoUrl || data.photoURL);
+                    const pUrl = data.photoUrl || data.photoURL;
+                    if (pUrl) {
+                        setCurrentUserAvatar(pUrl.startsWith('/api') ? getApiUrl(pUrl) : pUrl);
                     }
                 }
             } catch (e) {
@@ -1450,6 +1457,38 @@ export const ToolsView = () => {
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [isUploadSheetOpen, setIsUploadSheetOpen] = useState(false);
     
+    // Sidebar dynamic data
+    const [sidebarStats, setSidebarStats] = useState({ followers: 0, posts: 0 });
+    const [sidebarUser, setSidebarUser] = useState<any>(null);
+
+    useEffect(() => {
+        if (!auth.currentUser || !isSidebarOpen) return;
+        let isP = true;
+        const fetchData = async () => {
+            try {
+                const { doc, getDoc, getCountFromServer, collection, query, where } = await import("firebase/firestore");
+                const userDoc = await getDoc(doc(db, "users", auth.currentUser!.uid));
+                if (userDoc.exists() && isP) {
+                    setSidebarUser(userDoc.data());
+                }
+                const followersQuery = query(collection(db, 'follows'), where('following_id', '==', auth.currentUser!.uid));
+                const followersSnapshot = await getCountFromServer(followersQuery);
+                const postsQuery = query(collection(db, 'posts'), where('authorUid', '==', auth.currentUser!.uid));
+                const postsSnapshot = await getCountFromServer(postsQuery);
+                if (isP) {
+                    setSidebarStats({
+                        followers: followersSnapshot.data().count,
+                        posts: postsSnapshot.data().count
+                    });
+                }
+            } catch (e) {
+                console.error("Sidebar stats error", e);
+            }
+        };
+        fetchData();
+        return () => { isP = false; };
+    }, [isSidebarOpen]);
+    
     const photoInputRef = useRef<HTMLInputElement>(null);
     const videoInputRef = useRef<HTMLInputElement>(null);
     const mixedInputRef = useRef<HTMLInputElement>(null);
@@ -1519,7 +1558,7 @@ export const ToolsView = () => {
     useEffect(() => {
         if (auth.currentUser) {
             // First set to auth provider photo
-            setCurrentUserAvatar(auth.currentUser.photoURL);
+            setCurrentUserAvatar(auth.currentUser.photoURL ? (auth.currentUser.photoURL.startsWith('/api') ? getApiUrl(auth.currentUser.photoURL) : auth.currentUser.photoURL) : null);
             
             // Then fetch latest from Firestore if exists
             const fetchUserDoc = async () => {
@@ -1528,8 +1567,9 @@ export const ToolsView = () => {
                     const userDoc = await getDoc(doc(db, "users", auth.currentUser!.uid));
                     if (userDoc.exists()) {
                         const data = userDoc.data();
-                        if (data.photoUrl || data.photoURL) {
-                            setCurrentUserAvatar(data.photoUrl || data.photoURL);
+                        const pUrl = data.photoUrl || data.photoURL;
+                        if (pUrl) {
+                            setCurrentUserAvatar(pUrl.startsWith('/api') ? getApiUrl(pUrl) : pUrl);
                         }
                     }
                 } catch (e) {
@@ -2469,36 +2509,136 @@ export const ToolsView = () => {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed inset-y-0 left-0 w-[280px] bg-white dark:bg-slate-900 z-[200] shadow-2xl flex flex-col pt-safe"
+              className="fixed inset-y-0 left-0 w-[280px] bg-white dark:bg-slate-900 z-[200] shadow-2xl flex flex-col pt-safe overflow-hidden"
             >
-              <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center">
-                    <span className="text-white font-black text-xl">Y</span>
-                </div>
-                <div className="flex-1">
-                    <h2 className="font-black text-lg leading-tight text-slate-900 dark:text-white">YTool</h2>
-                    <p className="text-xs font-medium text-slate-500">Muslim Social</p>
-                </div>
+              {/* Profile Header */}
+              <div className="p-5 pb-4 border-b border-slate-100 dark:border-slate-800">
+                  <div className="w-14 h-14 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 mb-3 border border-slate-200 dark:border-slate-700">
+                    {currentUserAvatar || sidebarUser?.photoURL || sidebarUser?.photoUrl ? (
+                        <img 
+                            src={(() => {
+                                const url = currentUserAvatar || sidebarUser?.photoURL || sidebarUser?.photoUrl;
+                                return url?.startsWith('/api') ? getApiUrl(url) : url;
+                            })()}
+                            alt="Profile" 
+                            className="w-full h-full object-cover" 
+                            referrerPolicy="no-referrer"
+                        />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                            <User className="w-6 h-6 text-slate-400" />
+                        </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5 mb-1">
+                      <h2 className="font-bold text-lg leading-tight text-slate-900 dark:text-white truncate">
+                          {sidebarUser?.username || sidebarUser?.displayName || auth.currentUser?.displayName || 'MuslimFeed User'}
+                      </h2>
+                      {(sidebarUser?.isVerified || sidebarUser?.blueBadge) && (
+                          <BadgeCheck className="w-5 h-5 text-blue-500 shrink-0" />
+                      )}
+                  </div>
+                  
+                  <div className="flex items-center gap-4 mt-3">
+                      <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-slate-900 dark:text-white">{sidebarStats.followers}</span>
+                          <span className="text-sm text-slate-500">{language === 'bn' ? 'ফলোয়ার' : 'Followers'}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-slate-900 dark:text-white">{sidebarStats.posts}</span>
+                          <span className="text-sm text-slate-500">{language === 'bn' ? 'পোস্ট' : 'Posts'}</span>
+                      </div>
+                  </div>
               </div>
-              <div className="flex-1 overflow-y-auto py-4 px-2">
+
+              <div className="flex-1 overflow-y-auto py-3 px-3 flex flex-col gap-1">
+                {/* All Tools changed to generic button or keep? Let's just keep All Tools if they want. */}
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider px-3 mb-1 mt-2">
+                    {language === 'bn' ? 'ম্যানেজমেন্ট' : 'Management'}
+                </h3>
+                
+                <button
+                  onClick={() => {}}
+                  className="w-full px-3 py-3 flex items-center gap-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left active:scale-[0.98]"
+                >
+                  <div className="w-9 h-9 rounded-full bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center relative">
+                      <Coins className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                      <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center">
+                          <Lock className="w-3 h-3 text-slate-400" />
+                      </div>
+                  </div>
+                  <span className="font-semibold text-[15px] text-slate-700 dark:text-slate-200 flex-1">
+                      {language === 'bn' ? 'মনিটাইজেশন' : 'Monetization'}
+                  </span>
+                </button>
+                
+                <button
+                  onClick={() => {}}
+                  className="w-full px-3 py-3 flex items-center gap-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left active:scale-[0.98]"
+                >
+                  <div className="w-9 h-9 rounded-full bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
+                      <ShieldCheck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <span className="font-semibold text-[15px] text-slate-700 dark:text-slate-200 flex-1">
+                      {language === 'bn' ? 'প্রোফাইল স্ট্যাটাস' : 'Profile Status'}
+                  </span>
+                </button>
+
+                <div className="h-px w-full bg-slate-100 dark:bg-slate-800/60 my-2" />
+                
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider px-3 mb-1 mt-1">
+                    {language === 'bn' ? 'অন্যান্য' : 'More'}
+                </h3>
+
+                <button
+                  onClick={() => {}}
+                  className="w-full px-3 py-3 flex items-center gap-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left active:scale-[0.98]"
+                >
+                  <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                      <Bookmark className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                  </div>
+                  <span className="font-semibold text-[15px] text-slate-700 dark:text-slate-200 flex-1">
+                      {language === 'bn' ? 'সংরক্ষিত পোস্ট' : 'Saved Posts'}
+                  </span>
+                </button>
+
                 <button
                   onClick={() => {
                     handleCloseSidebar();
-                    // Need a small timeout to allow sidebar to close before opening All Tools, or just call it directly.
-                    // Doing it sequentially
-                    setTimeout(() => {
-                        handleSeeAll();
-                    }, 50);
+                    setTimeout(() => handleSeeAll(), 50);
                   }}
                   className="w-full px-3 py-3 flex items-center gap-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left active:scale-[0.98]"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center">
-                      <LayoutGrid className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                      <LayoutGrid className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                   </div>
-                  <span className="font-bold text-sm text-slate-700 dark:text-slate-300 flex-1">
-                    {language === 'bn' ? 'সকল টুলস' : 'All Tools'}
+                  <span className="font-semibold text-[15px] text-slate-700 dark:text-slate-200 flex-1">
+                      {language === 'bn' ? 'সকল টুলস' : 'All Tools'}
                   </span>
-                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                </button>
+
+                <button
+                  onClick={() => {}}
+                  className="w-full px-3 py-3 flex items-center gap-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left active:scale-[0.98]"
+                >
+                  <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                      <Settings className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                  </div>
+                  <span className="font-semibold text-[15px] text-slate-700 dark:text-slate-200 flex-1">
+                      {language === 'bn' ? 'সেটিংস' : 'Settings'}
+                  </span>
+                </button>
+                
+                <button
+                  onClick={() => {}}
+                  className="w-full px-3 py-3 flex items-center gap-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left active:scale-[0.98]"
+                >
+                  <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                      <HelpCircle className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                  </div>
+                  <span className="font-semibold text-[15px] text-slate-700 dark:text-slate-200 flex-1">
+                      {language === 'bn' ? 'সাহায্য ও সাপোর্ট' : 'Help & Support'}
+                  </span>
                 </button>
               </div>
             </motion.div>

@@ -8,7 +8,7 @@ import {
   ShieldCheck,
   Wallet,
   Trophy,
-  Wrench,
+  Rss,
   Menu,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -94,7 +94,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
 
   const tabs = [
     { id: "home", label: t("home" as any) || "Home", icon: Home },
-    { id: "tools", label: language === "bn" ? "টুলস" : "Tools", icon: Wrench },
+    { id: "tools", label: language === "bn" ? "ফিড" : "Feed", icon: Rss },
     { id: "earning", label: t("earning" as any) || "Earning", icon: Wallet },
     {
       id: "tracker",

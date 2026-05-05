@@ -10,7 +10,7 @@ import Cropper from 'react-easy-crop';
 import { getCroppedImg } from '@/lib/imageUtils';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn } from '@/lib/utils';
+import { cn, getApiUrl } from '@/lib/utils';
 import { format, subDays, isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, startOfMonth, endOfMonth, isSameMonth, subMonths } from 'date-fns';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { auth, db, messaging } from '../lib/firebase';
@@ -525,13 +525,13 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
       const formData = new FormData();
       formData.append('file', croppedBlob, 'profile-photo.jpg');
 
-      const response = await axios.post('/api/telegram/upload', formData, {
+      const response = await axios.post(getApiUrl('/api/telegram/upload'), formData, {
         params: { type: 'photo' },
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
       if (response.data && response.data.fileUrl) {
-        const photoURL = response.data.fileUrl;
+        const photoURL = getApiUrl(response.data.fileUrl);
 
         // Update Firebase Auth
         await updateProfile(user, { photoURL });
@@ -1122,7 +1122,7 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
                 <User className="w-10 h-10 text-slate-400" />
               ) : user.photoURL ? (
                 <img 
-                  src={user.photoURL} 
+                  src={user.photoURL.startsWith('/api') ? getApiUrl(user.photoURL) : user.photoURL} 
                   alt="Profile" 
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"

@@ -302,30 +302,32 @@ async function startServer() {
       const result = telegramResponse.data.result;
       const messageId = result.message_id;
       
-      // Update with Inline Keyboard pointing to App URLs
-      await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/editMessageReplyMarkup`, {
-        chat_id: ADMIN_CHAT_ID,
-        message_id: messageId,
-        reply_markup: {
-          inline_keyboard: [[
-            { text: "✅ Approve", callback_data: `approve:${postId}` },
-            { text: "❌ Reject", callback_data: `reject:${postId}` }
-          ]]
-        }
-      });
-
       let fileId = "";
       if (type === "video") {
         fileId = result.video?.file_id;
       } else {
         fileId = result.photo && result.photo.length > 0 ? result.photo[result.photo.length - 1].file_id : "";
       }
+      
+      // Update with Inline Keyboard pointing to App URLs ONLY if it's a post (has postId)
+      if (postId) {
+        await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/editMessageReplyMarkup`, {
+          chat_id: ADMIN_CHAT_ID,
+          message_id: messageId,
+          reply_markup: {
+            inline_keyboard: [[
+              { text: "✅ Approve", callback_data: `approve:${postId}` },
+              { text: "❌ Reject", callback_data: `reject:${postId}` }
+            ]]
+          }
+        });
+      }
 
       try {
         fs.unlinkSync(file.path);
       } catch (e) {}
 
-      res.json({ success: true, fileId });
+      res.json({ success: true, fileId, fileUrl: `/api/telegram/file/${fileId}` });
     } catch (error: any) {
       console.error("Telegram upload error:", error);
       res.status(500).json({ 
