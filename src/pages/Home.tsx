@@ -280,12 +280,6 @@ export const CATEGORIES = [
     color: "text-white",
     bg: "bg-gradient-to-br from-pink-400 to-pink-600",
   },
-  {
-    id: "youtube-id-finder",
-    icon: Youtube,
-    color: "text-white",
-    bg: "bg-gradient-to-br from-red-600 to-rose-700",
-  },
 ];
 
 // removed misplaced import
