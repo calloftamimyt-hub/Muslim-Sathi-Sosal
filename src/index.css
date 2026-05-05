@@ -89,6 +89,13 @@
   100% { transform: translateX(100%); }
 }
 
+@keyframes youtubeLoad {
+  0% { transform: scaleX(0); }
+  30% { transform: scaleX(0.3); }
+  60% { transform: scaleX(0.6); }
+  100% { transform: scaleX(0.85); }
+}
+
 .shimmer {
   position: relative;
   overflow: hidden;

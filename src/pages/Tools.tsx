@@ -1,6 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
+  Film, 
+  Send, 
+  CheckCircle2, 
+  UserPlus, 
+  UserMinus, 
+  Edit2, 
+  Home,
+  Eye,
+  Heart,
+  BarChart3,
+  ChevronUp,
+  ChevronDown,
+  User,
+  PlaySquare,
+  Image as ImageIcon,
   Image,
   Download,
   Hash,
@@ -75,7 +90,7 @@ import {
 import { useLanguage } from "@/contexts/LanguageContext";
 import { cn, getApiUrl } from "@/lib/utils";
 import { db, auth } from "@/lib/firebase";
-import { collection, query, orderBy, onSnapshot, limit, doc, updateDoc, increment } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, limit, doc, updateDoc, increment, where } from "firebase/firestore";
 import { TagsGenTool } from "@/components/tools/TagsGenTool";
 import { TitleGenTool } from "@/components/tools/TitleGenTool";
 import { EarnCalcTool } from "@/components/tools/EarnCalcTool";
@@ -114,7 +129,15 @@ import { PercentageCalcTool } from "@/components/tools/PercentageCalcTool";
 import { YTThumbnailTool } from "@/components/tools/YTThumbnailTool";
 import { PostContentOverlay } from "@/components/tools/PostContentOverlay";
 import { ReportModal } from "@/components/tools/ReportModal";
-import { PlaySquare, Image as ImageIcon, Film, Send, CheckCircle2, UserPlus, UserMinus, Edit2 } from "lucide-react"; 
+import { 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer 
+} from "recharts";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 
 const SOCIAL_TOOLS = [
@@ -390,6 +413,309 @@ const formatCount = (num: number) => {
     return num.toString();
 };
 
+const PostSkeleton = () => (
+    <div className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 p-4 space-y-4">
+        <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full shimmer bg-slate-200 dark:bg-slate-800" />
+            <div className="space-y-2">
+                <div className="w-24 h-3 shimmer bg-slate-200 dark:bg-slate-800 rounded" />
+                <div className="w-16 h-2 shimmer bg-slate-100 dark:bg-slate-800 rounded" />
+            </div>
+        </div>
+        <div className="space-y-2">
+            <div className="w-full h-3 shimmer bg-slate-100 dark:bg-slate-800 rounded" />
+            <div className="w-3/4 h-3 shimmer bg-slate-100 dark:bg-slate-800 rounded" />
+        </div>
+        <div className="aspect-video w-full shimmer bg-slate-200 dark:bg-slate-800 rounded-2xl" />
+        <div className="flex justify-between items-center py-2">
+            <div className="w-20 h-8 shimmer bg-slate-100 dark:bg-slate-800 rounded-xl" />
+            <div className="w-20 h-8 shimmer bg-slate-100 dark:bg-slate-800 rounded-xl" />
+            <div className="w-20 h-8 shimmer bg-slate-100 dark:bg-slate-800 rounded-xl" />
+        </div>
+    </div>
+);
+
+const CategorySkeleton = () => (
+    <div className="grid grid-cols-4 gap-x-2 gap-y-4">
+        {[...Array(8)].map((_, i) => (
+            <div key={i} className="flex flex-col items-center gap-1.5">
+                <div className="w-11 h-11 rounded-full shimmer bg-slate-200 dark:bg-slate-800" />
+                <div className="w-12 h-2 shimmer bg-slate-100 dark:bg-slate-800 rounded" />
+            </div>
+        ))}
+    </div>
+);
+
+const AnalyticsDashboard = () => {
+    const { language } = useLanguage();
+    const [stats, setStats] = useState({
+        totalPosts: 0,
+        totalLikes: 0,
+        totalViews: 0,
+        totalFollowers: 0,
+        totalComments: 0,
+        totalShares: 0
+    });
+    const [chartData, setChartData] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        if (!auth.currentUser) return;
+        
+        setIsLoading(true);
+        const q = query(
+            collection(db, "posts"), 
+            where("authorUid", "==", auth.currentUser.uid)
+        );
+
+        const unsubscribe = onSnapshot(q, async (snapshot) => {
+            let likes = 0;
+            let views = 0;
+            let comments = 0;
+            let shares = 0;
+
+            const dayStats: Record<string, number> = {};
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const last7Days = Array.from({length: 7}, (_, i) => {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                return days[d.getDay()];
+            }).reverse();
+
+            last7Days.forEach(day => dayStats[day] = 0);
+
+            snapshot.docs.forEach(doc => {
+                const data = doc.data();
+                const l = (data.reactionsCount || data.likes || 0);
+                const v = (data.views || 0);
+                const c = (data.commentsCount || 0);
+                const s = (data.sharesCount || 0);
+
+                likes += l;
+                views += v;
+                comments += c;
+                shares += s;
+
+                if (data.createdAt) {
+                    const date = data.createdAt.toDate();
+                    const dayName = days[date.getDay()];
+                    if (dayStats[dayName] !== undefined) {
+                        dayStats[dayName] += v;
+                    }
+                }
+            });
+
+            const formattedChartData = last7Days.map(day => ({
+                name: day,
+                views: dayStats[day]
+            }));
+
+            setChartData(formattedChartData);
+
+            // Fetch followers
+            const followersQuery = query(collection(db, 'follows'), where('following_id', '==', auth.currentUser!.uid));
+            const { getCountFromServer } = await import("firebase/firestore");
+            const followersSnapshot = await getCountFromServer(followersQuery);
+
+            setStats({
+                totalPosts: snapshot.size,
+                totalLikes: likes,
+                totalViews: views,
+                totalFollowers: followersSnapshot.data().count,
+                totalComments: comments,
+                totalShares: shares
+            });
+            setIsLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    if (isLoading) return (
+        <div className="p-6 space-y-6 animate-pulse">
+            <div className="grid grid-cols-4 gap-3">
+                {[...Array(4)].map((_, i) => (
+                    <div key={i} className="h-20 bg-slate-100 dark:bg-slate-800 rounded-2xl" />
+                ))}
+            </div>
+            <div className="h-48 bg-slate-100 dark:bg-slate-800 rounded-2xl" />
+            <div className="h-32 bg-slate-100 dark:bg-slate-800 rounded-2xl" />
+        </div>
+    );
+
+    return (
+        <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="p-4 sm:p-6 space-y-6 pb-20 overflow-x-hidden"
+        >
+            {/* 1. Top Summary Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                    { label: language === 'bn' ? 'ভিউ' : 'Views', value: stats.totalViews, icon: Eye, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-500/10' },
+                    { label: language === 'bn' ? 'লাইক' : 'Likes', value: stats.totalLikes, icon: Heart, color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-500/10' },
+                    { label: language === 'bn' ? 'কমেন্ট' : 'Comments', value: stats.totalComments, icon: MessageCircle, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
+                    { label: language === 'bn' ? 'শেয়ার' : 'Shares', value: stats.totalShares, icon: Share2, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-500/10' }
+                ].map((item, i) => (
+                    <div key={i} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl shadow-sm">
+                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center mb-2", item.bg)}>
+                            <item.icon className={cn("w-4 h-4", item.color)} />
+                        </div>
+                        <div className="text-lg font-black text-slate-800 dark:text-white leading-tight">
+                            {formatCount(item.value)}
+                        </div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                            {item.label}
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* 2. Engagement Graph */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-2xl shadow-sm">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                            {language === 'bn' ? 'পারফরম্যান্স ট্রেন্ড' : 'Performance Trend'}
+                        </h3>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                            {language === 'bn' ? 'গত ৭ দিনের ভিউ' : 'Views over last 7 days'}
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
+                            <div className="w-2 h-2 rounded-full bg-blue-500" />
+                            <span className="text-[10px] font-bold text-slate-500">{language === 'bn' ? 'ভিউ' : 'Views'}</span>
+                        </div>
+                    </div>
+                </div>
+                <div className="h-48 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                            <defs>
+                                <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                            <XAxis 
+                                dataKey="name" 
+                                axisLine={false} 
+                                tickLine={false} 
+                                tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} 
+                            />
+                            <YAxis 
+                                axisLine={false} 
+                                tickLine={false} 
+                                tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} 
+                            />
+                            <Tooltip 
+                                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
+                            />
+                            <Area 
+                                type="monotone" 
+                                dataKey="views" 
+                                stroke="#3b82f6" 
+                                strokeWidth={3}
+                                fillOpacity={1} 
+                                fill="url(#colorViews)" 
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {/* 3. Audience Retention */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-2xl shadow-sm">
+                    <div className="flex items-center gap-4 mb-6">
+                        <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
+                            <Clock className="w-6 h-6 text-blue-500" />
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                                {language === 'bn' ? 'অডিয়েন্স রিটেনশন' : 'Audience Retention'}
+                            </h3>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                                {language === 'bn' ? 'ওয়াচ টাইম রিপোর্ট' : 'Watch time report'}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                            <span className="text-xs font-bold text-slate-500">{language === 'bn' ? 'গড় ওয়াচ টাইম' : 'Avg. Watch Time'}</span>
+                            <span className="text-sm font-black text-slate-900 dark:text-white">0:45s</span>
+                        </div>
+                        <div className="relative h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                            <motion.div 
+                                initial={{ width: 0 }}
+                                animate={{ width: '65%' }}
+                                transition={{ duration: 1, ease: "easeOut" }}
+                                className="absolute top-0 left-0 h-full bg-blue-500 rounded-full"
+                            />
+                        </div>
+                        <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                            <span>0%</span>
+                            <span>{language === 'bn' ? '৬৫% মানুষ পুরোটা দেখেছে' : '65% watched full'}</span>
+                            <span>100%</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 4. Performance Comparison */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-2xl shadow-sm flex flex-col justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center">
+                            <BarChart3 className="w-6 h-6 text-emerald-500" />
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                                {language === 'bn' ? 'পারফরম্যান্স ইনসাইটস' : 'Performance Insights'}
+                            </h3>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                                {language === 'bn' ? 'রিয়েল-টাইম স্ট্যাটাস' : 'Real-time status'}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div className="mt-6 flex items-end gap-3">
+                        <div className="bg-emerald-50 dark:bg-emerald-500/10 px-4 py-2 rounded-xl flex items-center gap-2">
+                            <ChevronUp className="w-4 h-4 text-emerald-500" />
+                            <span className="text-lg font-black text-emerald-500">20%</span>
+                        </div>
+                        <p className="text-xs font-semibold text-slate-500 leading-tight mb-1">
+                            {language === 'bn' 
+                                ? 'এটি আপনার অন্যান্য ভিডিওর চেয়ে ২০% ভাল পারফর্ম করছে।' 
+                                : 'It is performing 20% better than your other videos.'}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Bottom Tip Card */}
+            <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-6 rounded-2xl text-white overflow-hidden relative group">
+                <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
+                    <Zap className="w-32 h-32" />
+                </div>
+                <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center shrink-0">
+                        <Star className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                        <h4 className="text-sm font-bold mb-1">{language === 'bn' ? 'সফলতার টিপস' : 'Success Tip'}</h4>
+                        <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                            {stats.totalViews > 1000 
+                                ? (language === 'bn' ? 'আপনার ভিডিওগুলো সবার হৃদয়ে জায়গা করে নিচ্ছে! নিয়মিত ভিডিও শেয়ার করুন।' : 'Your videos are finding a place in hearts! Keep sharing regularly.') 
+                                : (language === 'bn' ? 'বেশি ভিউ এবং ফলোয়ার পেতে নিয়মিত এবং কোয়ালিটি ভিডিও আপলোড করুন।' : 'Upload regular and quality videos to gain more views and followers.')}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </motion.div>
+    );
+};
+
 const PostCard = ({ post }: { post: any }) => {
     const { language } = useLanguage();
     const [isLiked, setIsLiked] = useState(false);
@@ -477,6 +803,7 @@ const PostCard = ({ post }: { post: any }) => {
         let unsubscribe = () => {};
         if (auth.currentUser) {
             const checkLike = async () => {
+                if (!post.id) return;
                 try {
                     const { doc, onSnapshot } = await import("firebase/firestore");
                     const userLikeRef = doc(db, `posts/${post.id}/likes`, auth.currentUser!.uid);
@@ -517,8 +844,8 @@ const PostCard = ({ post }: { post: any }) => {
     }
 
     const handleLike = async () => {
-        if (!auth.currentUser) {
-            alert(language === 'bn' ? 'লগইন করুন' : 'Please login');
+        if (!auth.currentUser || !post.id) {
+            if (!auth.currentUser) alert(language === 'bn' ? 'লগইন করুন' : 'Please login');
             return;
         }
 
@@ -594,6 +921,7 @@ const PostCard = ({ post }: { post: any }) => {
     };
 
     const handleDeleteConfirm = async () => {
+        if (!post.id) return;
         setIsDeletingModalOpen(false);
         try {
             const { deleteDoc } = await import("firebase/firestore");
@@ -605,7 +933,7 @@ const PostCard = ({ post }: { post: any }) => {
     };
 
     const handleEditSave = async () => {
-        if (!editContent.trim()) return;
+        if (!editContent.trim() || !post.id) return;
         try {
             const { updateDoc } = await import("firebase/firestore");
             await updateDoc(doc(db, "posts", post.id), {
@@ -760,25 +1088,23 @@ const PostCard = ({ post }: { post: any }) => {
 
             {/* Media Area */}
             {fallbackFileId && (
-                <div className="bg-white dark:bg-slate-900 border-y border-slate-50 dark:border-slate-800 relative group flex items-center justify-center overflow-hidden min-h-[200px]">
+                <div className="bg-white dark:bg-slate-900 border-y border-slate-50 dark:border-slate-800 relative group flex items-center justify-center overflow-hidden min-h-[220px]">
                     {fallbackType === 'video' ? (
                         <>
                             {isVideoLoading && (
-                                <div className="absolute inset-0 flex items-center justify-center bg-white dark:bg-slate-900 z-10">
-                                    <div className="w-8 h-8 relative">
-                                        <div className="absolute inset-0 rounded-full border-2 border-slate-200 dark:border-slate-800"></div>
-                                        <div className="absolute inset-0 rounded-full border-2 border-blue-500 border-t-transparent animate-spin"></div>
-                                    </div>
+                                <div className="absolute inset-0 z-10 bg-slate-200/80 dark:bg-slate-800/80 shimmer">
                                 </div>
                             )}
                             <video 
                                 ref={videoRef}
                                 controls 
-                                preload="metadata"
+                                preload="auto"
                                 playsInline
-                                onCanPlay={() => setIsVideoLoading(false)}
+                                onLoadedData={() => setIsVideoLoading(false)}
+                                onWaiting={() => setIsVideoLoading(true)}
+                                onPlaying={() => setIsVideoLoading(false)}
                                 className={cn(
-                                    "w-full object-contain transition-opacity duration-300",
+                                    "w-full object-contain transition-opacity duration-500",
                                     isVideoLoading ? "opacity-0" : "opacity-100"
                                 )}
                             >
@@ -908,12 +1234,203 @@ const PostCard = ({ post }: { post: any }) => {
     );
 };
 
+const ProfileView = () => {
+    const { language } = useLanguage();
+    const [stats, setStats] = useState({
+        totalPosts: 0,
+        totalLikes: 0,
+        followers: 0,
+        following: 0
+    });
+    const [posts, setPosts] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [currentUserAvatar, setCurrentUserAvatar] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!auth.currentUser) return;
+        
+        setIsLoading(true);
+        
+        // Fetch User Data for avatar
+        const fetchUserDoc = async () => {
+            try {
+                const { doc, getDoc } = await import("firebase/firestore");
+                const userDoc = await getDoc(doc(db, "users", auth.currentUser!.uid));
+                if (userDoc.exists()) {
+                    const data = userDoc.data();
+                    if (data.photoUrl || data.photoURL) {
+                        setCurrentUserAvatar(data.photoUrl || data.photoURL);
+                    }
+                }
+            } catch (e) {
+                console.error("Error fetching user data:", e);
+            }
+        };
+        fetchUserDoc();
+
+        // Fetch User Posts
+        const q = query(
+            collection(db, "posts"), 
+            where("authorUid", "==", auth.currentUser.uid)
+        );
+
+        const unsubscribePosts = onSnapshot(q, async (snapshot) => {
+            const postsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            // Sort client-side to avoid needing a composite index
+            postsData.sort((a: any, b: any) => {
+                const timeA = a.createdAt?.seconds || 0;
+                const timeB = b.createdAt?.seconds || 0;
+                return timeB - timeA;
+            });
+
+            setPosts(postsData);
+            
+            let likes = 0;
+            postsData.forEach((p: any) => {
+                likes += (p.reactionsCount || p.likes || 0);
+            });
+
+            // Fetch followers and following
+            const { getCountFromServer, collection, query, where } = await import("firebase/firestore");
+            const followersQuery = query(collection(db, 'follows'), where('following_id', '==', auth.currentUser!.uid));
+            const followingQuery = query(collection(db, 'follows'), where('follower_id', '==', auth.currentUser!.uid));
+            
+            const [followersSnapshot, followingSnapshot] = await Promise.all([
+                getCountFromServer(followersQuery),
+                getCountFromServer(followingQuery)
+            ]);
+
+            setStats({
+                totalPosts: snapshot.size,
+                totalLikes: likes,
+                followers: followersSnapshot.data().count,
+                following: followingSnapshot.data().count
+            });
+            setIsLoading(false);
+        });
+
+        return () => unsubscribePosts();
+    }, []);
+
+    if (isLoading) return (
+        <div className="p-6 space-y-6">
+            <div className="h-44 bg-slate-100 dark:bg-slate-800 rounded-2xl animate-pulse" />
+            <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                    <PostSkeleton key={i} />
+                ))}
+            </div>
+        </div>
+    );
+
+    return (
+        <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="pb-20"
+        >
+            {/* Profile Header Card */}
+            <div className="p-4 sm:p-6">
+                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm relative overflow-hidden group">
+                    {/* Background Decorative Element */}
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-700" />
+                    
+                    <div className="flex flex-col items-center text-center">
+                        <div className="w-24 h-24 rounded-full p-1 bg-gradient-to-tr from-blue-500 to-indigo-600 mb-4 shadow-lg active:scale-95 transition-transform">
+                            <div className="w-full h-full rounded-full bg-white dark:bg-slate-900 p-1">
+                                {currentUserAvatar || auth.currentUser?.photoURL ? (
+                                    <img 
+                                        src={currentUserAvatar || auth.currentUser?.photoURL || ""} 
+                                        alt="Avatar" 
+                                        referrerPolicy="no-referrer"
+                                        className="w-full h-full rounded-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                                        <User className="w-10 h-10" />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        
+                        <h2 className="text-xl font-black text-slate-800 dark:text-white mb-1">
+                            {auth.currentUser?.displayName || (language === 'bn' ? 'ইউজার' : 'User')}
+                        </h2>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6 px-4 py-1 bg-slate-50 dark:bg-slate-800 rounded-full">
+                            {auth.currentUser?.email}
+                        </p>
+                        
+                        <div className="grid grid-cols-3 gap-8 w-full max-w-xs">
+                            <div className="flex flex-col items-center">
+                                <span className="text-lg font-black text-slate-800 dark:text-white leading-tight">
+                                    {formatCount(stats.totalPosts)}
+                                </span>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                    {language === 'bn' ? 'পোস্ট' : 'Posts'}
+                                </span>
+                            </div>
+                            <div className="flex flex-col items-center border-x border-slate-100 dark:border-slate-800 px-4">
+                                <span className="text-lg font-black text-slate-800 dark:text-white leading-tight">
+                                    {formatCount(stats.followers)}
+                                </span>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">
+                                    {language === 'bn' ? 'ফলোয়ার' : 'Followers'}
+                                </span>
+                            </div>
+                            <div className="flex flex-col items-center">
+                                <span className="text-lg font-black text-slate-800 dark:text-white leading-tight">
+                                    {formatCount(stats.following)}
+                                </span>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                    {language === 'bn' ? 'ফলোইং' : 'Following'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Section Divider */}
+            <div className="px-6 pb-2">
+                <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                    <LayoutGrid className="w-4 h-4 text-blue-500" />
+                    {language === 'bn' ? 'আপনার পোস্টসমূহ' : 'Your Posts'}
+                </h3>
+            </div>
+
+            {/* Posts Feed for Profile */}
+            <div className="flex flex-col">
+                <AnimatePresence initial={false}>
+                    {posts.length > 0 ? (
+                        posts.map(post => (
+                            <div key={post.id} className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 overflow-hidden">
+                                <PostCard post={post} />
+                            </div>
+                        ))
+                    ) : (
+                        <div className="p-12 text-center bg-white dark:bg-slate-900 border-y border-slate-100 dark:border-slate-800">
+                            <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Video className="w-8 h-8 text-slate-300" />
+                            </div>
+                            <p className="text-sm font-bold text-slate-400">
+                                {language === 'bn' ? 'কোন পোস্ট পাওয়া যায়নি' : 'No posts found'}
+                            </p>
+                        </div>
+                    )}
+                </AnimatePresence>
+            </div>
+        </motion.div>
+    );
+};
+
 export const ToolsView = () => {
     const { language } = useLanguage();
+    const [activeTab, setActiveTab] = useState<'feed' | 'analytics' | 'tools' | 'profile'>('feed');
     const [activeToolId, setActiveToolId] = useState<string | null>(null);
-    const [showAllTools, setShowAllTools] = useState(false);
     const [isPostingOpen, setIsPostingOpen] = useState(false);
     const [posts, setPosts] = useState<any[]>([]);
+    const [isPostsLoading, setIsPostsLoading] = useState(true);
     const [isScrolled, setIsScrolled] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [currentUserAvatar, setCurrentUserAvatar] = useState<string | null>(null);
@@ -952,14 +1469,17 @@ export const ToolsView = () => {
 
     // Fetch Posts
     useEffect(() => {
+        setIsPostsLoading(true);
         const q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(20));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const postsData = snapshot.docs
                 .map(doc => ({ id: doc.id, ...doc.data() }))
                 .filter((p: any) => p.status === 'approved' || !p.status); // Fallback for older posts without status
             setPosts(postsData);
+            setIsPostsLoading(false);
         }, (error) => {
             console.error("Firestore Error Fetching Posts:", error);
+            setIsPostsLoading(false);
             // Optionally could handle the UI error feedback here
         });
         return () => unsubscribe();
@@ -967,7 +1487,7 @@ export const ToolsView = () => {
 
     // Handle visibility of App Navigation
     useEffect(() => {
-        if (isPostingOpen || showAllTools || activeToolId || isSidebarOpen) {
+        if (isPostingOpen || activeToolId || isSidebarOpen) {
             window.dispatchEvent(new CustomEvent("hide-nav", { detail: true }));
         } else {
             window.dispatchEvent(new CustomEvent("hide-nav", { detail: false }));
@@ -976,15 +1496,13 @@ export const ToolsView = () => {
         return () => {
             window.dispatchEvent(new CustomEvent("hide-nav", { detail: false }));
         };
-    }, [isPostingOpen, showAllTools, activeToolId, isSidebarOpen]);
+    }, [isPostingOpen, activeToolId, isSidebarOpen]);
 
     // Handle hardware back button
   useEffect(() => {
     const handlePopState = () => {
       if (activeToolId !== null) {
         setActiveToolId(null);
-      } else if (showAllTools) {
-        setShowAllTools(false);
       } else if (isPostingOpen) {
         setIsPostingOpen(false);
       } else if (isSidebarOpen) {
@@ -994,7 +1512,7 @@ export const ToolsView = () => {
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [activeToolId, showAllTools, isPostingOpen, isSidebarOpen]);
+  }, [activeToolId, isPostingOpen, isSidebarOpen]);
 
   const handleOpenSidebar = () => {
     window.history.pushState({ view: 'sidebar' }, "");
@@ -1019,8 +1537,7 @@ export const ToolsView = () => {
   };
 
   const handleSeeAll = () => {
-    window.history.pushState({ view: "all-tools" }, "");
-    setShowAllTools(true);
+    setActiveTab('tools');
   };
 
   const handleShowAllBack = () => {
@@ -1031,11 +1548,14 @@ export const ToolsView = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 relative">
+      {/* 1. Fake Status Bar Header */}
+      <div className="fixed top-0 inset-x-0 h-safe bg-white dark:bg-slate-900 z-[200]" />
+
       {/* 2. Scroll Header (Appears on scroll) */}
       <div 
         className={cn(
             "fixed top-0 pt-safe inset-x-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 shadow-sm z-[150] transition-transform duration-300",
-            (isScrolled && !activeToolId && !showAllTools) ? "translate-y-0" : "-translate-y-[150%]"
+            (isScrolled && !activeToolId) ? "translate-y-0" : "-translate-y-[150%]"
         )}
       >
         <div className="w-full px-6 pb-3 pt-2 flex items-center gap-4">
@@ -1053,33 +1573,119 @@ export const ToolsView = () => {
 
       {/* 3. Main Header - Fixed if tool is open, otherwise scrolls with content */}
       <header className={cn(
-        "w-full bg-white dark:bg-slate-900 px-6 pt-safe flex items-center gap-4 transition-all z-[140]",
-        (activeToolId || showAllTools)
-          ? "fixed top-0 inset-x-0 pb-3 pt-safe shadow-sm border-b border-slate-100 dark:border-slate-800 z-[170]"
-          : "relative pb-6 border-b border-slate-100 dark:border-slate-800"
+        "w-full bg-white dark:bg-slate-900 transition-all z-[140]",
+        (activeToolId)
+          ? "fixed top-0 inset-x-0 pb-3 pt-safe shadow-sm border-b border-slate-100 dark:border-slate-800 z-[170] px-6"
+          : "relative border-b border-slate-100 dark:border-slate-800"
       )}>
-        <button 
-          onClick={() => {
-            if (activeToolId) {
-              handleCloseTool();
-            } else if (showAllTools) {
-              handleShowAllBack();
-            } else {
-              handleOpenSidebar();
-            }
-          }}
-          className="w-11 h-11 flex-shrink-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-900 dark:text-white"
-        >
-          {activeToolId || showAllTools ? <ArrowLeft className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
-        <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight truncate flex-1">
-          {activeToolId 
-            ? SOCIAL_TOOLS.find(t => t.id === activeToolId)?.title[language === 'bn' ? 'bn' : 'en'] 
-            : showAllTools
-              ? (language === 'bn' ? 'সকল টুলস' : 'All Tools')
-              : (language === 'bn' ? 'মুসলিম সোশ্যাল' : 'Muslim Social')}
-        </h1>
+        {!activeToolId ? (
+            <div className="flex flex-col w-full">
+                {/* Top Row: Brand and Menu */}
+                <div className="flex items-center justify-between px-6 pt-4 pb-2">
+                    <h1 className="text-2xl font-black text-blue-600 dark:text-blue-500 tracking-tighter">
+                      {language === 'bn' ? 'মুসলিম সোশ্যাল' : 'Muslim Social'}
+                    </h1>
+                    
+                    <div className="flex items-center gap-1">
+                        <button className="w-10 h-10 flex items-center justify-center text-slate-900 dark:text-white transition-colors hover:text-blue-600">
+                            <Search className="w-6 h-6" />
+                        </button>
+                        <button 
+                            onClick={handleOpenSidebar}
+                            className="w-10 h-10 flex items-center justify-center text-slate-900 dark:text-white transition-colors hover:text-blue-600"
+                        >
+                            <Menu className="w-6 h-6" />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Bottom Row: Navigation Tabs */}
+                <div className="flex items-center justify-around w-full mt-1">
+                    <button 
+                        onClick={() => setActiveTab('feed')}
+                        className="flex-1 flex flex-col items-center py-2 relative"
+                    >
+                        <Home className={cn(
+                            "w-[22px] h-[22px] transition-colors", 
+                            activeTab === 'feed' ? "text-blue-600 dark:text-blue-400" : "text-slate-400"
+                        )} />
+                        {activeTab === 'feed' && (
+                            <motion.div layoutId="tabUnderline" className="absolute bottom-0 h-[3px] w-full bg-blue-600 rounded-t-full" />
+                        )}
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('analytics')}
+                        className="flex-1 flex flex-col items-center py-2 relative"
+                    >
+                        <Activity className={cn(
+                            "w-[22px] h-[22px] transition-colors", 
+                            activeTab === 'analytics' ? "text-blue-600 dark:text-blue-400" : "text-slate-400"
+                        )} />
+                        {activeTab === 'analytics' && (
+                            <motion.div layoutId="tabUnderline" className="absolute bottom-0 h-[3px] w-full bg-blue-600 rounded-t-full" />
+                        )}
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('tools')}
+                        className="flex-1 flex flex-col items-center py-2 relative"
+                    >
+                        <LayoutGrid className={cn(
+                            "w-[22px] h-[22px] transition-colors", 
+                            activeTab === 'tools' ? "text-blue-600 dark:text-blue-400" : "text-slate-400"
+                        )} />
+                        {activeTab === 'tools' && (
+                            <motion.div layoutId="tabUnderline" className="absolute bottom-0 h-[3px] w-full bg-blue-600 rounded-t-full" />
+                        )}
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('profile')}
+                        className="flex-1 flex flex-col items-center py-2 relative"
+                    >
+                        <User className={cn(
+                            "w-[22px] h-[22px] transition-colors", 
+                            activeTab === 'profile' ? "text-blue-600 dark:text-blue-400" : "text-slate-400"
+                        )} />
+                        {activeTab === 'profile' && (
+                            <motion.div layoutId="tabUnderline" className="absolute bottom-0 h-[3px] w-full bg-blue-600 rounded-t-full" />
+                        )}
+                    </button>
+                </div>
+            </div>
+        ) : (
+            <div className="flex items-center gap-3 w-full h-14">
+                <button 
+                  onClick={() => {
+                    if (activeToolId) {
+                      handleCloseTool();
+                    }
+                  }}
+                  className="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-900 dark:text-white"
+                >
+                  <ArrowLeft className="w-6 h-6" />
+                </button>
+                <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight truncate flex-1 leading-none">
+                  {SOCIAL_TOOLS.find(t => t.id === activeToolId)?.title[language === 'bn' ? 'bn' : 'en']}
+                </h1>
+            </div>
+        )}
       </header>
+
+      <AnimatePresence mode="wait">
+        {isPostsLoading && (
+            <motion.div 
+                initial={{ opacity: 1 }}
+                exit={{ opacity: 0, scaleX: 1, transition: { duration: 0.2 } }}
+                className="fixed top-0 inset-x-0 h-1 z-[200] origin-left bg-blue-100"
+            >
+                <motion.div 
+                    className="h-full bg-blue-600"
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: [0, 0.3, 0.6, 0.85] }}
+                    transition={{ duration: 2, times: [0, 0.3, 0.6, 1], ease: "easeOut" }}
+                />
+            </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence mode="wait">
         {activeToolId === "yt-thumbnail" ? (
@@ -1487,30 +2093,35 @@ export const ToolsView = () => {
             className="min-h-screen bg-slate-50 dark:bg-slate-950"
           >
             <div className="min-h-screen flex flex-col w-full mx-auto max-w-2xl">
-                {/* Tools Grid Area - Tightened */}
-                <div className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 p-5 mt-0">
-                    <div className="grid grid-cols-4 gap-x-2 gap-y-4">
-                        {previewTools.map((tool) => (
-                            <button
-                                key={tool.id}
-                                onClick={() => handleOpenTool(tool.id)}
-                                className="flex flex-col items-center gap-1.5 group"
-                            >
-                                <div className={cn(
-                                    "w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300",
-                                    "shadow-sm group-hover:scale-110 active:scale-95",
-                                    tool.bg
-                                )}>
-                                    <tool.icon className="w-5 h-5 text-white" />
-                                </div>
-                                <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 text-center leading-tight truncate w-full px-0.5">
-                                    {language === "bn" ? tool.title.bn : tool.title.en}
-                                </span>
-                            </button>
-                        ))}
+                {activeTab === 'analytics' && !activeToolId ? (
+                    <AnalyticsDashboard />
+                ) : activeTab === 'profile' && !activeToolId ? (
+                    <ProfileView />
+                ) : activeTab === 'tools' && !activeToolId ? (
+                    <div className="flex-1 overflow-y-auto p-4 pb-32">
+                        <div className="grid grid-cols-4 gap-x-2 gap-y-4">
+                            {SOCIAL_TOOLS.map((tool) => (
+                                <button
+                                    key={tool.id}
+                                    onClick={() => handleOpenTool(tool.id)}
+                                    className="relative flex flex-col items-center gap-1.5 group"
+                                >
+                                    <div className={cn(
+                                        "w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm",
+                                        tool.bg,
+                                        "group-hover:scale-110 active:scale-95"
+                                    )}>
+                                        <tool.icon className="w-5 h-5 text-white" />
+                                    </div>
+                                    <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 text-center leading-tight truncate w-full px-0.5">
+                                        {language === "bn" ? tool.title.bn : tool.title.en}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                </div>
-
+                ) : (
+                    <>
                 {/* Attached "What's on your mind?" - Attached directly with border-t */}
                 <div className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 p-4">
                     <button 
@@ -1545,8 +2156,14 @@ export const ToolsView = () => {
 
                 {/* Posts Feed Section - Attached Directly without top-margin */}
                 <div className="pb-0 flex flex-col">
-                    <AnimatePresence>
-                        {posts.length > 0 ? (
+                    <AnimatePresence initial={false}>
+                        {isPostsLoading ? (
+                            <div className="space-y-0">
+                                <PostSkeleton />
+                                <PostSkeleton />
+                                <PostSkeleton />
+                            </div>
+                        ) : posts.length > 0 ? (
                             posts.map(post => (
                                 <div key={post.id} className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 overflow-hidden">
                                     <PostCard post={post} />
@@ -1571,6 +2188,8 @@ export const ToolsView = () => {
                         )}
                     </AnimatePresence>
                 </div>
+                </>
+                )}
             </div>
           </motion.div>
         )}
@@ -1585,46 +2204,6 @@ export const ToolsView = () => {
           )}
       </AnimatePresence>
 
-      {/* Full Tools Grid Overlay (The "See All" Page) */}
-      <AnimatePresence>
-          {showAllTools && (
-              <motion.div
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                exit={{ y: "100%" }}
-                transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                className="fixed inset-0 z-[80] bg-slate-50 dark:bg-slate-950 flex flex-col h-full pt-24"
-              >
-                  <div className="flex-1 overflow-y-auto p-4 pb-32">
-                    <div className="grid grid-cols-4 gap-x-2 gap-y-4">
-                        {SOCIAL_TOOLS.map((tool) => (
-                            <button
-                                key={tool.id}
-                                onClick={() => handleOpenTool(tool.id)}
-                                className="relative flex flex-col items-center gap-1.5 group"
-                            >
-                                <div className={cn(
-                                    "w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm",
-                                    tool.bg,
-                                    "group-hover:scale-110 active:scale-95"
-                                )}>
-                                    <tool.icon className="w-5 h-5 text-white" />
-                                </div>
-                                <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 text-center leading-tight truncate w-full px-0.5">
-                                    {language === "bn" ? tool.title.bn : tool.title.en}
-                                </span>
-                                {tool.comingSoon && (
-                                    <span className="absolute top-0 right-0 bg-amber-500 text-white text-[7px] font-black px-1 py-0.5 rounded-full uppercase scale-75">
-                                        Soon
-                                    </span>
-                                )}
-                            </button>
-                        ))}
-                    </div>
-                  </div>
-              </motion.div>
-          )}
-      </AnimatePresence>
       {/* Sidebar Overlay */}
       <AnimatePresence>
         {isSidebarOpen && (

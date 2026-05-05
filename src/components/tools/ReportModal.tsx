@@ -61,7 +61,7 @@ export const ReportModal = ({ post, onClose }: ReportModalProps) => {
   const [isSuccess, setIsSuccess] = useState(false);
 
   const handleSubmitReport = async () => {
-    if (!selectedReason || !auth.currentUser) return;
+    if (!selectedReason || !auth.currentUser || !post.id) return;
     setIsSubmitting(true);
 
     try {

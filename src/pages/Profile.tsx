@@ -4,8 +4,11 @@ import {
   Calendar, Award, Flame, BookOpen, Heart, MessageSquare, ShoppingBag,
   Lock, Trash2, Globe, Edit3, CheckCircle2, Star, Bookmark, BookmarkCheck, Clock,
   Trophy, Zap, Hash, CircleDot, Sparkles, LogIn, X, MapPin, Search, Loader2,
-  ArrowLeft, Send, Droplets, Bed, HeartHandshake
+  ArrowLeft, Send, Droplets, Bed, HeartHandshake, Camera
 } from 'lucide-react';
+import Cropper from 'react-easy-crop';
+import { getCroppedImg } from '@/lib/imageUtils';
+import axios from 'axios';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { format, subDays, isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, startOfMonth, endOfMonth, isSameMonth, subMonths } from 'date-fns';
@@ -51,6 +54,73 @@ import { LanguageSelectionView } from './features/LanguageSelectionView';
 
 import { getFriendlyErrorMessage } from '@/lib/errorUtils';
 import { checkAndRegisterDevice } from '../lib/device';
+import { updateProfile } from 'firebase/auth';
+
+interface CropModalProps {
+  image: string;
+  onClose: () => void;
+  onCrop: (croppedBlob: Blob) => void;
+}
+
+function CropModal({ image, onClose, onCrop }: CropModalProps) {
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+
+  const onCropComplete = (_croppedArea: any, croppedAreaPixels: any) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  };
+
+  const handleSave = async () => {
+    try {
+      const croppedBlob = await getCroppedImg(image, croppedAreaPixels);
+      if (croppedBlob) {
+        onCrop(croppedBlob);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] bg-black flex flex-col">
+      <div className="flex justify-between items-center p-4 text-white">
+        <button onClick={onClose} className="p-2 bg-white/10 rounded-full">
+          <X className="w-6 h-6" />
+        </button>
+        <h3 className="font-bold">Crop Photo</h3>
+        <button onClick={handleSave} className="px-6 py-2 bg-primary rounded-full font-bold">
+          Save
+        </button>
+      </div>
+      <div className="flex-1 relative bg-black">
+        <Cropper
+          image={image}
+          crop={crop}
+          zoom={zoom}
+          aspect={1}
+          onCropChange={setCrop}
+          onCropComplete={onCropComplete}
+          onZoomChange={setZoom}
+          cropShape="round"
+          showGrid={false}
+        />
+      </div>
+      <div className="p-8 bg-slate-900/50 backdrop-blur-sm">
+        <input
+          type="range"
+          value={zoom}
+          min={1}
+          max={3}
+          step={0.1}
+          aria-labelledby="Zoom"
+          onChange={(e) => setZoom(Number(e.target.value))}
+          className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-primary"
+        />
+      </div>
+    </div>
+  );
+}
 
 export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) {
   const [user, setUser] = useState<any>(null);
@@ -85,6 +155,11 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
   const { latitude, longitude, country, city: userLocation, loading: locLoading } = useLocation(language);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [isVerified, setIsVerified] = useState<boolean | undefined>(undefined);
+  
+  // Profile Photo Upload State
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Fetch Verification Status
   useEffect(() => {
@@ -439,6 +514,56 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
 
   const handleLogout = async () => {
     await signOut(auth);
+  };
+
+  const handlePhotoUpload = async (croppedBlob: Blob) => {
+    if (!user) return;
+    setIsUploadingPhoto(true);
+    setSelectedImage(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', croppedBlob, 'profile-photo.jpg');
+
+      const response = await axios.post('/api/telegram/upload', formData, {
+        params: { type: 'photo' },
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (response.data && response.data.fileUrl) {
+        const photoURL = response.data.fileUrl;
+
+        // Update Firebase Auth
+        await updateProfile(user, { photoURL });
+
+        // Update Firestore
+        await updateDoc(doc(db, 'users', user.uid), {
+          photoURL,
+          updatedAt: serverTimestamp()
+        });
+
+        // Locally update state to force refresh
+        setUser({ ...user, photoURL });
+        alert(globalT('profile-updated' as any) || "Profile photo updated!");
+      }
+    } catch (error) {
+      console.error("Error uploading photo:", error);
+      alert("Failed to upload photo. Please try again.");
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const imageDataUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+      setSelectedImage(imageDataUrl);
+    }
   };
 
   const calculateNewBadges = (data: Record<string, any>, existing: string[]) => {
@@ -989,9 +1114,11 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
         {/* Content Card - Compact */}
         <div className="px-4 -mt-12 relative z-10 flex flex-col items-center">
           {/* Avatar Circle - Larger */}
-          <div className="w-24 h-24 bg-[#F5F7F5] dark:bg-slate-900 rounded-full flex items-center justify-center">
-            <div className="w-20 h-20 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center shadow-sm overflow-hidden">
-              {!user ? (
+          <div className="w-24 h-24 bg-[#F5F7F5] dark:bg-slate-900 rounded-full flex items-center justify-center relative">
+            <div className="w-20 h-20 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center shadow-sm overflow-hidden border-2 border-white dark:border-slate-800">
+              {isUploadingPhoto ? (
+                <Loader2 className="w-8 h-8 text-primary animate-spin" />
+              ) : !user ? (
                 <User className="w-10 h-10 text-slate-400" />
               ) : user.photoURL ? (
                 <img 
@@ -1006,6 +1133,25 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
                 </div>
               )}
             </div>
+
+            {/* Camera Icon Overlay */}
+            {user && (
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute -bottom-1 -right-1 p-2 bg-primary hover:bg-primary-dark text-white rounded-full shadow-lg border-2 border-white dark:border-slate-900 transition-all active:scale-90"
+              >
+                <Camera className="w-4 h-4" />
+              </button>
+            )}
+
+            {/* Hidden File Input */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={onFileChange}
+              accept="image/*"
+              className="hidden"
+            />
           </div>
 
           {/* Text - Compact */}
@@ -1038,6 +1184,13 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
       </div>
 
       <div className="px-4 py-6 space-y-3 max-w-2xl mx-auto">
+          {selectedImage && (
+            <CropModal
+              image={selectedImage}
+              onClose={() => setSelectedImage(null)}
+              onCrop={handlePhotoUpload}
+            />
+          )}
           {errorMsg && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
               <strong className="font-bold">Error: </strong>

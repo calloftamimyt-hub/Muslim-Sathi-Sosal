@@ -832,6 +832,10 @@ export function Home({
   if (locLoading || prayerLoading) {
     return (
       <div className="bg-slate-50 dark:bg-slate-950 pb-8 font-sans min-h-[100dvh]">
+        {/* Top Progress Bar */}
+        <div className="fixed top-0 inset-x-0 h-1 z-[200] origin-left bg-primary/20">
+            <div className="h-full w-full bg-primary origin-left animate-[youtubeLoad_2s_ease-out_forwards]" />
+        </div>
         {/* Skeleton Hero Section */}
         <div className="relative bg-white dark:bg-slate-900 px-4 pt-safe pb-10 rounded-xl shadow-sm border-b border-slate-100 dark:border-slate-800 overflow-hidden">
           <div className="flex justify-between items-start mb-3">
@@ -965,6 +969,9 @@ export function Home({
 
   return (
     <div className="relative isolate min-h-[100dvh] bg-slate-50 dark:bg-slate-950 font-sans flex flex-col">
+      {/* Fake Status Bar Header */}
+      <div className="fixed top-0 inset-x-0 h-safe bg-white dark:bg-slate-900 z-[200]" />
+
       {/* Top Background Bleed (Hero Color) */}
       <div className="absolute top-0 left-0 right-0 h-[400px] bg-white dark:bg-slate-900 pointer-events-none overflow-hidden -z-10">
         {/* Soft Ambient Glows for White Theme */}
