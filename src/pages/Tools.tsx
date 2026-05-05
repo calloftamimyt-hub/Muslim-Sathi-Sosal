@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Film, 
@@ -88,6 +88,10 @@ import {
   LayoutGrid,
   ShieldAlert,
   ChevronRight,
+  Plus,
+  SquarePen,
+  BookOpen,
+  Clapperboard,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { cn, getApiUrl } from "@/lib/utils";
@@ -1427,6 +1431,23 @@ const ProfileView = () => {
     );
 };
 
+const MediaPreview = ({ file }: { file: File }) => {
+    const [preview, setPreview] = React.useState<string | null>(null);
+
+    React.useEffect(() => {
+        if (!file.type.startsWith('image/')) return;
+        const url = URL.createObjectURL(file);
+        setPreview(url);
+        return () => URL.revokeObjectURL(url);
+    }, [file]);
+
+    if (file.type.startsWith('image/') && preview) {
+        return <img src={preview} className="w-full h-full object-cover" alt="Preview" />;
+    }
+
+    return <Video className="w-8 h-8 text-slate-300" />;
+};
+
 export const ToolsView = () => {
     const { language } = useLanguage();
     const [activeTab, setActiveTab] = useState<'feed' | 'analytics' | 'tools' | 'profile' | 'search'>('feed');
@@ -1435,9 +1456,40 @@ export const ToolsView = () => {
     const [posts, setPosts] = useState<any[]>([]);
     const [isPostsLoading, setIsPostsLoading] = useState(true);
     const [isScrolled, setIsScrolled] = useState(false);
+    const [isHeaderVisible, setIsHeaderVisible] = useState(true);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [currentUserAvatar, setCurrentUserAvatar] = useState<string | null>(null);
     const [selectedCategory, setSelectedCategory] = useState('all');
+    const [isUploadSheetOpen, setIsUploadSheetOpen] = useState(false);
+    
+    // Video Workflow state
+    const [editingVideoFile, setEditingVideoFile] = useState<File | null>(null);
+    const [uploadDetails, setUploadDetails] = useState<{file: File, title: string, category: string} | null>(null);
+    
+    const photoInputRef = useRef<HTMLInputElement>(null);
+    const videoInputRef = useRef<HTMLInputElement>(null);
+    const cameraInputRef = useRef<HTMLInputElement>(null);
+    const lastScrollY = useRef(0);
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'photo' | 'video' | 'camera') => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (type === 'video' || type === 'camera') {
+                setEditingVideoFile(file);
+                setIsUploadSheetOpen(false);
+            } else {
+                // PHOTO: Go directly to upload details
+                setUploadDetails({ file, title: '', category: 'all' });
+                setIsUploadSheetOpen(false);
+            }
+        }
+    };
+
+    useEffect(() => {
+        // Toggle global navigation visibility when upload sheet is open
+        const event = new CustomEvent('set-nav-visibility', { detail: !isUploadSheetOpen });
+        window.dispatchEvent(event);
+    }, [isUploadSheetOpen]);
 
     const categories = [
         { id: 'all', label: { bn: 'সব', en: 'All' } },
@@ -1474,12 +1526,28 @@ export const ToolsView = () => {
     }, [auth.currentUser]);
 
     useEffect(() => {
+        const mainElement = document.querySelector('main');
+        if (!mainElement) return;
+
         const handleScroll = () => {
-            setIsScrolled(window.scrollY > 20);
+            const currentY = mainElement.scrollTop;
+            setIsScrolled(currentY > 20);
+
+            if (activeToolId) {
+                setIsHeaderVisible(true);
+                return;
+            }
+
+            if (currentY > lastScrollY.current && currentY > 100) {
+                setIsHeaderVisible(false);
+            } else if (currentY < lastScrollY.current) {
+                setIsHeaderVisible(true);
+            }
+            lastScrollY.current = currentY;
         };
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
+        mainElement.addEventListener('scroll', handleScroll);
+        return () => mainElement.removeEventListener('scroll', handleScroll);
+    }, [activeToolId]);
 
     // Fetch Posts
     useEffect(() => {
@@ -1573,12 +1641,16 @@ export const ToolsView = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 relative">
-      {/* 1. Fake Status Bar Header */}
-      <div className="fixed top-0 inset-x-0 h-safe bg-white dark:bg-slate-900 z-[200]" />
+      {/* 1. Fake Status Bar Header - Persistent background that transitions to minimal state */}
+      <div className={cn(
+        "fixed top-0 inset-x-0 h-safe bg-white dark:bg-slate-900 z-[201] transition-all duration-300",
+        !isHeaderVisible ? "bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800" : "border-none"
+      )} />
 
       {/* 2. Main Header - Fixed at top */}
       <header className={cn(
-        "w-full bg-white dark:bg-slate-900 transition-all z-[140] fixed top-0 pt-safe",
+        "w-full bg-white dark:bg-slate-900 transition-all z-[140] fixed top-0 pt-safe duration-300",
+        !isHeaderVisible && "-translate-y-full",
         activeToolId 
           ? "inset-x-0 pb-3 shadow-sm border-b border-slate-100 dark:border-slate-800 z-[170] px-6" 
           : "border-b border-slate-100 dark:border-slate-800 shadow-sm"
@@ -1586,15 +1658,21 @@ export const ToolsView = () => {
         {!activeToolId ? (
             <div className="flex flex-col w-full">
                 {/* Top Row: Brand and Menu */}
-                <div className="flex items-center justify-between pl-4 pr-6 pt-2 pb-1">
+                <div className="flex items-center justify-between pl-4 pr-6 h-[44px]">
                     <h1 className="text-2xl font-black text-blue-600 dark:text-blue-500 tracking-tighter">
                       MuslimFeed
                     </h1>
                     
                     <div className="flex items-center gap-1">
                         <button 
+                            onClick={() => setIsUploadSheetOpen(true)}
+                            className="w-7 h-7 rounded-full bg-slate-900 dark:bg-white flex items-center justify-center text-white dark:text-slate-900 transition-all active:scale-95 shadow-sm"
+                        >
+                            <Plus className="w-4 h-4 stroke-[2.5]" />
+                        </button>
+                        <button 
                             onClick={handleOpenSidebar}
-                            className="w-10 h-10 flex items-center justify-center text-slate-900 dark:text-white transition-colors hover:text-blue-600"
+                            className="w-9 h-9 flex items-center justify-center text-slate-900 dark:text-white transition-colors hover:text-blue-600"
                         >
                             <Menu className="w-6 h-6" />
                         </button>
@@ -1602,10 +1680,10 @@ export const ToolsView = () => {
                 </div>
 
                 {/* Bottom Row: Navigation Tabs */}
-                <div className="flex items-center justify-around w-full">
+                <div className="flex items-center justify-around w-full border-t border-slate-50 dark:border-slate-800/40">
                     <button 
                         onClick={() => setActiveTab('feed')}
-                        className="flex-1 flex flex-col items-center py-2 relative"
+                        className="flex-1 flex flex-col items-center h-10 justify-center relative"
                     >
                         <Home className={cn(
                             "w-[22px] h-[22px] transition-colors", 
@@ -1617,7 +1695,7 @@ export const ToolsView = () => {
                     </button>
                     <button 
                         onClick={() => setActiveTab('analytics')}
-                        className="flex-1 flex flex-col items-center py-2 relative"
+                        className="flex-1 flex flex-col items-center h-10 justify-center relative"
                     >
                         <Activity className={cn(
                             "w-[22px] h-[22px] transition-colors", 
@@ -1629,7 +1707,7 @@ export const ToolsView = () => {
                     </button>
                     <button 
                         onClick={() => setActiveTab('tools')}
-                        className="flex-1 flex flex-col items-center py-2 relative"
+                        className="flex-1 flex flex-col items-center h-10 justify-center relative"
                     >
                         <LayoutGrid className={cn(
                             "w-[22px] h-[22px] transition-colors", 
@@ -1641,7 +1719,7 @@ export const ToolsView = () => {
                     </button>
                     <button 
                         onClick={() => setActiveTab('profile')}
-                        className="flex-1 flex flex-col items-center py-2 relative"
+                        className="flex-1 flex flex-col items-center h-10 justify-center relative"
                     >
                         <User className={cn(
                             "w-[22px] h-[22px] transition-colors", 
@@ -1655,7 +1733,7 @@ export const ToolsView = () => {
 
                 {/* Categories Bar */}
                 {activeTab === 'feed' && (
-                    <div className="w-full overflow-x-auto hide-scrollbar py-2 px-4 flex items-center gap-2 border-t border-slate-50 dark:border-slate-800/50">
+                    <div className="w-full overflow-x-auto hide-scrollbar h-10 px-4 flex items-center gap-2 border-t border-slate-50 dark:border-slate-800/50">
                         {categories.map((cat) => (
                             <button
                                 key={cat.id}
@@ -2115,18 +2193,19 @@ export const ToolsView = () => {
             className="min-h-screen bg-slate-50 dark:bg-slate-950"
           >
             <div className="flex flex-col w-full mx-auto max-w-2xl">
-                <div className={cn(
-                    "transition-all duration-300",
-                    activeTab === 'feed' ? "pt-[160px]" : "pt-[116px]"
-                )}>
-                    {activeTab === 'analytics' && !activeToolId ? (
+                <div className="pt-safe">
+                    <div className={cn(
+                        "transition-all duration-300",
+                        activeTab === 'feed' ? "pt-[124px]" : "pt-[84px]"
+                    )}>
+                        {activeTab === 'analytics' && !activeToolId ? (
                     <AnalyticsDashboard />
                 ) : activeTab === 'profile' && !activeToolId ? (
                     <ProfileView />
                 ) : activeTab === 'search' && !activeToolId ? (
                     <MuslimBrowser language={language} onBack={() => setActiveTab('feed')} />
                 ) : activeTab === 'tools' && !activeToolId ? (
-                    <div className="flex-1 overflow-y-auto p-4 pb-32">
+                    <div className="flex-1 p-4 pb-32">
                         <div className="grid grid-cols-4 gap-x-2 gap-y-4">
                             {SOCIAL_TOOLS.map((tool) => (
                                 <button
@@ -2151,7 +2230,7 @@ export const ToolsView = () => {
                 ) : (
                     <>
                 {/* Attached "What's on your mind?" - Attached directly with border-t */}
-                <div className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-4 pt-0 pb-4">
+                <div className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-4 pt-3 pb-3">
                     <button 
                         onClick={() => {
                             window.history.pushState({ view: 'posting' }, "");
@@ -2219,10 +2298,214 @@ export const ToolsView = () => {
                 </>
                 )}
                 </div>
+                </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+        {/* Upload Sheet (Facebook Style Dropdown) */}
+        <AnimatePresence>
+            {isUploadSheetOpen && (
+                <>
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setIsUploadSheetOpen(false)}
+                        className="fixed inset-0 bg-transparent z-[300]"
+                    />
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: -10, x: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0, x: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: -10, x: 10 }}
+                        className="fixed top-20 right-6 w-52 bg-white dark:bg-slate-900 z-[301] rounded-xl shadow-[0_4px_25px_rgb(0,0,0,0.15)] border border-slate-100 dark:border-slate-800 overflow-hidden"
+                    >
+                        <div className="flex flex-col py-1">
+                            <button 
+                                onClick={() => photoInputRef.current?.click()}
+                                className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-b border-slate-50 dark:border-slate-800/10"
+                            >
+                                <SquarePen className="w-5 h-5 text-slate-900 dark:text-white" />
+                                <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">
+                                    {language === 'bn' ? 'পোস্ট' : 'Post'}
+                                </span>
+                            </button>
+
+                            <button 
+                                onClick={() => photoInputRef.current?.click()}
+                                className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-b border-slate-50 dark:border-slate-800/10"
+                            >
+                                <BookOpen className="w-5 h-5 text-slate-900 dark:text-white" />
+                                <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">
+                                    {language === 'bn' ? 'স্টোরি' : 'Story'}
+                                </span>
+                            </button>
+
+                            <button 
+                                onClick={() => videoInputRef.current?.click()}
+                                className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-b border-slate-50 dark:border-slate-800/10"
+                            >
+                                <Clapperboard className="w-5 h-5 text-slate-900 dark:text-white" />
+                                <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">
+                                    {language === 'bn' ? 'রিল' : 'Reel'}
+                                </span>
+                            </button>
+
+                            <button 
+                                onClick={() => cameraInputRef.current?.click()}
+                                className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                            >
+                                <Video className="w-5 h-5 text-slate-900 dark:text-white" />
+                                <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">
+                                    {language === 'bn' ? 'লাইভ' : 'Live'}
+                                </span>
+                            </button>
+                        </div>
+                    </motion.div>
+                </>
+            )}
+        </AnimatePresence>
+
+        {/* Video Editor Overlay */}
+        <AnimatePresence>
+            {editingVideoFile && (
+                <motion.div
+                    initial={{ x: "100%" }}
+                    animate={{ x: 0 }}
+                    exit={{ x: "100%" }}
+                    className="fixed inset-0 bg-black z-[400] flex flex-col pt-safe"
+                >
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+                        <button onClick={() => setEditingVideoFile(null)} className="text-white">
+                            <X className="w-6 h-6" />
+                        </button>
+                        <h2 className="text-white font-bold">{language === 'bn' ? 'ভিডিও এডিট' : 'Edit Video'}</h2>
+                        <button 
+                            onClick={() => {
+                                setUploadDetails({ file: editingVideoFile, title: '', category: 'all' });
+                                setEditingVideoFile(null);
+                            }}
+                            className="bg-blue-600 text-white px-4 py-1.5 rounded-full font-bold text-sm"
+                        >
+                            {language === 'bn' ? 'পরবর্তী' : 'Next'}
+                        </button>
+                    </div>
+
+                    <div className="flex-1 flex flex-col items-center justify-center p-6 gap-8">
+                        <div className="w-full aspect-[9/16] bg-slate-900 rounded-2xl flex items-center justify-center relative overflow-hidden">
+                            <Video className="w-20 h-20 text-white/20" />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <p className="text-white/60 text-sm">{editingVideoFile.name}</p>
+                            </div>
+                        </div>
+
+                        <div className="w-full space-y-4">
+                            <div className="flex justify-between text-white/60 text-xs font-bold">
+                                <span>00:00</span>
+                                <span>{language === 'bn' ? 'ভিডিও ছোট করুন' : 'Trim Video'}</span>
+                                <span>00:30</span>
+                            </div>
+                            <div className="h-12 bg-white/10 rounded-lg relative overflow-hidden flex items-center px-1">
+                                <div className="absolute inset-y-1 left-4 right-20 bg-blue-500/30 border-x-4 border-blue-500 rounded-sm" />
+                                {[...Array(20)].map((_, i) => (
+                                    <div key={i} className="flex-1 h-8 border-l border-white/5 mx-0.5" />
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+
+        {/* Video Upload Details Overlay */}
+        <AnimatePresence>
+            {uploadDetails && (
+                <motion.div
+                    initial={{ x: "100%" }}
+                    animate={{ x: 0 }}
+                    exit={{ x: "100%" }}
+                    className="fixed inset-0 bg-white dark:bg-slate-950 z-[400] flex flex-col pt-safe"
+                >
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+                        <button onClick={() => setUploadDetails(null)} className="text-slate-900 dark:text-white">
+                            <ArrowLeft className="w-6 h-6" />
+                        </button>
+                        <h2 className="text-slate-900 dark:text-white font-bold">{language === 'bn' ? 'আপলোড করুন' : 'Upload Post'}</h2>
+                        <button 
+                            onClick={() => {
+                                console.log("Uploading:", uploadDetails);
+                                setUploadDetails(null);
+                            }}
+                            className="bg-blue-600 text-white px-5 py-1.5 rounded-full font-black text-sm"
+                        >
+                            {language === 'bn' ? 'পোস্ট' : 'Post'}
+                        </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                        <div className="flex gap-4">
+                            <div className="w-24 h-32 bg-slate-100 dark:bg-slate-900 rounded-xl overflow-hidden flex items-center justify-center border border-slate-200 dark:border-slate-800">
+                                <MediaPreview file={uploadDetails.file} />
+                            </div>
+                            <textarea 
+                                placeholder={language === 'bn' ? 'পোস্ট সম্পর্কে কিছু বলুন...' : 'Say something about this post...'}
+                                className="flex-1 bg-transparent text-slate-900 dark:text-white resize-none focus:outline-none pt-2 text-lg"
+                                rows={4}
+                                value={uploadDetails.title}
+                                onChange={(e) => setUploadDetails({...uploadDetails, title: e.target.value})}
+                            />
+                        </div>
+
+                        <div className="space-y-4">
+                            <label className="text-sm font-black text-slate-400 uppercase tracking-widest">
+                                {language === 'bn' ? 'ক্যাটাগরি সিলেক্ট করুন' : 'Select Category'}
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                                {categories.filter(c => c.id !== 'all').map(cat => (
+                                    <button
+                                        key={cat.id}
+                                        onClick={() => setUploadDetails({...uploadDetails, category: cat.id})}
+                                        className={cn(
+                                            "px-4 py-2 rounded-full text-xs font-bold transition-all border",
+                                            uploadDetails.category === cat.id
+                                                ? "bg-blue-600 border-blue-600 text-white"
+                                                : "bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-500"
+                                        )}
+                                    >
+                                        {cat.label[language]}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+        
+        {/* Hidden Inputs */}
+        <input 
+            ref={cameraInputRef}
+            type="file" 
+            accept="video/*" 
+            capture="environment"
+            className="hidden" 
+            onChange={(e) => handleFileSelect(e, 'camera')}
+        />
+        <input 
+            ref={photoInputRef}
+            type="file" 
+            accept="image/*" 
+            className="hidden" 
+            onChange={(e) => handleFileSelect(e, 'photo')}
+        />
+        <input 
+            ref={videoInputRef}
+            type="file" 
+            accept="video/*" 
+            className="hidden" 
+            onChange={(e) => handleFileSelect(e, 'video')}
+        />
 
       <AnimatePresence>
           {isPostingOpen && (

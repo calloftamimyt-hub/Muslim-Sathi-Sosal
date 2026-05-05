@@ -31,6 +31,8 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
   useEffect(() => {
     if (mainRef.current) {
       mainRef.current.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      lastScrollY.current = 0;
+      setIsVisible(true);
     }
   }, [activeTab]);
 
@@ -44,6 +46,38 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
 
   const [navTheme, setNavTheme] = useState<"default" | "white">("default");
   const [isVisible, setIsVisible] = useState(true);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const main = mainRef.current;
+    if (!main) return;
+
+    const handleScroll = () => {
+      const currentScrollY = main.scrollTop;
+      
+      // If scrolling down and past a threshold, hide
+      if (currentScrollY > lastScrollY.current && currentScrollY > 60) {
+        setIsVisible(false);
+      } 
+      // If scrolling up, show
+      else if (currentScrollY < lastScrollY.current) {
+        setIsVisible(true);
+      }
+
+      lastScrollY.current = currentScrollY;
+    };
+
+    main.addEventListener("scroll", handleScroll, { passive: true });
+    return () => main.removeEventListener("scroll", handleScroll);
+  }, [activeTab]);
+
+  useEffect(() => {
+    const handleNavVisibility = (e: any) => {
+        setIsVisible(e.detail);
+    };
+    window.addEventListener('set-nav-visibility', handleNavVisibility);
+    return () => window.removeEventListener('set-nav-visibility', handleNavVisibility);
+  }, []);
 
   useEffect(() => {
     const handleThemeChange = (e: any) => setNavTheme(e.detail);

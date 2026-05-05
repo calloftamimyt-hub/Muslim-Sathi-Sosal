@@ -61,7 +61,7 @@ export default function EarningHistoryPage() {
   return (
     <div className="fixed inset-0 bg-slate-50 dark:bg-slate-900 z-50 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 pt-safe pt-2">
+      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 pt-safe pt-4">
         <div className="flex items-center justify-between px-4 h-14">
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-black text-slate-800 dark:text-white">

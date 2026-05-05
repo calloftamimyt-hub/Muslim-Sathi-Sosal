@@ -980,7 +980,7 @@ export function Home({
       </div>
 
       {/* Unified Section (Hero + Fasting) */}
-      <div className="relative z-10 transition-colors duration-500 pt-safe pt-2 pb-2">
+      <div className="relative z-10 transition-colors duration-500 pt-safe pt-4 pb-2">
         <div className="relative text-slate-800 dark:text-white px-4 pb-2">
           {/* Header Top Bar */}
           <div className="relative z-10 flex justify-between items-start mb-1">

@@ -287,7 +287,7 @@ export function Tracker() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <header className={cn(
         "fixed top-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-2 pb-2 shadow-sm",
-        Capacitor.isNativePlatform() ? "pt-12" : "pt-safe pt-2"
+        Capacitor.isNativePlatform() ? "pt-12" : "pt-safe pt-4"
       )}>
         <div className="max-w-3xl mx-auto flex justify-between items-center">
           <div className="flex flex-col">
@@ -325,7 +325,7 @@ export function Tracker() {
         </div>
       </header>
 
-      <main className="pt-[calc(4.5rem+env(safe-area-inset-top))] p-4 md:p-8 max-w-3xl mx-auto space-y-4 pb-24">
+      <main className="pt-[calc(6rem+env(safe-area-inset-top))] p-4 md:p-8 max-w-3xl mx-auto space-y-4 pb-24">
         {/* Daily Summary & Streak */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.02)] relative overflow-hidden group">
