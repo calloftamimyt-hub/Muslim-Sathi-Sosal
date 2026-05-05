@@ -1302,10 +1302,10 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
             </div>
           </section>
 
-          {/* Quick Settings */}
+        {/* Quick Settings */}
           <section className="bg-white dark:bg-slate-900 rounded-lg overflow-hidden border border-slate-100 dark:border-slate-800">
             <div className="p-3.5 border-b border-slate-50 dark:border-slate-800">
-              <h3 className="font-bold text-slate-800 dark:text-slate-200">{t.shortcutSettings}</h3>
+              <h3 className="font-bold text-slate-800 dark:text-slate-200">{language === 'bn' ? 'সেটিংস' : 'Settings'}</h3>
             </div>
             <div className="divide-y divide-slate-50 dark:divide-slate-800">
               <MenuItem 
@@ -1320,9 +1320,9 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
                 }}
               />
               <MenuItem 
-                icon={<Globe className="text-primary" />} 
-                title={t.changeLanguage} 
-                onClick={() => setShowLanguageModal(true)}
+                icon={<Settings className="text-primary" />} 
+                title={language === 'bn' ? 'অ্যাপ সেটিংস (App Settings)' : 'App Settings'} 
+                onClick={() => onNavigate?.('settings')}
               />
             </div>
           </section>

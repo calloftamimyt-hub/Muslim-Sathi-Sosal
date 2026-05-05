@@ -281,12 +281,6 @@ export const CATEGORIES = [
     bg: "bg-gradient-to-br from-pink-400 to-pink-600",
   },
   {
-    id: "settings",
-    icon: Settings,
-    color: "text-white",
-    bg: "bg-gradient-to-br from-slate-400 to-slate-600",
-  },
-  {
     id: "youtube-id-finder",
     icon: Youtube,
     color: "text-white",

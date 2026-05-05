@@ -78,12 +78,23 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     console.log('Applying theme:', themeMode);
     
     // Apply Dark/Light Mode
+    let isDark = false;
     if (themeMode === 'Dark' || (themeMode === 'System' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
       root.classList.add('dark');
+      isDark = true;
       console.log('Added dark class');
     } else {
       root.classList.remove('dark');
+      isDark = false;
       console.log('Removed dark class');
+    }
+
+    if (typeof window !== 'undefined' && typeof (window as any).Capacitor !== 'undefined') {
+      import('@capacitor/status-bar').then(({ StatusBar, Style }) => {
+        // In dark mode: light text (Style.Dark)
+        // In light mode: dark text (Style.Light)
+        StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light }).catch(() => {});
+      }).catch(() => {});
     }
 
     // Apply Color Theme

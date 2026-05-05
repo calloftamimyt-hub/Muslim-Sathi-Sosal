@@ -23,7 +23,7 @@ export const getApiUrl = (path: string) => {
     }
 
     // Otherwise (like Android Studio WebView context without explicit Capacitor), fallback to the remote backend
-    return `https://ais-pre-gx2abpnlvyl4m5jzw5cum4-61738440703.asia-east1.run.app${path}`;
+    return `https://muslim-sathi-sosal.onrender.com${path}`;
 };
 
 export function timeAgo(date: any) {

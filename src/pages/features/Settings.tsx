@@ -228,18 +228,6 @@ export function SettingsView({ onBack }: SettingsProps) {
 
   const SECTIONS: SettingSection[] = [
     {
-      id: 'profile',
-      title: t('profile-settings' as any) || 'প্রোফাইল সেটিংস',
-      icon: User,
-      items: [
-        { id: 'change-name', label: t('change-name'), type: 'action' },
-        { id: 'profile-pic', label: t('profile-pic'), type: 'action' },
-        { id: 'contact-info', label: t('contact-info'), type: 'action' },
-        { id: 'change-pass', label: t('change-password'), type: 'action' },
-        { id: 'logout', label: t('logout'), type: 'action', icon: LogOut },
-      ]
-    },
-    {
       id: 'language',
       title: t('language-settings' as any) || 'ভাষা ও মাযহাব (Language & Madhab)',
       icon: Globe,

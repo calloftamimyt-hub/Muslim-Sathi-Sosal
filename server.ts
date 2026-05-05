@@ -50,8 +50,14 @@ authenticateBot();
 async function startTelegramPolling() {
   // First, delete any existing webhook to ensure getUpdates works
   try {
-    await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/deleteWebhook`, { drop_pending_updates: false });
-  } catch(e) {}
+    const dres = await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/deleteWebhook?drop_pending_updates=true`);
+    console.log("deleteWebhook response:", dres.data);
+  } catch(e: any) {
+    console.log("deleteWebhook failed:", e.message);
+  }
+  
+  // Wait a bit to ensure old long pollings or webhooks from previous hot-reloads get cleaned up
+  await new Promise(res => setTimeout(res, 2000));
 
   let offset = 0;
   console.log("Started Telegram Long Polling...");
@@ -134,10 +140,10 @@ async function startTelegramPolling() {
         }
       }
     } catch (e: any) {
-      if (e.response?.status !== 502) { // suppress typical timeout errors
+      if (e.response?.status !== 502 && e.response?.status !== 409) { // suppress typical timeout and conflict errors
         console.error("Polling error:", e.message);
       }
-      await new Promise(res => setTimeout(res, 3000));
+      await new Promise(res => setTimeout(res, 5000));
     }
   }
 }
@@ -160,9 +166,6 @@ async function startServer() {
       fs.mkdirSync(uploadDir);
   }
   const upload = multer({ dest: uploadDir });
-
-  const BOT_TOKEN = "8577168806:AAEvPksc7qHSYmr0wzE7DwHQeglzOUZZn5U";
-  const ADMIN_CHAT_ID = "-1002647379129";
 
   // Telegram Report Endpoint
   app.post("/api/telegram/report", async (req, res) => {
@@ -463,22 +466,6 @@ async function startServer() {
 
   app.listen(PORT, "0.0.0.0", async () => {
     console.log(`Server running on http://localhost:${PORT}`);
-    
-    // Set Telegram Webhook
-    try {
-      // Use SHARED_APP_URL for production or public mapping
-      const publicUrl = process.env.SHARED_APP_URL || process.env.DEVELOPMENT_APP_URL;
-      if (publicUrl) {
-        const webhookUrl = `${publicUrl.replace(/\/$/, "")}/api/telegram/webhook`;
-        console.log(`Setting Webhook: ${webhookUrl}`);
-        const whRes = await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/setWebhook?url=${webhookUrl}`);
-        console.log("Telegram Webhook Response:", whRes.data);
-      } else {
-        console.warn("No public URL found for Webhook setting");
-      }
-    } catch (whErr: any) {
-      console.error("Failed to set Telegram Webhook:", whErr.message);
-    }
   });
 }
 

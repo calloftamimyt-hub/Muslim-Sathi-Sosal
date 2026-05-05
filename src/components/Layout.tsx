@@ -9,6 +9,7 @@ import {
   Wallet,
   Trophy,
   Wrench,
+  Menu,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "motion/react";
@@ -66,7 +67,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
       label: t("tracker" as any) || "Tracker",
       icon: CheckSquare,
     },
-    { id: "profile", label: t("profile" as any) || "Profile", icon: User },
+    { id: "profile", label: t("profile" as any) || (language === "bn" ? "প্রোফাইল" : "Profile"), icon: User },
   ];
 
   return (
