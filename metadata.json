@@ -1,0 +1,10 @@
+{
+  "name": "Remix: Muslim Sathi",
+  "description": "নামাজের সময়সূচি, কিবলা, কুরআন এবং দৈনন্দিন দোয়ার একটি পূর্ণাঙ্গ ইসলামিক অ্যাপ।",
+  "requestFramePermissions": [
+    "geolocation",
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": []
+}
