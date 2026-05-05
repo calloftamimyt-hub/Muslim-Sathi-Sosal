@@ -128,6 +128,8 @@ import { RegexTestTool } from "@/components/tools/RegexTestTool";
 import { MDEditorTool } from "@/components/tools/MDEditorTool";
 import { RandomNumTool } from "@/components/tools/RandomNumTool";
 import { TextCaseTool } from "@/components/tools/TextCaseTool";
+import { ProfileStatusModal } from '@/components/ProfileStatusModal';
+import { SettingsPage } from '@/components/SettingsPage';
 import { UUIDMakerTool } from "@/components/tools/UUIDMakerTool";
 import { CodeFormatTool } from "@/components/tools/CodeFormatTool";
 import { DeviceInfoTool } from "@/components/tools/DeviceInfoTool";
@@ -1453,6 +1455,8 @@ export const ToolsView = () => {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isHeaderVisible, setIsHeaderVisible] = useState(true);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [isProfileStatusModalOpen, setIsProfileStatusModalOpen] = useState(false);
     const [currentUserAvatar, setCurrentUserAvatar] = useState<string | null>(null);
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [isUploadSheetOpen, setIsUploadSheetOpen] = useState(false);
@@ -1747,12 +1751,12 @@ export const ToolsView = () => {
                       MuslimFeed
                     </h1>
                     
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                         <button 
                             onClick={() => setIsUploadSheetOpen(true)}
-                            className="w-8 h-8 rounded-full bg-slate-900 dark:bg-white flex items-center justify-center text-white dark:text-slate-900 transition-all active:scale-95 shadow-sm"
+                            className="w-10 h-10 flex items-center justify-center text-slate-900 dark:text-white transition-colors hover:text-blue-600 active:scale-95"
                         >
-                            <Plus className="w-5 h-5 stroke-[2.5]" />
+                            <Plus className="w-6 h-6" />
                         </button>
                         <button 
                             onClick={handleOpenSidebar}
@@ -2573,7 +2577,7 @@ export const ToolsView = () => {
                 </button>
                 
                 <button
-                  onClick={() => {}}
+                  onClick={() => setIsProfileStatusModalOpen(true)}
                   className="w-full px-3 py-3 flex items-center gap-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left active:scale-[0.98]"
                 >
                   <div className="w-9 h-9 rounded-full bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
@@ -2618,7 +2622,7 @@ export const ToolsView = () => {
                 </button>
 
                 <button
-                  onClick={() => {}}
+                  onClick={() => setIsSettingsOpen(true)}
                   className="w-full px-3 py-3 flex items-center gap-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left active:scale-[0.98]"
                 >
                   <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
@@ -2645,6 +2649,19 @@ export const ToolsView = () => {
           </>
         )}
       </AnimatePresence>
+
+      <ProfileStatusModal 
+        isOpen={isProfileStatusModalOpen}
+        onClose={() => setIsProfileStatusModalOpen(false)}
+        userProfile={sidebarUser || auth.currentUser}
+      />
+
+      <AnimatePresence>
+        {isSettingsOpen && (
+          <SettingsPage onClose={() => setIsSettingsOpen(false)} />
+        )}
+      </AnimatePresence>
+
     </div>
   );
 };
