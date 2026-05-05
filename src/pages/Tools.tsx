@@ -14,6 +14,7 @@ import {
   ChevronUp,
   ChevronDown,
   User,
+  Book,
   PlaySquare,
   Image as ImageIcon,
   Image,
@@ -85,6 +86,7 @@ import {
   Menu,
   X,
   LayoutGrid,
+  ShieldAlert,
   ChevronRight,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -138,6 +140,7 @@ import {
   Tooltip, 
   ResponsiveContainer 
 } from "recharts";
+import { MuslimBrowser } from "@/components/MuslimBrowser";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 
 const SOCIAL_TOOLS = [
@@ -1088,11 +1091,11 @@ const PostCard = ({ post }: { post: any }) => {
 
             {/* Media Area */}
             {fallbackFileId && (
-                <div className="bg-white dark:bg-slate-900 border-y border-slate-50 dark:border-slate-800 relative group flex items-center justify-center overflow-hidden min-h-[220px]">
+                <div className="bg-white dark:bg-slate-900 border-y border-slate-50 dark:border-slate-800 relative group flex flex-col overflow-hidden">
                     {fallbackType === 'video' ? (
                         <>
                             {isVideoLoading && (
-                                <div className="absolute inset-0 z-10 bg-slate-200/80 dark:bg-slate-800/80 shimmer">
+                                <div className="absolute inset-0 z-10 bg-slate-200/80 dark:bg-slate-800/80 shimmer min-h-[220px]">
                                 </div>
                             )}
                             <video 
@@ -1104,7 +1107,7 @@ const PostCard = ({ post }: { post: any }) => {
                                 onWaiting={() => setIsVideoLoading(true)}
                                 onPlaying={() => setIsVideoLoading(false)}
                                 className={cn(
-                                    "w-full object-contain transition-opacity duration-500",
+                                    "w-full h-auto block transition-opacity duration-500",
                                     isVideoLoading ? "opacity-0" : "opacity-100"
                                 )}
                             >
@@ -1426,7 +1429,7 @@ const ProfileView = () => {
 
 export const ToolsView = () => {
     const { language } = useLanguage();
-    const [activeTab, setActiveTab] = useState<'feed' | 'analytics' | 'tools' | 'profile'>('feed');
+    const [activeTab, setActiveTab] = useState<'feed' | 'analytics' | 'tools' | 'profile' | 'search'>('feed');
     const [activeToolId, setActiveToolId] = useState<string | null>(null);
     const [isPostingOpen, setIsPostingOpen] = useState(false);
     const [posts, setPosts] = useState<any[]>([]);
@@ -1434,6 +1437,17 @@ export const ToolsView = () => {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [currentUserAvatar, setCurrentUserAvatar] = useState<string | null>(null);
+    const [selectedCategory, setSelectedCategory] = useState('all');
+
+    const categories = [
+        { id: 'all', label: { bn: 'সব', en: 'All' } },
+        { id: 'turkey', label: { bn: 'তুরস্ক', en: 'Turkey' } },
+        { id: 'news', label: { bn: 'খবর', en: 'News' } },
+        { id: 'islamic', label: { bn: 'ইসলামিক', en: 'Islamic' } },
+        { id: 'shorts', label: { bn: 'শর্টস', en: 'Shorts' } },
+        { id: 'movies', label: { bn: 'মুভি', en: 'Movies' } },
+        { id: 'mix', label: { bn: 'মিক্স', en: 'Mix' } }
+    ];
 
     useEffect(() => {
         if (auth.currentUser) {
@@ -1470,7 +1484,18 @@ export const ToolsView = () => {
     // Fetch Posts
     useEffect(() => {
         setIsPostsLoading(true);
-        const q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(20));
+        let q;
+        if (selectedCategory === 'all') {
+            q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(20));
+        } else {
+            q = query(
+                collection(db, "posts"), 
+                where("category", "==", selectedCategory),
+                orderBy("createdAt", "desc"), 
+                limit(20)
+            );
+        }
+
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const postsData = snapshot.docs
                 .map(doc => ({ id: doc.id, ...doc.data() }))
@@ -1483,7 +1508,7 @@ export const ToolsView = () => {
             // Optionally could handle the UI error feedback here
         });
         return () => unsubscribe();
-    }, []);
+    }, [selectedCategory]);
 
     // Handle visibility of App Navigation
     useEffect(() => {
@@ -1551,45 +1576,22 @@ export const ToolsView = () => {
       {/* 1. Fake Status Bar Header */}
       <div className="fixed top-0 inset-x-0 h-safe bg-white dark:bg-slate-900 z-[200]" />
 
-      {/* 2. Scroll Header (Appears on scroll) */}
-      <div 
-        className={cn(
-            "fixed top-0 pt-safe inset-x-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 shadow-sm z-[150] transition-transform duration-300",
-            (isScrolled && !activeToolId) ? "translate-y-0" : "-translate-y-[150%]"
-        )}
-      >
-        <div className="w-full px-6 pb-3 pt-2 flex items-center gap-4">
-            <button 
-            onClick={handleOpenSidebar}
-            className="w-11 h-11 flex-shrink-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-900 dark:text-white"
-            >
-            <Menu className="w-6 h-6" />
-            </button>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight truncate flex-1">
-            {language === 'bn' ? 'মুসলিম সোশ্যাল' : 'Muslim Social'}
-            </h1>
-        </div>
-      </div>
-
-      {/* 3. Main Header - Fixed if tool is open, otherwise scrolls with content */}
+      {/* 2. Main Header - Fixed at top */}
       <header className={cn(
-        "w-full bg-white dark:bg-slate-900 transition-all z-[140]",
-        (activeToolId)
-          ? "fixed top-0 inset-x-0 pb-3 pt-safe shadow-sm border-b border-slate-100 dark:border-slate-800 z-[170] px-6"
-          : "relative border-b border-slate-100 dark:border-slate-800"
+        "w-full bg-white dark:bg-slate-900 transition-all z-[140] fixed top-0 pt-safe",
+        activeToolId 
+          ? "inset-x-0 pb-3 shadow-sm border-b border-slate-100 dark:border-slate-800 z-[170] px-6" 
+          : "border-b border-slate-100 dark:border-slate-800 shadow-sm"
       )}>
         {!activeToolId ? (
             <div className="flex flex-col w-full">
                 {/* Top Row: Brand and Menu */}
-                <div className="flex items-center justify-between px-6 pt-4 pb-2">
+                <div className="flex items-center justify-between pl-4 pr-6 pt-2 pb-1">
                     <h1 className="text-2xl font-black text-blue-600 dark:text-blue-500 tracking-tighter">
-                      {language === 'bn' ? 'মুসলিম সোশ্যাল' : 'Muslim Social'}
+                      MuslimFeed
                     </h1>
                     
                     <div className="flex items-center gap-1">
-                        <button className="w-10 h-10 flex items-center justify-center text-slate-900 dark:text-white transition-colors hover:text-blue-600">
-                            <Search className="w-6 h-6" />
-                        </button>
                         <button 
                             onClick={handleOpenSidebar}
                             className="w-10 h-10 flex items-center justify-center text-slate-900 dark:text-white transition-colors hover:text-blue-600"
@@ -1600,7 +1602,7 @@ export const ToolsView = () => {
                 </div>
 
                 {/* Bottom Row: Navigation Tabs */}
-                <div className="flex items-center justify-around w-full mt-1">
+                <div className="flex items-center justify-around w-full">
                     <button 
                         onClick={() => setActiveTab('feed')}
                         className="flex-1 flex flex-col items-center py-2 relative"
@@ -1650,6 +1652,26 @@ export const ToolsView = () => {
                         )}
                     </button>
                 </div>
+
+                {/* Categories Bar */}
+                {activeTab === 'feed' && (
+                    <div className="w-full overflow-x-auto hide-scrollbar py-2 px-4 flex items-center gap-2 border-t border-slate-50 dark:border-slate-800/50">
+                        {categories.map((cat) => (
+                            <button
+                                key={cat.id}
+                                onClick={() => setSelectedCategory(cat.id)}
+                                className={cn(
+                                    "px-4 py-1.5 rounded-md text-xs font-bold whitespace-nowrap transition-all border",
+                                    selectedCategory === cat.id
+                                        ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-sm"
+                                        : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800"
+                                )}
+                            >
+                                {cat.label[language === 'bn' ? 'bn' : 'en']}
+                            </button>
+                        ))}
+                    </div>
+                )}
             </div>
         ) : (
             <div className="flex items-center gap-3 w-full h-14">
@@ -2092,11 +2114,17 @@ export const ToolsView = () => {
             exit={{ opacity: 0 }}
             className="min-h-screen bg-slate-50 dark:bg-slate-950"
           >
-            <div className="min-h-screen flex flex-col w-full mx-auto max-w-2xl">
-                {activeTab === 'analytics' && !activeToolId ? (
+            <div className="flex flex-col w-full mx-auto max-w-2xl">
+                <div className={cn(
+                    "transition-all duration-300",
+                    activeTab === 'feed' ? "pt-[160px]" : "pt-[116px]"
+                )}>
+                    {activeTab === 'analytics' && !activeToolId ? (
                     <AnalyticsDashboard />
                 ) : activeTab === 'profile' && !activeToolId ? (
                     <ProfileView />
+                ) : activeTab === 'search' && !activeToolId ? (
+                    <MuslimBrowser language={language} onBack={() => setActiveTab('feed')} />
                 ) : activeTab === 'tools' && !activeToolId ? (
                     <div className="flex-1 overflow-y-auto p-4 pb-32">
                         <div className="grid grid-cols-4 gap-x-2 gap-y-4">
@@ -2123,7 +2151,7 @@ export const ToolsView = () => {
                 ) : (
                     <>
                 {/* Attached "What's on your mind?" - Attached directly with border-t */}
-                <div className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 p-4">
+                <div className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-4 pt-0 pb-4">
                     <button 
                         onClick={() => {
                             window.history.pushState({ view: 'posting' }, "");
@@ -2190,6 +2218,7 @@ export const ToolsView = () => {
                 </div>
                 </>
                 )}
+                </div>
             </div>
           </motion.div>
         )}

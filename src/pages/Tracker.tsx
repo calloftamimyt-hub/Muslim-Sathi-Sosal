@@ -287,7 +287,7 @@ export function Tracker() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <header className={cn(
         "fixed top-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-2 pb-2 shadow-sm",
-        Capacitor.isNativePlatform() ? "pt-12" : "pt-safe"
+        Capacitor.isNativePlatform() ? "pt-12" : "pt-safe pt-2"
       )}>
         <div className="max-w-3xl mx-auto flex justify-between items-center">
           <div className="flex flex-col">

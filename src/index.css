@@ -70,7 +70,7 @@
 }
 
 .pt-safe {
-  padding-top: max(env(safe-area-inset-top), 2.75rem);
+  padding-top: max(env(safe-area-inset-top), 32px);
 }
 
 /* Horizontal Scrollbar (for badges/tabs) */

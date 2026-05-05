@@ -431,7 +431,7 @@ export function EarningView({ onBack }: EarningViewProps) {
   return (
     <div className="min-h-screen bg-white dark:bg-slate-900 font-sans relative pb-0">
       {/* Hero Section (Green Background) */}
-      <div className="relative bg-primary dark:bg-primary-dark pt-safe pb-24 px-4 overflow-hidden">
+      <div className="relative bg-primary dark:bg-primary-dark pt-safe pt-2 pb-24 px-4 overflow-hidden">
         <IslamicScene />
 
         {/* Hero Header */}
