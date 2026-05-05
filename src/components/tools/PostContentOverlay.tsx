@@ -5,6 +5,7 @@ import {
   Send, 
   Image as ImageIcon, 
   Film, 
+  Camera,
   Type, 
   CheckCircle2, 
   AlertCircle,
@@ -19,20 +20,47 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 interface PostContentOverlayProps {
   onClose: () => void;
+  initialFile?: File | null;
+  initialFileType?: "video" | "photo" | null;
 }
 
-export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({ onClose }) => {
+export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({ 
+  onClose, 
+  initialFile, 
+  initialFileType 
+}) => {
   const { language } = useLanguage();
   const [title, setTitle] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [fileType, setFileType] = useState<"video" | "photo" | null>(null);
+  const [file, setFile] = useState<File | null>(initialFile || null);
+  const [fileType, setFileType] = useState<"video" | "photo" | null>(initialFileType || null);
+  const [category, setCategory] = useState("turkey");
   const [isPosting, setIsPosting] = useState(false);
+
+  const categories = [
+    { id: 'turkey', label: { bn: 'তুরস্ক', en: 'Turkey' } },
+    { id: 'news', label: { bn: 'খবর', en: 'News' } },
+    { id: 'islamic', label: { bn: 'ইসলামিক', en: 'Islamic' } },
+    { id: 'shorts', label: { bn: 'শর্টস', en: 'Shorts' } },
+    { id: 'movies', label: { bn: 'মুভি', en: 'Movies' } },
+    { id: 'mix', label: { bn: 'মিক্স', en: 'Mix' } }
+  ];
+
   const [uploadProgress, setUploadProgress] = useState(0);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   
   const photoInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    // Hide global navigation when posting overlay is open
+    window.dispatchEvent(new CustomEvent('set-nav-visibility', { detail: false }));
+    return () => {
+      // Show global navigation when posting overlay is closed
+      window.dispatchEvent(new CustomEvent('set-nav-visibility', { detail: true }));
+    };
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: "video" | "photo") => {
     const selectedFile = e.target.files?.[0];
@@ -58,6 +86,7 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({ onClose 
       formData.append("file", file);
       formData.append("title", title);
       formData.append("type", fileType);
+      formData.append("category", category);
       formData.append("authorName", user?.displayName || user?.email || (language === 'bn' ? 'ইউজার' : 'User'));
       formData.append("authorUid", user?.uid || "guest-uid");
       
@@ -69,6 +98,7 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({ onClose 
       const postRef = await addDoc(postsCollection, {
           content: title,
           type: fileType,
+          category: category,
           fileId: "", // Update after upload
           authorName: user?.displayName || user?.email || (language === 'bn' ? 'ইউজার' : 'User'),
           authorUid: user?.uid || "guest-uid",
@@ -142,56 +172,141 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({ onClose 
         </h1>
       </header>
 
-      {/* Main Content Area - Cards attached together */}
-      <div className="flex-1 w-full max-w-2xl mx-auto overflow-y-auto relative z-10 flex flex-col">
-        <div className="bg-white dark:bg-slate-900 p-6 flex flex-col border-b border-slate-100 dark:border-slate-800 shadow-sm">
-            <div className="flex-1 relative">
-                <textarea
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value.slice(0, 20))}
-                    maxLength={20}
-                    placeholder={language === 'bn' ? 'আপনার মনে কি আছে? (সর্বোচ্চ ২০ অক্ষর)' : "What's on your mind? (Max 20 chars)"}
-                    className="w-full min-h-[100px] text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-transparent border-none focus:ring-0 focus:outline-none resize-none font-medium text-lg p-0"
-                    autoFocus
-                />
-                <div className="absolute bottom-2 right-2 text-xs font-bold text-slate-400">
-                    {title.length}/20
-                </div>
-            </div>
-
-            {/* Media Preview Area attached */}
-            {file && (
-                <motion.div 
-                    initial={{ scale: 0.95, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="relative rounded-[24px] overflow-hidden mt-4 bg-black/5 dark:bg-white/5 border border-slate-100 dark:border-slate-800"
-                >
+      {/* Main Content Area */}
+      <div className="flex-1 w-full max-w-2xl mx-auto overflow-y-auto relative z-10 flex flex-col bg-slate-50 dark:bg-slate-950">
+        
+        {/* 1. Media Preview Card (16:9) */}
+        <div className="bg-black w-full aspect-square md:aspect-video relative group flex items-center justify-center">
+            {file ? (
+                <>
                     {fileType === "photo" ? (
                         <img 
                             src={URL.createObjectURL(file)} 
                             alt="Preview" 
-                            className="w-full max-h-[400px] object-contain bg-black/5 dark:bg-black/20"
+                            className="w-full h-full object-contain"
                         />
                     ) : (
                         <video 
                             src={URL.createObjectURL(file)} 
-                            className="w-full max-h-[400px] bg-black"
+                            className="w-full h-full max-h-[60vh] object-contain"
                             controls
                             playsInline
                         />
                     )}
-                    
                     <button 
                         onClick={() => {
                             setFile(null);
                             setFileType(null);
                         }}
-                        className="absolute flex items-center justify-center top-3 right-3 w-8 h-8 bg-black/50 hover:bg-black/70 backdrop-blur-md text-white rounded-full shadow-lg active:scale-95 transition-all outline-none"
+                        className="absolute top-4 right-4 w-10 h-10 bg-black/50 backdrop-blur-md text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors shadow-lg z-20"
                     >
-                        <X className="w-4 h-4" />
+                        <X className="w-6 h-6" />
                     </button>
-                </motion.div>
+                </>
+            ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center gap-6 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+                    <div className="flex gap-6">
+                        <button 
+                            onClick={async () => {
+                                try {
+                                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: true });
+                                    stream.getTracks().forEach(track => track.stop());
+                                    cameraInputRef.current?.click();
+                                } catch (err) {
+                                    console.error(err);
+                                    cameraInputRef.current?.click();
+                                }
+                            }}
+                            className="w-16 h-16 bg-white dark:bg-slate-800 text-blue-500 rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-all border border-slate-200 dark:border-slate-700"
+                        >
+                            <Camera className="w-8 h-8" />
+                        </button>
+                        <button 
+                            onClick={() => photoInputRef.current?.click()}
+                            className="w-16 h-16 bg-white dark:bg-slate-800 text-emerald-500 rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-all border border-slate-200 dark:border-slate-700"
+                        >
+                            <ImageIcon className="w-8 h-8" />
+                        </button>
+                        <button 
+                            onClick={() => videoInputRef.current?.click()}
+                            className="w-16 h-16 bg-white dark:bg-slate-800 text-rose-500 rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-all border border-slate-200 dark:border-slate-700"
+                        >
+                            <Film className="w-8 h-8" />
+                        </button>
+                    </div>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm font-bold tracking-wide">
+                        {language === 'bn' ? 'ফটো বা ভিডিও সিলেক্ট করুন' : 'Select Photo or Video'}
+                    </p>
+                </div>
             )}
+        </div>
+
+        {/* 2. Title Card (20 chars max) */}
+        <div className="bg-white dark:bg-slate-900 w-full p-5 border-b border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-between mb-2">
+                <label className="text-[11px] font-black uppercase tracking-widest text-slate-500">
+                    {language === 'bn' ? 'পোস্ট টাইটেল' : 'Post Title'}
+                </label>
+                <span className={cn(
+                    "text-[11px] font-bold px-2 py-0.5 rounded-full",
+                    title.length >= 20 ? "bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+                )}>
+                    {title.length}/20
+                </span>
+            </div>
+            <input 
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value.slice(0, 20))}
+                placeholder={language === 'bn' ? 'টাইটেল লিখুন...' : 'Enter title...'}
+                className="w-full bg-transparent text-slate-900 dark:text-white font-bold text-lg focus:outline-none placeholder:text-slate-300 dark:placeholder:text-slate-600"
+            />
+        </div>
+
+        {/* 3. Category Card */}
+        <div className="bg-white dark:bg-slate-900 w-full p-5 border-b border-slate-200 dark:border-slate-800">
+            <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 block mb-4">
+                {language === 'bn' ? 'ক্যাটাগরি সিলেক্ট করুন' : 'Select Category'}
+            </label>
+            <div className="flex flex-wrap gap-2.5">
+                {categories.map(cat => (
+                    <button
+                        key={cat.id}
+                        onClick={() => setCategory(cat.id)}
+                        className={cn(
+                            "px-5 py-2.5 rounded-full text-sm font-bold transition-all border",
+                            category === cat.id
+                                ? "bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-600/20"
+                                : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700"
+                        )}
+                    >
+                        {cat.label[language]}
+                    </button>
+                ))}
+            </div>
+        </div>
+
+        {/* 4. Post Button Card */}
+        <div className="p-6 bg-slate-50 dark:bg-slate-950 mt-auto">
+            <button 
+                onClick={handlePost}
+                disabled={!file || !title || isPosting}
+                className={cn(
+                    "w-full h-14 rounded-full font-black text-lg transition-all flex items-center justify-center gap-3",
+                    file && title && !isPosting 
+                        ? "bg-indigo-600 text-white shadow-xl shadow-indigo-600/20 active:scale-95" 
+                        : "bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed"
+                )}
+            >
+                {isPosting ? (
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                ) : (
+                    <>
+                        <Send className="w-5 h-5" />
+                        {language === 'bn' ? 'পোস্ট করুন' : 'Post Now'}
+                    </>
+                )}
+            </button>
         </div>
 
         {/* Posting Progress & Status Popups */}
@@ -256,7 +371,7 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({ onClose 
                                 setStatus("idle");
                                 onClose();
                             }}
-                            className="mt-4 px-8 py-3 bg-emerald-500 hover:bg-emerald-600 rounded-2xl text-white font-bold transition-colors w-full active:scale-95"
+                            className="mt-4 px-8 py-3 bg-indigo-600 hover:bg-indigo-700 rounded-2xl text-white font-bold transition-colors w-full active:scale-95 shadow-lg shadow-indigo-600/20"
                         >
                             {language === 'bn' ? 'ঠিক আছে' : 'OK'}
                         </button>
@@ -297,45 +412,7 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({ onClose 
         </AnimatePresence>
       </div>
 
-      {/* Footer - No white box under icons */}
-      <div className="bg-white dark:bg-slate-900 p-4 pb-[calc(env(safe-area-inset-bottom,16px)+16px)] border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shadow-[0_-10px_30px_rgba(0,0,0,0.02)]">
-           <div className="flex items-center gap-5 px-3">
-                <button 
-                    onClick={() => {
-                        if (photoInputRef.current) {
-                            photoInputRef.current.click();
-                        }
-                    }}
-                    className="text-emerald-500 hover:text-emerald-600 dark:text-emerald-400 dark:hover:text-emerald-300 active:scale-95 transition-transform"
-                >
-                    <ImageIcon className="w-7 h-7" />
-                </button>
 
-                <button 
-                    onClick={() => {
-                        if (videoInputRef.current) {
-                            videoInputRef.current.click();
-                        }
-                    }}
-                    className="text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 active:scale-95 transition-transform"
-                >
-                    <Film className="w-7 h-7" />
-                </button>
-           </div>
-
-           <button 
-                onClick={handlePost}
-                disabled={!file || isPosting}
-                className={cn(
-                    "px-8 py-3 rounded-full font-bold text-sm transition-all active:scale-95",
-                    file && !isPosting 
-                        ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20" 
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed shadow-none"
-                )}
-            >
-                {language === 'bn' ? 'পোস্ট তৈরি করুন' : 'Create Post'}
-           </button>
-      </div>
 
       <input 
         type="file" 
@@ -351,6 +428,17 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({ onClose 
         type="file" 
         accept="video/*"
         ref={videoInputRef} 
+        className="hidden" 
+        onChange={(e) => {
+            handleFileChange(e, "video");
+            e.target.value = "";
+        }}
+      />
+      <input 
+        type="file" 
+        accept="video/*"
+        capture="environment"
+        ref={cameraInputRef} 
         className="hidden" 
         onChange={(e) => {
             handleFileChange(e, "video");
