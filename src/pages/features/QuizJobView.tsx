@@ -188,7 +188,7 @@ export function QuizJobView({ onBack }: QuizJobViewProps) {
   // Fetch Verification Status
   useEffect(() => {
     if (!currentUser) return;
-    const unsub = onSnapshot(doc(db, 'account_verifications', currentUser.uid), (docSnap) => {
+    const unsub = onSnapshot(doc(db, 'users', currentUser.uid), (docSnap) => {
       if (docSnap.exists()) {
         setIsVerified(docSnap.data().isVerified);
       }

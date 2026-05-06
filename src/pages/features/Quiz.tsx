@@ -430,7 +430,7 @@ export function QuizView({ onBack }: { onBack: () => void }) {
     const unsubBalance = onSnapshot(doc(db, 'user_balances', currentUser.uid), (snap) => {
       if (snap.exists()) setBalance(snap.data());
     });
-    const unsubVerification = onSnapshot(doc(db, 'account_verifications', currentUser.uid), (snap) => {
+    const unsubVerification = onSnapshot(doc(db, 'users', currentUser.uid), (snap) => {
       if (snap.exists()) setIsVerified(snap.data().isVerified);
     });
     return () => {

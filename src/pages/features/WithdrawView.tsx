@@ -48,7 +48,7 @@ export const WithdrawView: React.FC = () => {
     if (!user) return;
 
     // Fetch verification status
-    const unsubscribeVerification = onSnapshot(doc(db, 'account_verifications', user.uid), (docSnap) => {
+    const unsubscribeVerification = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
       if (docSnap.exists()) {
         setIsVerified(docSnap.data().isVerified || false);
       }

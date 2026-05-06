@@ -370,62 +370,34 @@ export function EarningView({ onBack }: EarningViewProps) {
       setIsVerified(undefined);
       return;
     }
-    const unsub = onSnapshot(
-      doc(db, "account_verifications", currentUser.uid),
-      async (docSnap) => {
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          const verified = data.isVerified || false;
-          const watched = data.adsWatched || 0;
+    // Listen to users collection as the master record for verification (controllable via admin panel)
+    const unsub = onSnapshot(doc(db, "users", currentUser.uid), async (userSnap) => {
+      if (userSnap.exists()) {
+        const verified = userSnap.data()?.isVerified || false;
+        setIsVerified(verified);
 
-          setIsVerified(verified);
-
-          // If admin un-verified, reset ads count
-          if (verified === false && watched > 0) {
-            try {
-              await updateDoc(
-                doc(db, "account_verifications", currentUser.uid),
-                {
-                  adsWatched: 0,
-                  adsWatchedThisSession: 0,
-                  updatedAt: serverTimestamp(),
-                },
-              );
-            } catch (err) {
-              console.error("Error resetting ads count:", err);
-            }
-          }
-
-          // Sync with users collection for global visibility
+        // If the admin un-verified the user (verified is false),
+        // we must sync this down to the account_verifications document
+        if (!verified) {
           try {
-            const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-            if (userDoc.exists() && userDoc.data().isVerified !== verified) {
-              await updateDoc(doc(db, "users", currentUser.uid), {
-                isVerified: verified,
-                updatedAt: serverTimestamp(),
-              });
-            }
-          } catch (err) {
-            console.error("Sync verification error:", err);
-          }
-        } else {
-          // Document doesn't exist, definitively not verified
-          setIsVerified(false);
-          // Also ensure users collection is in sync
-          try {
-            const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-            if (userDoc.exists() && userDoc.data().isVerified) {
-              await updateDoc(doc(db, "users", currentUser.uid), {
+            const avRef = doc(db, "account_verifications", currentUser.uid);
+            const avDoc = await getDoc(avRef);
+            if (avDoc.exists() && (avDoc.data().isVerified || avDoc.data().adsWatched > 0)) {
+              await updateDoc(avRef, {
                 isVerified: false,
+                adsWatched: 0,
+                adsWatchedThisSession: 0,
                 updatedAt: serverTimestamp(),
               });
             }
           } catch (err) {
-            console.error("Sync un-verification error:", err);
+            console.error("Error syncing un-verification to account_verifications:", err);
           }
         }
-      },
-    );
+      } else {
+        setIsVerified(false);
+      }
+    });
     return () => unsub();
   }, [currentUser]);
 

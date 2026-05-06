@@ -48,18 +48,17 @@ export const AccountVerificationView: React.FC<AccountVerificationViewProps> = (
   useEffect(() => {
     if (!auth.currentUser) return;
 
-    const fetchData = async () => {
-      try {
-        // Fetch settings
-        const settingsDoc = await getDoc(doc(db, 'settings', 'earning'));
-        if (settingsDoc.exists()) {
-          setTargetAds(settingsDoc.data().adsRequiredForVerification || 10);
+    // Real-time settings listener
+    const unsubSettings = onSnapshot(doc(db, 'settings', 'earning'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.adViewsForVerification !== undefined) {
+          setTargetAds(data.adViewsForVerification);
+        } else if (data.adsRequiredForVerification !== undefined) {
+          setTargetAds(data.adsRequiredForVerification);
         }
-      } catch (error) {
-        console.error('Error fetching settings:', error);
       }
-    };
-    fetchData();
+    });
 
     // Real-time verification status listener
     const unsub = onSnapshot(doc(db, 'account_verifications', auth.currentUser.uid), (docSnap) => {
@@ -86,7 +85,10 @@ export const AccountVerificationView: React.FC<AccountVerificationViewProps> = (
       setLoading(false);
     });
 
-    return () => unsub();
+    return () => {
+      unsub();
+      unsubSettings();
+    };
   }, []);
 
   const handleWatchAd = async () => {

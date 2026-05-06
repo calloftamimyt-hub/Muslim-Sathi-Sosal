@@ -356,7 +356,8 @@ async function startServer() {
       });
       
       // Pass correct content type
-      res.setHeader('Content-Type', response.headers['content-type'] || 'audio/mpeg');
+      const contentType = response.headers['content-type'];
+      res.setHeader('Content-Type', typeof contentType === 'string' ? contentType : 'audio/mpeg');
       res.setHeader('Content-Disposition', `attachment; filename="audio.mp3"`);
       
       // Pipe the data to the client

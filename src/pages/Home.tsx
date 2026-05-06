@@ -66,6 +66,7 @@ import { useLanguage } from "../contexts/LanguageContext";
 import { useNotifications } from "../hooks/useNotifications";
 import { Capacitor } from "@capacitor/core";
 import { db } from "@/lib/firebase";
+import { PullToRefresh } from "@/components/PullToRefresh";
 import {
   collection,
   query,
@@ -808,6 +809,8 @@ export function Home({
   }, [todayData, t]);
 
   const handleRefresh = async () => {
+    // Show the text animation for a short duration
+    await new Promise(resolve => setTimeout(resolve, 1500));
     try {
       // Force clear Firestore persistence on native platforms if we suspect a hang
       if (Capacitor.isNativePlatform()) {
@@ -968,9 +971,10 @@ export function Home({
   }
 
   return (
-    <div className="relative isolate min-h-[100dvh] bg-slate-50 dark:bg-slate-950 font-sans flex flex-col">
-      {/* Fake Status Bar Header */}
-      <div className="fixed top-0 inset-x-0 h-safe bg-white dark:bg-slate-900 z-[200]" />
+    <PullToRefresh onRefresh={handleRefresh}>
+      <div className="relative isolate min-h-[100dvh] bg-slate-50 dark:bg-slate-950 font-sans flex flex-col">
+        {/* Fake Status Bar Header */}
+        <div className="fixed top-0 inset-x-0 h-safe bg-white dark:bg-slate-900 z-[200]" />
 
       {/* Top Background Bleed (Hero Color) */}
       <div className="absolute top-0 left-0 right-0 h-[400px] bg-white dark:bg-slate-900 pointer-events-none overflow-hidden -z-10">
@@ -1528,7 +1532,7 @@ export function Home({
         </div>
 
         {/* Scholars Section (Q&A) */}
-        {scholars.length > 0 && (
+        {(scholars.length > 0 || scholarsLoading) && (
         <div className="mt-0">
           <div className="flex justify-between items-center px-6 py-1">
             <h3 className="text-[14px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">
@@ -1544,41 +1548,54 @@ export function Home({
           </div>
 
           <div className="px-4 pb-2 overflow-x-auto no-scrollbar flex space-x-4 snap-x">
-            {scholars.map((scholar, idx) => (
-              <motion.div
-                key={scholar.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: idx * 0.1 }}
-                className="flex-shrink-0 w-32 bg-slate-50 dark:bg-slate-800/50 rounded-lg overflow-hidden border border-slate-100/50 dark:border-slate-800 shadow-sm snap-center group"
-              >
-                <div className="relative h-32 overflow-hidden">
-                  <img
-                    src={scholar.imageUrl}
-                    alt={scholar.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                    referrerPolicy="no-referrer"
-                  />
+            {scholarsLoading && scholars.length === 0 ? (
+              Array.from({ length: 4 }).map((_, idx) => (
+                <div key={idx} className="flex-shrink-0 w-32 bg-slate-50 dark:bg-slate-800/50 rounded-lg overflow-hidden border border-slate-100/50 dark:border-slate-800 shadow-sm snap-center">
+                  <div className="h-32 w-full shimmer"></div>
+                  <div className="p-2 space-y-2">
+                    <div className="h-2 w-3/4 shimmer rounded"></div>
+                    <div className="h-2 w-full shimmer rounded opacity-50"></div>
+                    <div className="h-6 w-full shimmer rounded-md mt-2"></div>
+                  </div>
                 </div>
-                <div className="p-2">
-                  <h4 className="text-[11px] font-black text-slate-800 dark:text-slate-100 truncate mb-0.5">
-                    {scholar.name}
-                  </h4>
-                  <p className="text-[9px] font-bold text-slate-500 dark:text-slate-500 line-clamp-1 mb-2">
-                    {scholar.description}
-                  </p>
-                  <button
-                    onClick={() => handleCall(scholar.phoneNumber)}
-                    className="w-full py-1.5 bg-primary text-white rounded-md shadow-md shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-1.5"
-                  >
-                    <Phone className="w-2.5 h-2.5 fill-white/20" />
-                    <span className="text-[8px] font-black uppercase tracking-wider">
-                      {language === "bn" ? "কল করুন" : "Call Now"}
-                    </span>
-                  </button>
-                </div>
-              </motion.div>
-            ))}
+              ))
+            ) : (
+              scholars.map((scholar, idx) => (
+                <motion.div
+                  key={scholar.id}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: idx * 0.1 }}
+                  className="flex-shrink-0 w-32 bg-slate-50 dark:bg-slate-800/50 rounded-lg overflow-hidden border border-slate-100/50 dark:border-slate-800 shadow-sm snap-center group"
+                >
+                  <div className="relative h-32 overflow-hidden">
+                    <img
+                      src={scholar.imageUrl}
+                      alt={scholar.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                  <div className="p-2">
+                    <h4 className="text-[11px] font-black text-slate-800 dark:text-slate-100 truncate mb-0.5">
+                      {scholar.name}
+                    </h4>
+                    <p className="text-[9px] font-bold text-slate-500 dark:text-slate-500 line-clamp-1 mb-2">
+                      {scholar.description}
+                    </p>
+                    <button
+                      onClick={() => handleCall(scholar.phoneNumber)}
+                      className="w-full py-1.5 bg-primary text-white rounded-md shadow-md shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <Phone className="w-2.5 h-2.5 fill-white/20" />
+                      <span className="text-[8px] font-black uppercase tracking-wider">
+                        {language === "bn" ? "কল করুন" : "Call Now"}
+                      </span>
+                    </button>
+                  </div>
+                </motion.div>
+              ))
+            )}
           </div>
         </div>
         )}
@@ -1659,6 +1676,7 @@ export function Home({
         currentLat={latitude}
         currentLon={longitude}
       />
-    </div>
+      </div>
+    </PullToRefresh>
   );
 }

@@ -103,7 +103,11 @@
 .shimmer {
   position: relative;
   overflow: hidden;
-  @apply bg-slate-200 dark:bg-slate-800;
+  background-color: #f0f2f5;
+}
+
+.dark .shimmer {
+  background-color: #1e293b;
 }
 
 .shimmer::after {
@@ -113,14 +117,22 @@
   right: 0;
   bottom: 0;
   left: 0;
-  background: linear-gradient(
+  background-image: linear-gradient(
     90deg,
     rgba(255, 255, 255, 0) 0,
-    rgba(255, 255, 255, 0.2) 20%,
-    rgba(255, 255, 255, 0.5) 60%,
-    rgba(255, 255, 255, 0)
+    rgba(255, 255, 255, 0.5) 50%,
+    rgba(255, 255, 255, 0) 100%
   );
-  animation: shimmer 2s infinite;
+  animation: shimmer 1.5s infinite linear;
+}
+
+.dark .shimmer::after {
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
 }
 
 @layer utilities {
@@ -131,14 +143,4 @@
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
   }
-}
-
-.dark .shimmer::after {
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0,
-    rgba(255, 255, 255, 0.05) 20%,
-    rgba(255, 255, 255, 0.1) 60%,
-    rgba(255, 255, 255, 0)
-  );
 }
