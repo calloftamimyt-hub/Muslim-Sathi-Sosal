@@ -341,7 +341,33 @@ async function startServer() {
   });
 
 
-// Media Proxy Route to fetch files from Telegram
+  // Audio Proxy Route for generic files (like Quran audio)
+  app.get("/api/proxy/audio", async (req, res) => {
+    try {
+      const audioUrl = req.query.url as string;
+      if (!audioUrl) {
+        return res.status(400).json({ error: "Missing url parameter" });
+      }
+      
+      const response = await axios({
+        method: 'get',
+        url: audioUrl,
+        responseType: 'stream',
+      });
+      
+      // Pass correct content type
+      res.setHeader('Content-Type', response.headers['content-type'] || 'audio/mpeg');
+      res.setHeader('Content-Disposition', `attachment; filename="audio.mp3"`);
+      
+      // Pipe the data to the client
+      response.data.pipe(res);
+    } catch (error: any) {
+      console.error("Proxy error:", error.message);
+      res.status(500).json({ error: "Proxy streaming failed" });
+    }
+  });
+
+  // Media Proxy Route to fetch files from Telegram
   app.get("/api/telegram/file/:fileId", async (req, res) => {
     try {
       const { fileId } = req.params;

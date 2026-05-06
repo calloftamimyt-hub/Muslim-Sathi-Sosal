@@ -11,6 +11,7 @@ import { PrivacySecurityView } from './PrivacySecurity';
 import { DataPermissionView } from './DataPermissionView';
 import { DeleteAccountView } from './DeleteAccountView';
 import { LanguageSelectionView } from './LanguageSelectionView';
+import { TwoStepVerificationView } from './TwoStepVerificationView';
 import { auth, db } from '../../lib/firebase';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
@@ -324,7 +325,10 @@ export function AppSettings({ onBack }: AppSettingsProps) {
             />
             <ActionRow 
               title={language === 'bn' ? 'টু-স্টেপ ভেরিফিকেশন' : 'Two-Step Verification'}
-              onClick={() => {}}
+              onClick={() => {
+                window.history.pushState({ modal: 'two-step' }, '');
+                setActiveModal('two-step-view');
+              }}
               icon={Smartphone}
               colorClass="bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
             />
@@ -407,6 +411,7 @@ export function AppSettings({ onBack }: AppSettingsProps) {
             {activeModal === 'data-permission-view' && <DataPermissionView settings={settings} onToggle={() => {}} onBack={() => window.history.back()} />}
             {activeModal === 'delete-account-view' && <DeleteAccountView onBack={() => window.history.back()} />}
             {activeModal === 'language-selection-view' && <LanguageSelectionView onBack={() => window.history.back()} />}
+            {activeModal === 'two-step-view' && <TwoStepVerificationView onBack={() => window.history.back()} />}
           </motion.div>
         )}
       </AnimatePresence>

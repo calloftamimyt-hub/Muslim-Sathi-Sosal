@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
-  Film, 
-  Send, 
-  CheckCircle2, 
-  UserPlus, 
-  UserMinus, 
-  Edit2, 
+  Film,
+  Send,
+  CheckCircle2,
+  UserPlus,
+  UserMinus,
+  Edit2,
   Home,
   Eye,
   Heart,
@@ -103,7 +103,17 @@ import {
 import { useLanguage } from "@/contexts/LanguageContext";
 import { cn, getApiUrl } from "@/lib/utils";
 import { db, auth } from "@/lib/firebase";
-import { collection, query, orderBy, onSnapshot, limit, doc, updateDoc, increment, where } from "firebase/firestore";
+import {
+  collection,
+  query,
+  orderBy,
+  onSnapshot,
+  limit,
+  doc,
+  updateDoc,
+  increment,
+  where,
+} from "firebase/firestore";
 import { TagsGenTool } from "@/components/tools/TagsGenTool";
 import { TitleGenTool } from "@/components/tools/TitleGenTool";
 import { EarnCalcTool } from "@/components/tools/EarnCalcTool";
@@ -130,7 +140,7 @@ import { RegexTestTool } from "@/components/tools/RegexTestTool";
 import { MDEditorTool } from "@/components/tools/MDEditorTool";
 import { RandomNumTool } from "@/components/tools/RandomNumTool";
 import { TextCaseTool } from "@/components/tools/TextCaseTool";
-import { ProfileStatusModal } from '@/components/ProfileStatusModal';
+import { ProfileStatusModal } from "@/components/ProfileStatusModal";
 import { UUIDMakerTool } from "@/components/tools/UUIDMakerTool";
 import { CodeFormatTool } from "@/components/tools/CodeFormatTool";
 import { DeviceInfoTool } from "@/components/tools/DeviceInfoTool";
@@ -143,7 +153,15 @@ import { PercentageCalcTool } from "@/components/tools/PercentageCalcTool";
 import { YTThumbnailTool } from "@/components/tools/YTThumbnailTool";
 import { PostContentOverlay } from "@/components/tools/PostContentOverlay";
 import { ReportModal } from "@/components/tools/ReportModal";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { MuslimBrowser } from "@/components/MuslimBrowser";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { HelpSupportModal } from "@/components/tools/HelpSupportModal";
@@ -411,1079 +429,1277 @@ const SOCIAL_TOOLS = [
 // --- Components ---
 
 const formatCount = (num: number) => {
-    if (!num) return '0';
-    if (num >= 1000000) {
-        return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
-    }
-    if (num >= 1000) {
-        return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
-    }
-    return num.toString();
+  if (!num) return "0";
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, "") + "K";
+  }
+  return num.toString();
 };
 
 const PostSkeleton = () => (
-    <div className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 p-4 space-y-4">
-        <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full shimmer bg-slate-200 dark:bg-slate-800" />
-            <div className="space-y-2">
-                <div className="w-24 h-3 shimmer bg-slate-200 dark:bg-slate-800 rounded" />
-                <div className="w-16 h-2 shimmer bg-slate-100 dark:bg-slate-800 rounded" />
-            </div>
-        </div>
-        <div className="space-y-2">
-            <div className="w-full h-3 shimmer bg-slate-100 dark:bg-slate-800 rounded" />
-            <div className="w-3/4 h-3 shimmer bg-slate-100 dark:bg-slate-800 rounded" />
-        </div>
-        <div className="aspect-video w-full shimmer bg-slate-200 dark:bg-slate-800 rounded-2xl" />
-        <div className="flex justify-between items-center py-2">
-            <div className="w-20 h-8 shimmer bg-slate-100 dark:bg-slate-800 rounded-xl" />
-            <div className="w-20 h-8 shimmer bg-slate-100 dark:bg-slate-800 rounded-xl" />
-            <div className="w-20 h-8 shimmer bg-slate-100 dark:bg-slate-800 rounded-xl" />
-        </div>
+  <div className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 p-4 space-y-4">
+    <div className="flex items-center gap-3">
+      <div className="w-10 h-10 rounded-full shimmer bg-slate-200 dark:bg-slate-800" />
+      <div className="space-y-2">
+        <div className="w-24 h-3 shimmer bg-slate-200 dark:bg-slate-800 rounded" />
+        <div className="w-16 h-2 shimmer bg-slate-100 dark:bg-slate-800 rounded" />
+      </div>
     </div>
+    <div className="space-y-2">
+      <div className="w-full h-3 shimmer bg-slate-100 dark:bg-slate-800 rounded" />
+      <div className="w-3/4 h-3 shimmer bg-slate-100 dark:bg-slate-800 rounded" />
+    </div>
+    <div className="aspect-video w-full shimmer bg-slate-200 dark:bg-slate-800 rounded-2xl" />
+    <div className="flex justify-between items-center py-2">
+      <div className="w-20 h-8 shimmer bg-slate-100 dark:bg-slate-800 rounded-xl" />
+      <div className="w-20 h-8 shimmer bg-slate-100 dark:bg-slate-800 rounded-xl" />
+      <div className="w-20 h-8 shimmer bg-slate-100 dark:bg-slate-800 rounded-xl" />
+    </div>
+  </div>
 );
 
 const CategorySkeleton = () => (
-    <div className="grid grid-cols-4 gap-x-2 gap-y-4">
-        {[...Array(8)].map((_, i) => (
-            <div key={i} className="flex flex-col items-center gap-1.5">
-                <div className="w-11 h-11 rounded-full shimmer bg-slate-200 dark:bg-slate-800" />
-                <div className="w-12 h-2 shimmer bg-slate-100 dark:bg-slate-800 rounded" />
-            </div>
-        ))}
-    </div>
+  <div className="grid grid-cols-4 gap-x-2 gap-y-4">
+    {[...Array(8)].map((_, i) => (
+      <div key={i} className="flex flex-col items-center gap-1.5">
+        <div className="w-11 h-11 rounded-full shimmer bg-slate-200 dark:bg-slate-800" />
+        <div className="w-12 h-2 shimmer bg-slate-100 dark:bg-slate-800 rounded" />
+      </div>
+    ))}
+  </div>
 );
 
 const AnalyticsDashboard = () => {
-    const { language } = useLanguage();
-    const [stats, setStats] = useState({
-        totalPosts: 0,
-        totalLikes: 0,
-        totalViews: 0,
-        totalFollowers: 0,
-        totalComments: 0,
-        totalShares: 0
+  const { language } = useLanguage();
+  const [stats, setStats] = useState({
+    totalPosts: 0,
+    totalLikes: 0,
+    totalViews: 0,
+    totalFollowers: 0,
+    totalComments: 0,
+    totalShares: 0,
+  });
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!auth.currentUser) return;
+
+    setIsLoading(true);
+    const q = query(
+      collection(db, "posts"),
+      where("authorUid", "==", auth.currentUser.uid),
+    );
+
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      let likes = 0;
+      let views = 0;
+      let comments = 0;
+      let shares = 0;
+
+      const dayStats: Record<string, number> = {};
+      const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const last7Days = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        return days[d.getDay()];
+      }).reverse();
+
+      last7Days.forEach((day) => (dayStats[day] = 0));
+
+      snapshot.docs.forEach((doc) => {
+        const data = doc.data();
+        const l = data.reactionsCount || data.likes || 0;
+        const v = data.views || 0;
+        const c = data.commentsCount || 0;
+        const s = data.sharesCount || 0;
+
+        likes += l;
+        views += v;
+        comments += c;
+        shares += s;
+
+        if (data.createdAt) {
+          const date = data.createdAt.toDate();
+          const dayName = days[date.getDay()];
+          if (dayStats[dayName] !== undefined) {
+            dayStats[dayName] += v;
+          }
+        }
+      });
+
+      const formattedChartData = last7Days.map((day) => ({
+        name: day,
+        views: dayStats[day],
+      }));
+
+      setChartData(formattedChartData);
+
+      // Fetch followers
+      const followersQuery = query(
+        collection(db, "follows"),
+        where("following_id", "==", auth.currentUser!.uid),
+      );
+      const { getCountFromServer } = await import("firebase/firestore");
+      const followersSnapshot = await getCountFromServer(followersQuery);
+
+      setStats({
+        totalPosts: snapshot.size,
+        totalLikes: likes,
+        totalViews: views,
+        totalFollowers: followersSnapshot.data().count,
+        totalComments: comments,
+        totalShares: shares,
+      });
+      setIsLoading(false);
     });
-    const [chartData, setChartData] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        if (!auth.currentUser) return;
-        
-        setIsLoading(true);
-        const q = query(
-            collection(db, "posts"), 
-            where("authorUid", "==", auth.currentUser.uid)
-        );
+    return () => unsubscribe();
+  }, []);
 
-        const unsubscribe = onSnapshot(q, async (snapshot) => {
-            let likes = 0;
-            let views = 0;
-            let comments = 0;
-            let shares = 0;
-
-            const dayStats: Record<string, number> = {};
-            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-            const last7Days = Array.from({length: 7}, (_, i) => {
-                const d = new Date();
-                d.setDate(d.getDate() - i);
-                return days[d.getDay()];
-            }).reverse();
-
-            last7Days.forEach(day => dayStats[day] = 0);
-
-            snapshot.docs.forEach(doc => {
-                const data = doc.data();
-                const l = (data.reactionsCount || data.likes || 0);
-                const v = (data.views || 0);
-                const c = (data.commentsCount || 0);
-                const s = (data.sharesCount || 0);
-
-                likes += l;
-                views += v;
-                comments += c;
-                shares += s;
-
-                if (data.createdAt) {
-                    const date = data.createdAt.toDate();
-                    const dayName = days[date.getDay()];
-                    if (dayStats[dayName] !== undefined) {
-                        dayStats[dayName] += v;
-                    }
-                }
-            });
-
-            const formattedChartData = last7Days.map(day => ({
-                name: day,
-                views: dayStats[day]
-            }));
-
-            setChartData(formattedChartData);
-
-            // Fetch followers
-            const followersQuery = query(collection(db, 'follows'), where('following_id', '==', auth.currentUser!.uid));
-            const { getCountFromServer } = await import("firebase/firestore");
-            const followersSnapshot = await getCountFromServer(followersQuery);
-
-            setStats({
-                totalPosts: snapshot.size,
-                totalLikes: likes,
-                totalViews: views,
-                totalFollowers: followersSnapshot.data().count,
-                totalComments: comments,
-                totalShares: shares
-            });
-            setIsLoading(false);
-        });
-
-        return () => unsubscribe();
-    }, []);
-
-    if (isLoading) return (
-        <div className="p-6 space-y-6 animate-pulse">
-            <div className="grid grid-cols-4 gap-3">
-                {[...Array(4)].map((_, i) => (
-                    <div key={i} className="h-20 bg-slate-100 dark:bg-slate-800 rounded-2xl" />
-                ))}
-            </div>
-            <div className="h-48 bg-slate-100 dark:bg-slate-800 rounded-2xl" />
-            <div className="h-32 bg-slate-100 dark:bg-slate-800 rounded-2xl" />
-        </div>
-    );
-
+  if (isLoading)
     return (
-        <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="p-4 sm:p-6 space-y-6 pb-20 overflow-x-hidden"
-        >
-            {/* 1. Top Summary Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                    { label: language === 'bn' ? 'ভিউ' : 'Views', value: stats.totalViews, icon: Eye, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-500/10' },
-                    { label: language === 'bn' ? 'লাইক' : 'Likes', value: stats.totalLikes, icon: Heart, color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-500/10' },
-                    { label: language === 'bn' ? 'কমেন্ট' : 'Comments', value: stats.totalComments, icon: MessageCircle, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
-                    { label: language === 'bn' ? 'শেয়ার' : 'Shares', value: stats.totalShares, icon: Share2, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-500/10' }
-                ].map((item, i) => (
-                    <div key={i} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl shadow-sm">
-                        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center mb-2", item.bg)}>
-                            <item.icon className={cn("w-4 h-4", item.color)} />
-                        </div>
-                        <div className="text-lg font-black text-slate-800 dark:text-white leading-tight">
-                            {formatCount(item.value)}
-                        </div>
-                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                            {item.label}
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            {/* 2. Engagement Graph */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-2xl shadow-sm">
-                <div className="flex items-center justify-between mb-6">
-                    <div>
-                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                            {language === 'bn' ? 'পারফরম্যান্স ট্রেন্ড' : 'Performance Trend'}
-                        </h3>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                            {language === 'bn' ? 'গত ৭ দিনের ভিউ' : 'Views over last 7 days'}
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-2 h-2 rounded-full bg-blue-500" />
-                            <span className="text-[10px] font-bold text-slate-500">{language === 'bn' ? 'ভিউ' : 'Views'}</span>
-                        </div>
-                    </div>
-                </div>
-                <div className="h-48 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                            <defs>
-                                <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                            <XAxis 
-                                dataKey="name" 
-                                axisLine={false} 
-                                tickLine={false} 
-                                tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} 
-                            />
-                            <YAxis 
-                                axisLine={false} 
-                                tickLine={false} 
-                                tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} 
-                            />
-                            <Tooltip 
-                                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
-                            />
-                            <Area 
-                                type="monotone" 
-                                dataKey="views" 
-                                stroke="#3b82f6" 
-                                strokeWidth={3}
-                                fillOpacity={1} 
-                                fill="url(#colorViews)" 
-                            />
-                        </AreaChart>
-                    </ResponsiveContainer>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {/* 3. Audience Retention */}
-                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-2xl shadow-sm">
-                    <div className="flex items-center gap-4 mb-6">
-                        <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
-                            <Clock className="w-6 h-6 text-blue-500" />
-                        </div>
-                        <div>
-                            <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
-                                {language === 'bn' ? 'অডিয়েন্স রিটেনশন' : 'Audience Retention'}
-                            </h3>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                                {language === 'bn' ? 'ওয়াচ টাইম রিপোর্ট' : 'Watch time report'}
-                            </p>
-                        </div>
-                    </div>
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                            <span className="text-xs font-bold text-slate-500">{language === 'bn' ? 'গড় ওয়াচ টাইম' : 'Avg. Watch Time'}</span>
-                            <span className="text-sm font-black text-slate-900 dark:text-white">0:45s</span>
-                        </div>
-                        <div className="relative h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                            <motion.div 
-                                initial={{ width: 0 }}
-                                animate={{ width: '65%' }}
-                                transition={{ duration: 1, ease: "easeOut" }}
-                                className="absolute top-0 left-0 h-full bg-blue-500 rounded-full"
-                            />
-                        </div>
-                        <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                            <span>0%</span>
-                            <span>{language === 'bn' ? '৬৫% মানুষ পুরোটা দেখেছে' : '65% watched full'}</span>
-                            <span>100%</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* 4. Performance Comparison */}
-                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-2xl shadow-sm flex flex-col justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center">
-                            <BarChart3 className="w-6 h-6 text-emerald-500" />
-                        </div>
-                        <div>
-                            <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
-                                {language === 'bn' ? 'পারফরম্যান্স ইনসাইটস' : 'Performance Insights'}
-                            </h3>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                                {language === 'bn' ? 'রিয়েল-টাইম স্ট্যাটাস' : 'Real-time status'}
-                            </p>
-                        </div>
-                    </div>
-                    
-                    <div className="mt-6 flex items-end gap-3">
-                        <div className="bg-emerald-50 dark:bg-emerald-500/10 px-4 py-2 rounded-xl flex items-center gap-2">
-                            <ChevronUp className="w-4 h-4 text-emerald-500" />
-                            <span className="text-lg font-black text-emerald-500">20%</span>
-                        </div>
-                        <p className="text-xs font-semibold text-slate-500 leading-tight mb-1">
-                            {language === 'bn' 
-                                ? 'এটি আপনার অন্যান্য ভিডিওর চেয়ে ২০% ভাল পারফর্ম করছে।' 
-                                : 'It is performing 20% better than your other videos.'}
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Bottom Tip Card */}
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-6 rounded-2xl text-white overflow-hidden relative group">
-                <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
-                    <Zap className="w-32 h-32" />
-                </div>
-                <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center shrink-0">
-                        <Star className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                        <h4 className="text-sm font-bold mb-1">{language === 'bn' ? 'সফলতার টিপস' : 'Success Tip'}</h4>
-                        <p className="text-xs text-slate-400 leading-relaxed font-medium">
-                            {stats.totalViews > 1000 
-                                ? (language === 'bn' ? 'আপনার ভিডিওগুলো সবার হৃদয়ে জায়গা করে নিচ্ছে! নিয়মিত ভিডিও শেয়ার করুন।' : 'Your videos are finding a place in hearts! Keep sharing regularly.') 
-                                : (language === 'bn' ? 'বেশি ভিউ এবং ফলোয়ার পেতে নিয়মিত এবং কোয়ালিটি ভিডিও আপলোড করুন।' : 'Upload regular and quality videos to gain more views and followers.')}
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </motion.div>
+      <div className="p-6 space-y-6 animate-pulse">
+        <div className="grid grid-cols-4 gap-3">
+          {[...Array(4)].map((_, i) => (
+            <div
+              key={i}
+              className="h-20 bg-slate-100 dark:bg-slate-800 rounded-2xl"
+            />
+          ))}
+        </div>
+        <div className="h-48 bg-slate-100 dark:bg-slate-800 rounded-2xl" />
+        <div className="h-32 bg-slate-100 dark:bg-slate-800 rounded-2xl" />
+      </div>
     );
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="p-4 sm:p-6 space-y-6 pb-20 overflow-x-hidden"
+    >
+      {/* 1. Top Summary Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          {
+            label: language === "bn" ? "ভিউ" : "Views",
+            value: stats.totalViews,
+            icon: Eye,
+            color: "text-blue-500",
+            bg: "bg-blue-50 dark:bg-blue-500/10",
+          },
+          {
+            label: language === "bn" ? "লাইক" : "Likes",
+            value: stats.totalLikes,
+            icon: Heart,
+            color: "text-rose-500",
+            bg: "bg-rose-50 dark:bg-rose-500/10",
+          },
+          {
+            label: language === "bn" ? "কমেন্ট" : "Comments",
+            value: stats.totalComments,
+            icon: MessageCircle,
+            color: "text-emerald-500",
+            bg: "bg-emerald-50 dark:bg-emerald-500/10",
+          },
+          {
+            label: language === "bn" ? "শেয়ার" : "Shares",
+            value: stats.totalShares,
+            icon: Share2,
+            color: "text-amber-500",
+            bg: "bg-amber-50 dark:bg-amber-500/10",
+          },
+        ].map((item, i) => (
+          <div
+            key={i}
+            className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl shadow-sm"
+          >
+            <div
+              className={cn(
+                "w-8 h-8 rounded-xl flex items-center justify-center mb-2",
+                item.bg,
+              )}
+            >
+              <item.icon className={cn("w-4 h-4", item.color)} />
+            </div>
+            <div className="text-lg font-black text-slate-800 dark:text-white leading-tight">
+              {formatCount(item.value)}
+            </div>
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+              {item.label}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 2. Engagement Graph */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-2xl shadow-sm">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+              {language === "bn" ? "পারফরম্যান্স ট্রেন্ড" : "Performance Trend"}
+            </h3>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+              {language === "bn" ? "গত ৭ দিনের ভিউ" : "Views over last 7 days"}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-blue-500" />
+              <span className="text-[10px] font-bold text-slate-500">
+                {language === "bn" ? "ভিউ" : "Views"}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="h-48 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={chartData}
+              margin={{ top: 0, right: 0, left: -20, bottom: 0 }}
+            >
+              <defs>
+                <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="#f1f5f9"
+              />
+              <XAxis
+                dataKey="name"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 10, fontWeight: 700, fill: "#94a3b8" }}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 10, fontWeight: 700, fill: "#94a3b8" }}
+              />
+              <Tooltip
+                contentStyle={{
+                  borderRadius: "16px",
+                  border: "none",
+                  boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                  fontSize: "12px",
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="views"
+                stroke="#3b82f6"
+                strokeWidth={3}
+                fillOpacity={1}
+                fill="url(#colorViews)"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        {/* 3. Audience Retention */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-2xl shadow-sm">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
+              <Clock className="w-6 h-6 text-blue-500" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                {language === "bn" ? "অডিয়েন্স রিটেনশন" : "Audience Retention"}
+              </h3>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                {language === "bn" ? "ওয়াচ টাইম রিপোর্ট" : "Watch time report"}
+              </p>
+            </div>
+          </div>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-bold text-slate-500">
+                {language === "bn" ? "গড় ওয়াচ টাইম" : "Avg. Watch Time"}
+              </span>
+              <span className="text-sm font-black text-slate-900 dark:text-white">
+                0:45s
+              </span>
+            </div>
+            <div className="relative h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: "65%" }}
+                transition={{ duration: 1, ease: "easeOut" }}
+                className="absolute top-0 left-0 h-full bg-blue-500 rounded-full"
+              />
+            </div>
+            <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+              <span>0%</span>
+              <span>
+                {language === "bn"
+                  ? "৬৫% মানুষ পুরোটা দেখেছে"
+                  : "65% watched full"}
+              </span>
+              <span>100%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 4. Performance Comparison */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-2xl shadow-sm flex flex-col justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center">
+              <BarChart3 className="w-6 h-6 text-emerald-500" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                {language === "bn"
+                  ? "পারফরম্যান্স ইনসাইটস"
+                  : "Performance Insights"}
+              </h3>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                {language === "bn"
+                  ? "রিয়েল-টাইম স্ট্যাটাস"
+                  : "Real-time status"}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 flex items-end gap-3">
+            <div className="bg-emerald-50 dark:bg-emerald-500/10 px-4 py-2 rounded-xl flex items-center gap-2">
+              <ChevronUp className="w-4 h-4 text-emerald-500" />
+              <span className="text-lg font-black text-emerald-500">20%</span>
+            </div>
+            <p className="text-xs font-semibold text-slate-500 leading-tight mb-1">
+              {language === "bn"
+                ? "এটি আপনার অন্যান্য ভিডিওর চেয়ে ২০% ভাল পারফর্ম করছে।"
+                : "It is performing 20% better than your other videos."}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Tip Card */}
+      <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-6 rounded-2xl text-white overflow-hidden relative group">
+        <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
+          <Zap className="w-32 h-32" />
+        </div>
+        <div className="flex items-start gap-4">
+          <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center shrink-0">
+            <Star className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h4 className="text-sm font-bold mb-1">
+              {language === "bn" ? "সফলতার টিপস" : "Success Tip"}
+            </h4>
+            <p className="text-xs text-slate-400 leading-relaxed font-medium">
+              {stats.totalViews > 1000
+                ? language === "bn"
+                  ? "আপনার ভিডিওগুলো সবার হৃদয়ে জায়গা করে নিচ্ছে! নিয়মিত ভিডিও শেয়ার করুন।"
+                  : "Your videos are finding a place in hearts! Keep sharing regularly."
+                : language === "bn"
+                  ? "বেশি ভিউ এবং ফলোয়ার পেতে নিয়মিত এবং কোয়ালিটি ভিডিও আপলোড করুন।"
+                  : "Upload regular and quality videos to gain more views and followers."}
+            </p>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
 };
 
-const PostCard = ({ post, isOverlayOpen }: { post: any, isOverlayOpen?: boolean }) => {
-    const { language } = useLanguage();
-    const [isLiked, setIsLiked] = useState(false);
-    const [likes, setLikes] = useState(post.reactionsCount || post.likes || 0);
-    
-    // Author states
-    const [isVerified, setIsVerified] = useState(false);
-    const [followerCount, setFollowerCount] = useState(0);
-    const [isFollowing, setIsFollowing] = useState(false);
-    const [isDeleting, setIsDeleting] = useState(false);
-    const [authorAvatar, setAuthorAvatar] = useState("");
-    const [showReportModal, setShowReportModal] = useState(false);
-    
-    const videoRef = React.useRef<HTMLVideoElement>(null);
+const PostCard = ({
+  post,
+  isOverlayOpen,
+}: {
+  post: any;
+  isOverlayOpen?: boolean;
+}) => {
+  const { language } = useLanguage();
+  const [isLiked, setIsLiked] = useState(false);
+  const [likes, setLikes] = useState(post.reactionsCount || post.likes || 0);
 
-    // Fetch author details
-    useEffect(() => {
-        let isMounted = true;
-        const fetchAuthorData = async () => {
-            try {
-                const { doc, getDoc, collection, query, where, getCountFromServer, getDocs } = await import("firebase/firestore");
-                
-                // Fetch verification status & avatar
-                const userDoc = await getDoc(doc(db, "users", post.authorUid));
-                if (isMounted && userDoc.exists()) {
-                    setIsVerified(userDoc.data().isVerified === true);
-                    if (userDoc.data().photoUrl || userDoc.data().photoURL) {
-                        setAuthorAvatar(userDoc.data().photoUrl || userDoc.data().photoURL);
-                    }
-                }
+  // Author states
+  const [isVerified, setIsVerified] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [authorAvatar, setAuthorAvatar] = useState("");
+  const [showReportModal, setShowReportModal] = useState(false);
 
-                // Fetch follower count
-                const followersQuery = query(collection(db, 'follows'), where('following_id', '==', post.authorUid));
-                const followersSnapshot = await getCountFromServer(followersQuery);
-                if (isMounted) setFollowerCount(followersSnapshot.data().count);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
 
-                // Fetch if current user is following
-                if (auth.currentUser && auth.currentUser.uid !== post.authorUid) {
-                    const followingQuery = query(
-                        collection(db, 'follows'), 
-                        where('follower_id', '==', auth.currentUser.uid), 
-                        where('following_id', '==', post.authorUid)
-                    );
-                    const isFollowingSnapshot = await getDocs(followingQuery);
-                    if (isMounted) setIsFollowing(!isFollowingSnapshot.empty);
-                }
-            } catch (e) {
-                console.error("Error fetching author details:", e);
-            }
-        };
-        fetchAuthorData();
-        return () => { isMounted = false; };
-    }, [post.authorUid, auth.currentUser]);
+  // Fetch author details
+  useEffect(() => {
+    let isMounted = true;
+    const fetchAuthorData = async () => {
+      try {
+        const {
+          doc,
+          getDoc,
+          collection,
+          query,
+          where,
+          getCountFromServer,
+          getDocs,
+        } = await import("firebase/firestore");
 
-    // Play/Pause video based on intersection and count views
-    const [hasCountedView, setHasCountedView] = useState(false);
-    const [isIntersecting, setIsIntersecting] = useState(false);
-
-    useEffect(() => {
-        if (!videoRef.current) return;
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                setIsIntersecting(entry.isIntersecting);
-            });
-        }, { threshold: 0.5 });
-        observer.observe(videoRef.current);
-        return () => observer.disconnect();
-    }, [post.fileId, post.id]);
-
-    useEffect(() => {
-        if (!videoRef.current) return;
-        if (isIntersecting && !isOverlayOpen) {
-            videoRef.current.play().catch(e => console.log('Autoplay prevented', e));
-            
-            if (!hasCountedView) {
-                setHasCountedView(true);
-                import("firebase/firestore").then(({ doc, increment, updateDoc }) => {
-                    if (post.id) {
-                        const postRef = doc(db, 'posts', post.id);
-                        updateDoc(postRef, { views: increment(1) }).catch(console.error);
-                    }
-                });
-            }
-        } else {
-            videoRef.current.pause();
-        }
-    }, [isIntersecting, isOverlayOpen, hasCountedView, post.id]);
-
-    // Check if current user has already liked
-    useEffect(() => {
-        let unsubscribe = () => {};
-        if (auth.currentUser) {
-            const checkLike = async () => {
-                if (!post.id) return;
-                try {
-                    const { doc, onSnapshot } = await import("firebase/firestore");
-                    const userLikeRef = doc(db, `posts/${post.id}/likes`, auth.currentUser!.uid);
-                    unsubscribe = onSnapshot(userLikeRef, (docSnap) => {
-                        setIsLiked(docSnap.exists());
-                    });
-                } catch(e) {
-                    console.error(e);
-                }
-            };
-            checkLike();
-        }
-        return () => unsubscribe();
-    }, [post.id]);
-
-    // Try to parse content if it's JSON or an object (to fix existing broken posts)
-    let displayContent = '';
-    let fallbackFileId = post.fileId;
-    let fallbackType = post.type;
-
-    if (typeof post.content === 'object' && post.content !== null) {
-        // If it's already an object (Firestore sometimes does this)
-        displayContent = post.content.text || '';
-        if (post.content.fileId) fallbackFileId = post.content.fileId;
-        if (post.content.type) fallbackType = post.content.type;
-    } else if (typeof post.content === 'string') {
-        displayContent = post.content;
-        if (displayContent.startsWith('{')) {
-            try {
-                const parsed = JSON.parse(displayContent);
-                displayContent = parsed.text || displayContent;
-                if (parsed.fileId && !fallbackFileId) fallbackFileId = parsed.fileId;
-                if (parsed.type && !fallbackType) fallbackType = parsed.type;
-            } catch (e) {
-                // Not JSON or parse failed, use as is
-            }
-        }
-    }
-
-    const handleLike = async () => {
-        if (!auth.currentUser || !post.id) {
-            if (!auth.currentUser) alert(language === 'bn' ? 'লগইন করুন' : 'Please login');
-            return;
+        // Fetch verification status & avatar
+        const userDoc = await getDoc(doc(db, "users", post.authorUid));
+        if (isMounted && userDoc.exists()) {
+          setIsVerified(userDoc.data().isVerified === true);
+          if (userDoc.data().photoUrl || userDoc.data().photoURL) {
+            setAuthorAvatar(userDoc.data().photoUrl || userDoc.data().photoURL);
+          }
         }
 
-        const newIsLiked = !isLiked;
-        // Optimistic UI update
-        setIsLiked(newIsLiked);
-        setLikes(prev => newIsLiked ? prev + 1 : Math.max(0, prev - 1));
+        // Fetch follower count
+        const followersQuery = query(
+          collection(db, "follows"),
+          where("following_id", "==", post.authorUid),
+        );
+        const followersSnapshot = await getCountFromServer(followersQuery);
+        if (isMounted) setFollowerCount(followersSnapshot.data().count);
 
-        try {
-            const { doc, setDoc, deleteDoc } = await import("firebase/firestore");
-            const userLikeRef = doc(db, `posts/${post.id}/likes`, auth.currentUser.uid);
-            const postRef = doc(db, "posts", post.id);
-            if (newIsLiked) {
-                await setDoc(userLikeRef, { uid: auth.currentUser.uid, createdAt: new Date() });
-                await updateDoc(postRef, {
-                    reactionsCount: increment(1)
-                });
-            } else {
-                await deleteDoc(userLikeRef);
-                await updateDoc(postRef, {
-                    reactionsCount: increment(-1)
-                });
-            }
-        } catch (err) {
-            console.error(err);
-            // Revert on error
-            setIsLiked(!newIsLiked);
-            setLikes(prev => newIsLiked ? Math.max(0, prev - 1) : prev + 1);
+        // Fetch if current user is following
+        if (auth.currentUser && auth.currentUser.uid !== post.authorUid) {
+          const followingQuery = query(
+            collection(db, "follows"),
+            where("follower_id", "==", auth.currentUser.uid),
+            where("following_id", "==", post.authorUid),
+          );
+          const isFollowingSnapshot = await getDocs(followingQuery);
+          if (isMounted) setIsFollowing(!isFollowingSnapshot.empty);
         }
+      } catch (e) {
+        console.error("Error fetching author details:", e);
+      }
     };
-
-    const [isDeletingModalOpen, setIsDeletingModalOpen] = useState(false);
-    const [showMenu, setShowMenu] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
-    const [editContent, setEditContent] = useState("");
-    const [isMuted, setIsMuted] = useState(true);
-    const [isPlaying, setIsPlaying] = useState(false);
-
-    const togglePlay = (e?: React.MouseEvent) => {
-        if (e) {
-            e.stopPropagation();
-            e.preventDefault();
-        }
-        if (videoRef.current) {
-            if (videoRef.current.paused) {
-                videoRef.current.play();
-            } else {
-                videoRef.current.pause();
-            }
-        }
+    fetchAuthorData();
+    return () => {
+      isMounted = false;
     };
+  }, [post.authorUid, auth.currentUser]);
 
-    const toggleMute = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        e.preventDefault();
-        if (videoRef.current) {
-            videoRef.current.muted = !videoRef.current.muted;
-            setIsMuted(videoRef.current.muted);
-        }
-    };
+  // Play/Pause video based on intersection and count views
+  const [hasCountedView, setHasCountedView] = useState(false);
+  const [isIntersecting, setIsIntersecting] = useState(false);
 
-    const handleFollowToggle = async () => {
-        if (!auth.currentUser) {
-            alert(language === 'bn' ? 'লগইন করুন' : 'Please login');
-            return;
-        }
-        
-        // Optimistic UI updates
-        const newIsFollowing = !isFollowing;
-        setIsFollowing(newIsFollowing);
-        setFollowerCount(prev => newIsFollowing ? prev + 1 : Math.max(0, prev - 1));
-
-        try {
-            const { collection, query, where, getDocs, addDoc, deleteDoc, serverTimestamp } = await import("firebase/firestore");
-            const followsRef = collection(db, 'follows');
-            
-            if (!newIsFollowing) {
-                // Was following, now unfollowing
-                const q = query(followsRef, where('follower_id', '==', auth.currentUser.uid), where('following_id', '==', post.authorUid));
-                const snap = await getDocs(q);
-                snap.forEach(async (docSnap) => {
-                    await deleteDoc(docSnap.ref);
-                });
-            } else {
-                // Follow
-                await addDoc(followsRef, {
-                    follower_id: auth.currentUser.uid,
-                    following_id: post.authorUid,
-                    created_at: serverTimestamp()
-                });
-            }
-        } catch (err) {
-            console.error("Follow toggling error:", err);
-            // Revert state on failure
-            setIsFollowing(!newIsFollowing);
-            setFollowerCount(prev => newIsFollowing ? Math.max(0, prev - 1) : prev + 1);
-        }
-    };
-
-    const handleDeleteConfirm = async () => {
-        if (!post.id) return;
-        setIsDeletingModalOpen(false);
-        try {
-            const { deleteDoc } = await import("firebase/firestore");
-            await deleteDoc(doc(db, "posts", post.id));
-        } catch (err) {
-            console.error(err);
-            alert(language === 'bn' ? 'মোছা সম্ভব হয়নি' : 'Failed to delete');
-        }
-    };
-
-    const handleEditSave = async () => {
-        if (!editContent.trim() || !post.id) return;
-        try {
-            const { updateDoc } = await import("firebase/firestore");
-            await updateDoc(doc(db, "posts", post.id), {
-                content: editContent.trim()
-            });
-            setIsEditing(false);
-        } catch (err) {
-            console.error(err);
-            alert(language === 'bn' ? 'এডিট করা সম্ভব হয়নি' : 'Failed to edit');
-        }
-    };
-
-    const canDelete = auth.currentUser && auth.currentUser.uid === post.authorUid;
-
-    let avatarSrc = authorAvatar 
-        ? authorAvatar
-        : ((auth.currentUser?.uid === post.authorUid && auth.currentUser?.photoURL) 
-            ? auth.currentUser.photoURL 
-            : (post.authorAvatarUrl && !post.authorAvatarUrl.includes('dicebear') ? post.authorAvatarUrl : null));
-
-    if (avatarSrc?.startsWith('/api')) {
-        avatarSrc = getApiUrl(avatarSrc);
-    }
-
-    return (
-        <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white dark:bg-slate-900 overflow-hidden border-t border-slate-100 dark:border-slate-800"
-        >
-            {/* Post Header */}
-            <div className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    {avatarSrc ? (
-                        <img 
-                            src={avatarSrc} 
-                            alt="Avatar" 
-                            referrerPolicy="no-referrer"
-                            className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 object-cover shrink-0"
-                        />
-                    ) : (
-                        <div className="w-10 h-10 rounded-full bg-primary-light/20 dark:bg-primary-dark/30 flex items-center justify-center text-primary dark:text-primary-light font-bold text-lg shrink-0">
-                            {post.authorName ? post.authorName.charAt(0).toUpperCase() : 'U'}
-                        </div>
-                    )}
-                    <div>
-                        <div className="flex items-center gap-1">
-                            <h4 className="text-sm font-black text-slate-800 dark:text-slate-100">{post.authorName}</h4>
-                            <VerifiedBadge isVerified={isVerified} isOwner={false} size={14} />
-                            {auth.currentUser && auth.currentUser.uid !== post.authorUid && (
-                                <button 
-                                    onClick={handleFollowToggle}
-                                    className="ml-2 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-1"
-                                >
-                                    {isFollowing ? (
-                                        <>
-                                            <UserMinus className="w-3 h-3" />
-                                            {language === 'bn' ? 'আনফলো' : 'Unfollow'}
-                                        </>
-                                    ) : (
-                                        <>
-                                            <UserPlus className="w-3 h-3" />
-                                            {language === 'bn' ? 'ফলো' : 'Follow'}
-                                        </>
-                                    )}
-                                </button>
-                            )}
-                        </div>
-                        <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mt-0.5">
-                             <span>{post.createdAt?.toDate ? new Date(post.createdAt.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}</span>
-                             <span>•</span>
-                             <span>{followerCount > 0 ? `${followerCount} ${language === 'bn' ? 'ফলোয়ার' : 'followers'}` : (language === 'bn' ? 'পাবলিক' : 'Public')}</span>
-                        </p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-1 relative">
-                    {canDelete && (
-                        <>
-                            <button 
-                                onClick={() => setShowMenu(!showMenu)}
-                                className="p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-colors"
-                            >
-                                <MoreVertical className="w-5 h-5" />
-                            </button>
-                            <AnimatePresence>
-                                {showMenu && (
-                                    <motion.div 
-                                        initial={{ opacity: 0, scale: 0.95 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.95 }}
-                                        className="absolute right-0 top-10 mt-2 w-36 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden z-20"
-                                    >
-                                        <button 
-                                            onClick={() => {
-                                                setShowMenu(false);
-                                                setIsEditing(true);
-                                                setEditContent(post.content);
-                                            }}
-                                            className="w-full px-4 py-2.5 text-left text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-2"
-                                        >
-                                            <Edit2 className="w-4 h-4" />
-                                            {language === 'bn' ? 'এডিট' : 'Edit'}
-                                        </button>
-                                        <button 
-                                            onClick={() => {
-                                                setShowMenu(false);
-                                                setIsDeletingModalOpen(true);
-                                            }}
-                                            className="w-full px-4 py-2.5 text-left text-sm font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 flex items-center gap-2"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                            {language === 'bn' ? 'ডিলিট' : 'Delete'}
-                                        </button>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </>
-                    )}
-                </div>
-            </div>
-
-            {/* Post Content */}
-            <div className="px-4 pb-3">
-                {isEditing ? (
-                    <div className="space-y-2">
-                        <textarea
-                            value={editContent}
-                            onChange={(e) => setEditContent(e.target.value)}
-                            className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 min-h-[100px] resize-y"
-                            placeholder={language === 'bn' ? 'আপনার পোস্ট লিখুন...' : 'Write your post...'}
-                        />
-                        <div className="flex justify-end gap-2">
-                            <button 
-                                onClick={() => setIsEditing(false)}
-                                className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-lg"
-                            >
-                                {language === 'bn' ? 'বাতিল' : 'Cancel'}
-                            </button>
-                            <button 
-                                onClick={handleEditSave}
-                                className="px-4 py-2 text-sm font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-                            >
-                                {language === 'bn' ? 'সেভ' : 'Save'}
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                        {displayContent}
-                    </p>
-                )}
-            </div>
-
-            {/* Media Area */}
-            {fallbackFileId && (
-                <div className="bg-white dark:bg-slate-900 border-y border-slate-50 dark:border-slate-800 relative group flex flex-col overflow-hidden">
-                    {fallbackType === 'video' ? (
-                        <div className="relative w-full cursor-pointer" onClick={togglePlay}>
-                            <video 
-                                ref={videoRef}
-                                preload="metadata"
-                                playsInline
-                                loop
-                                muted={isMuted}
-                                onPlay={() => setIsPlaying(true)}
-                                onPause={() => setIsPlaying(false)}
-                                className="w-full h-auto block"
-                            >
-                                <source src={getApiUrl(`/api/telegram/file/${fallbackFileId}`)} type="video/mp4" />
-                                Your browser does not support the video tag.
-                            </video>
-                            
-                            {/* Play/Pause Overlay Component */}
-                            <AnimatePresence>
-                                {!isPlaying && (
-                                    <motion.div 
-                                        initial={{ opacity: 0, scale: 0.8 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.8 }}
-                                        transition={{ duration: 0.2 }}
-                                        className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                                    >
-                                        <div className="w-16 h-16 rounded-full bg-black/40 flex items-center justify-center text-white backdrop-blur-sm">
-                                            <Play className="w-8 h-8 ml-1" fill="currentColor" />
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-
-                            {/* Mute/Unmute toggle */}
-                            <button 
-                                onClick={toggleMute}
-                                className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-black/60 flex items-center justify-center text-white backdrop-blur-sm hover:bg-black/80 transition-colors z-[10]"
-                            >
-                                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="w-full h-full">
-                            <img 
-                                src={getApiUrl(`/api/telegram/file/${fallbackFileId}`)} 
-                                alt="Post media" 
-                                className="w-full h-auto object-contain"
-                                loading="lazy"
-                            />
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* Post Stats */}
-            <div className="px-4 py-2 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between">
-                <div className="flex items-center gap-1">
-                    <div className="flex -space-x-1">
-                        <div className="w-4 h-4 rounded-full bg-blue-500 border border-white dark:border-slate-900 flex items-center justify-center">
-                            <ThumbsUp className="w-2 h-2 text-white fill-current" />
-                        </div>
-                        <div className="w-4 h-4 rounded-full bg-red-500 border border-white dark:border-slate-900 flex items-center justify-center">
-                            <Star className="w-2 h-2 text-white fill-current" />
-                        </div>
-                    </div>
-                    <span className="text-[11px] font-bold text-slate-500 ml-1">{likes}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                    <span className="text-[11px] font-medium text-slate-500">{post.shares || 0} {language === 'bn' ? 'শেয়ার' : 'shares'}</span>
-                    {fallbackType === 'video' && (
-                        <span className="text-[11px] font-medium text-slate-500 flex items-center gap-1">
-                            {formatCount(post.views || 0)} {language === 'bn' ? 'ভিউ' : 'views'}
-                        </span>
-                    )}
-                </div>
-            </div>
-
-            {/* Post Actions */}
-            <div className="px-4 py-2 flex items-center justify-between border-t border-slate-50 dark:border-slate-800/50">
-                <button 
-                    onClick={handleLike}
-                    className={cn(
-                        "w-24 py-2 flex items-center justify-start gap-2 rounded-xl transition-all active:scale-95",
-                        isLiked ? "text-blue-600 font-bold" : "text-slate-500 font-bold hover:text-slate-700 dark:hover:text-slate-300"
-                    )}
-                >
-                    <ThumbsUp className={cn("w-5 h-5", isLiked && "fill-current animate-bounce")} />
-                    <span className="text-xs">{language === 'bn' ? 'লাইক' : 'Like'}</span>
-                </button>
-                <button 
-                    onClick={() => {
-                        if (navigator.share) {
-                            navigator.share({ title: post.authorName, text: post.content, url: window.location.href });
-                        } else {
-                            alert(language === 'bn' ? 'লিঙ্ক কপি করা হয়েছে!' : 'Link copied!');
-                        }
-                    }}
-                    className="w-24 py-2 flex items-center justify-center gap-2 text-slate-500 font-bold hover:text-slate-700 dark:hover:text-slate-300 rounded-xl transition-all active:scale-95"
-                >
-                    <Share2 className="w-5 h-5" />
-                    <span className="text-xs">{language === 'bn' ? 'শেয়ার' : 'Share'}</span>
-                </button>
-                <button 
-                    onClick={() => setShowReportModal(true)}
-                    className="w-24 py-2 flex items-center justify-end gap-2 text-slate-500 font-bold hover:text-slate-700 dark:hover:text-slate-300 rounded-xl transition-all active:scale-95"
-                >
-                    <Flag className="w-5 h-5" />
-                    <span className="text-xs">{language === 'bn' ? 'রিপোর্ট' : 'Report'}</span>
-                </button>
-            </div>
-
-            {/* Report Modal */}
-            <AnimatePresence>
-                {showReportModal && (
-                    <ReportModal post={post} onClose={() => setShowReportModal(false)} />
-                )}
-            </AnimatePresence>
-
-            {/* Delete Confirmation Modal */}
-            <AnimatePresence>
-                {isDeletingModalOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                            className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl shadow-xl overflow-hidden border border-slate-100 dark:border-slate-800"
-                        >
-                            <div className="p-6 text-center">
-                                <div className="w-16 h-16 bg-rose-100 dark:bg-rose-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-rose-600">
-                                    <Trash2 className="w-8 h-8" />
-                                </div>
-                                <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">
-                                    {language === 'bn' ? 'মুছে ফেলতে চান?' : 'Delete Post?'}
-                                </h3>
-                                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 font-medium leading-relaxed">
-                                    {language === 'bn' 
-                                        ? 'এই পোস্টটি চিরতরে মুছে ফেলা হবে। আপনি কি নিশ্চিত?' 
-                                        : 'This post will be permanently deleted. Are you sure?'}
-                                </p>
-                                <div className="flex gap-3">
-                                    <button 
-                                        onClick={() => setIsDeletingModalOpen(false)}
-                                        className="flex-1 py-3 text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors"
-                                    >
-                                        {language === 'bn' ? 'বাতিল' : 'Cancel'}
-                                    </button>
-                                    <button 
-                                        onClick={handleDeleteConfirm}
-                                        className="flex-1 py-3 text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-lg shadow-rose-600/20"
-                                    >
-                                        {language === 'bn' ? 'মুছুন' : 'Delete'}
-                                    </button>
-                                </div>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
-        </motion.div>
+  useEffect(() => {
+    if (!videoRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          setIsIntersecting(entry.isIntersecting);
+        });
+      },
+      { threshold: 0.5 },
     );
+    observer.observe(videoRef.current);
+    return () => observer.disconnect();
+  }, [post.fileId, post.id]);
+
+  useEffect(() => {
+    if (!videoRef.current) return;
+    if (isIntersecting && !isOverlayOpen) {
+      videoRef.current
+        .play()
+        .catch((e) => console.log("Autoplay prevented", e));
+
+      if (!hasCountedView) {
+        setHasCountedView(true);
+        import("firebase/firestore").then(({ doc, increment, updateDoc }) => {
+          if (post.id) {
+            const postRef = doc(db, "posts", post.id);
+            updateDoc(postRef, { views: increment(1) }).catch(console.error);
+          }
+        });
+      }
+    } else {
+      videoRef.current.pause();
+    }
+  }, [isIntersecting, isOverlayOpen, hasCountedView, post.id]);
+
+  // Check if current user has already liked
+  useEffect(() => {
+    let unsubscribe = () => {};
+    if (auth.currentUser) {
+      const checkLike = async () => {
+        if (!post.id) return;
+        try {
+          const { doc, onSnapshot } = await import("firebase/firestore");
+          const userLikeRef = doc(
+            db,
+            `posts/${post.id}/likes`,
+            auth.currentUser!.uid,
+          );
+          unsubscribe = onSnapshot(userLikeRef, (docSnap) => {
+            setIsLiked(docSnap.exists());
+          });
+        } catch (e) {
+          console.error(e);
+        }
+      };
+      checkLike();
+    }
+    return () => unsubscribe();
+  }, [post.id]);
+
+  // Try to parse content if it's JSON or an object (to fix existing broken posts)
+  let displayContent = "";
+  let fallbackFileId = post.fileId;
+  let fallbackType = post.type;
+
+  if (typeof post.content === "object" && post.content !== null) {
+    // If it's already an object (Firestore sometimes does this)
+    displayContent = post.content.text || "";
+    if (post.content.fileId) fallbackFileId = post.content.fileId;
+    if (post.content.type) fallbackType = post.content.type;
+  } else if (typeof post.content === "string") {
+    displayContent = post.content;
+    if (displayContent.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(displayContent);
+        displayContent = parsed.text || displayContent;
+        if (parsed.fileId && !fallbackFileId) fallbackFileId = parsed.fileId;
+        if (parsed.type && !fallbackType) fallbackType = parsed.type;
+      } catch (e) {
+        // Not JSON or parse failed, use as is
+      }
+    }
+  }
+
+  const handleLike = async () => {
+    if (!auth.currentUser || !post.id) {
+      if (!auth.currentUser)
+        alert(language === "bn" ? "লগইন করুন" : "Please login");
+      return;
+    }
+
+    const newIsLiked = !isLiked;
+    // Optimistic UI update
+    setIsLiked(newIsLiked);
+    setLikes((prev) => (newIsLiked ? prev + 1 : Math.max(0, prev - 1)));
+
+    try {
+      const { doc, setDoc, deleteDoc } = await import("firebase/firestore");
+      const userLikeRef = doc(
+        db,
+        `posts/${post.id}/likes`,
+        auth.currentUser.uid,
+      );
+      const postRef = doc(db, "posts", post.id);
+      if (newIsLiked) {
+        await setDoc(userLikeRef, {
+          uid: auth.currentUser.uid,
+          createdAt: new Date(),
+        });
+        await updateDoc(postRef, {
+          reactionsCount: increment(1),
+        });
+      } else {
+        await deleteDoc(userLikeRef);
+        await updateDoc(postRef, {
+          reactionsCount: increment(-1),
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      // Revert on error
+      setIsLiked(!newIsLiked);
+      setLikes((prev) => (newIsLiked ? Math.max(0, prev - 1) : prev + 1));
+    }
+  };
+
+  const [isDeletingModalOpen, setIsDeletingModalOpen] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState("");
+  const [isMuted, setIsMuted] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const togglePlay = (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    if (videoRef.current) {
+      if (videoRef.current.paused) {
+        videoRef.current.play();
+      } else {
+        videoRef.current.pause();
+      }
+    }
+  };
+
+  const toggleMute = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (videoRef.current) {
+      videoRef.current.muted = !videoRef.current.muted;
+      setIsMuted(videoRef.current.muted);
+    }
+  };
+
+  const handleFollowToggle = async () => {
+    if (!auth.currentUser) {
+      alert(language === "bn" ? "লগইন করুন" : "Please login");
+      return;
+    }
+
+    // Optimistic UI updates
+    const newIsFollowing = !isFollowing;
+    setIsFollowing(newIsFollowing);
+    setFollowerCount((prev) =>
+      newIsFollowing ? prev + 1 : Math.max(0, prev - 1),
+    );
+
+    try {
+      const {
+        collection,
+        query,
+        where,
+        getDocs,
+        addDoc,
+        deleteDoc,
+        serverTimestamp,
+      } = await import("firebase/firestore");
+      const followsRef = collection(db, "follows");
+
+      if (!newIsFollowing) {
+        // Was following, now unfollowing
+        const q = query(
+          followsRef,
+          where("follower_id", "==", auth.currentUser.uid),
+          where("following_id", "==", post.authorUid),
+        );
+        const snap = await getDocs(q);
+        snap.forEach(async (docSnap) => {
+          await deleteDoc(docSnap.ref);
+        });
+      } else {
+        // Follow
+        await addDoc(followsRef, {
+          follower_id: auth.currentUser.uid,
+          following_id: post.authorUid,
+          created_at: serverTimestamp(),
+        });
+      }
+    } catch (err) {
+      console.error("Follow toggling error:", err);
+      // Revert state on failure
+      setIsFollowing(!newIsFollowing);
+      setFollowerCount((prev) =>
+        newIsFollowing ? Math.max(0, prev - 1) : prev + 1,
+      );
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!post.id) return;
+    setIsDeletingModalOpen(false);
+    try {
+      const { deleteDoc } = await import("firebase/firestore");
+      await deleteDoc(doc(db, "posts", post.id));
+    } catch (err) {
+      console.error(err);
+      alert(language === "bn" ? "মোছা সম্ভব হয়নি" : "Failed to delete");
+    }
+  };
+
+  const handleEditSave = async () => {
+    if (!editContent.trim() || !post.id) return;
+    try {
+      const { updateDoc } = await import("firebase/firestore");
+      await updateDoc(doc(db, "posts", post.id), {
+        content: editContent.trim(),
+      });
+      setIsEditing(false);
+    } catch (err) {
+      console.error(err);
+      alert(language === "bn" ? "এডিট করা সম্ভব হয়নি" : "Failed to edit");
+    }
+  };
+
+  const canDelete = auth.currentUser && auth.currentUser.uid === post.authorUid;
+
+  let avatarSrc = authorAvatar
+    ? authorAvatar
+    : auth.currentUser?.uid === post.authorUid && auth.currentUser?.photoURL
+      ? auth.currentUser.photoURL
+      : post.authorAvatarUrl && !post.authorAvatarUrl.includes("dicebear")
+        ? post.authorAvatarUrl
+        : null;
+
+  if (avatarSrc?.startsWith("/api")) {
+    avatarSrc = getApiUrl(avatarSrc);
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white dark:bg-slate-900 overflow-hidden border-t border-slate-100 dark:border-slate-800"
+    >
+      {/* Post Header */}
+      <div className="p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          {avatarSrc ? (
+            <img
+              src={avatarSrc}
+              alt="Avatar"
+              referrerPolicy="no-referrer"
+              className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 object-cover shrink-0"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-primary-light/20 dark:bg-primary-dark/30 flex items-center justify-center text-primary dark:text-primary-light font-bold text-lg shrink-0">
+              {post.authorName ? post.authorName.charAt(0).toUpperCase() : "U"}
+            </div>
+          )}
+          <div>
+            <div className="flex items-center gap-1">
+              <h4 className="text-sm font-black text-slate-800 dark:text-slate-100">
+                {post.authorName}
+              </h4>
+              <VerifiedBadge
+                isVerified={isVerified}
+                isOwner={false}
+                size={14}
+              />
+              {auth.currentUser && auth.currentUser.uid !== post.authorUid && (
+                <button
+                  onClick={handleFollowToggle}
+                  className="ml-2 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-1"
+                >
+                  {isFollowing ? (
+                    <>
+                      <UserMinus className="w-3 h-3" />
+                      {language === "bn" ? "আনফলো" : "Unfollow"}
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-3 h-3" />
+                      {language === "bn" ? "ফলো" : "Follow"}
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mt-0.5">
+              <span>
+                {post.createdAt?.toDate
+                  ? new Date(post.createdAt.toDate()).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "Just now"}
+              </span>
+              <span>•</span>
+              <span>
+                {followerCount > 0
+                  ? `${followerCount} ${language === "bn" ? "ফলোয়ার" : "followers"}`
+                  : language === "bn"
+                    ? "পাবলিক"
+                    : "Public"}
+              </span>
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 relative">
+          {canDelete && (
+            <>
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                className="p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-colors"
+              >
+                <MoreVertical className="w-5 h-5" />
+              </button>
+              <AnimatePresence>
+                {showMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="absolute right-0 top-10 mt-2 w-36 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden z-20"
+                  >
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        setIsEditing(true);
+                        setEditContent(post.content);
+                      }}
+                      className="w-full px-4 py-2.5 text-left text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-2"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                      {language === "bn" ? "এডিট" : "Edit"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        setIsDeletingModalOpen(true);
+                      }}
+                      className="w-full px-4 py-2.5 text-left text-sm font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 flex items-center gap-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      {language === "bn" ? "ডিলিট" : "Delete"}
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Post Content */}
+      <div className="px-4 pb-3">
+        {isEditing ? (
+          <div className="space-y-2">
+            <textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 min-h-[100px] resize-y"
+              placeholder={
+                language === "bn"
+                  ? "আপনার পোস্ট লিখুন..."
+                  : "Write your post..."
+              }
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setIsEditing(false)}
+                className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-lg"
+              >
+                {language === "bn" ? "বাতিল" : "Cancel"}
+              </button>
+              <button
+                onClick={handleEditSave}
+                className="px-4 py-2 text-sm font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+              >
+                {language === "bn" ? "সেভ" : "Save"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+            {displayContent}
+          </p>
+        )}
+      </div>
+
+      {/* Media Area */}
+      {fallbackFileId && (
+        <div className="bg-white dark:bg-slate-900 border-y border-slate-50 dark:border-slate-800 relative group flex flex-col overflow-hidden">
+          {fallbackType === "video" ? (
+            <div
+              className="relative w-full cursor-pointer"
+              onClick={togglePlay}
+            >
+              <video
+                ref={videoRef}
+                preload="metadata"
+                playsInline
+                loop
+                muted={isMuted}
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
+                className="w-full h-auto block"
+              >
+                <source
+                  src={getApiUrl(`/api/telegram/file/${fallbackFileId}`)}
+                  type="video/mp4"
+                />
+                Your browser does not support the video tag.
+              </video>
+
+              {/* Play/Pause Overlay Component */}
+              <AnimatePresence>
+                {!isPlaying && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                  >
+                    <div className="w-16 h-16 rounded-full bg-black/40 flex items-center justify-center text-white backdrop-blur-sm">
+                      <Play className="w-8 h-8 ml-1" fill="currentColor" />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Mute/Unmute toggle */}
+              <button
+                onClick={toggleMute}
+                className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-black/60 flex items-center justify-center text-white backdrop-blur-sm hover:bg-black/80 transition-colors z-[10]"
+              >
+                {isMuted ? (
+                  <VolumeX className="w-4 h-4" />
+                ) : (
+                  <Volume2 className="w-4 h-4" />
+                )}
+              </button>
+            </div>
+          ) : (
+            <div className="w-full h-full">
+              <img
+                src={getApiUrl(`/api/telegram/file/${fallbackFileId}`)}
+                alt="Post media"
+                className="w-full h-auto object-contain"
+                loading="lazy"
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Post Stats */}
+      <div className="px-4 py-2 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between">
+        <div className="flex items-center gap-1">
+          <div className="flex -space-x-1">
+            <div className="w-4 h-4 rounded-full bg-blue-500 border border-white dark:border-slate-900 flex items-center justify-center">
+              <ThumbsUp className="w-2 h-2 text-white fill-current" />
+            </div>
+            <div className="w-4 h-4 rounded-full bg-red-500 border border-white dark:border-slate-900 flex items-center justify-center">
+              <Star className="w-2 h-2 text-white fill-current" />
+            </div>
+          </div>
+          <span className="text-[11px] font-bold text-slate-500 ml-1">
+            {likes}
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] font-medium text-slate-500">
+            {post.shares || 0} {language === "bn" ? "শেয়ার" : "shares"}
+          </span>
+          {fallbackType === "video" && (
+            <span className="text-[11px] font-medium text-slate-500 flex items-center gap-1">
+              {formatCount(post.views || 0)}{" "}
+              {language === "bn" ? "ভিউ" : "views"}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Post Actions */}
+      <div className="px-4 py-2 flex items-center justify-between border-t border-slate-50 dark:border-slate-800/50">
+        <button
+          onClick={handleLike}
+          className={cn(
+            "w-24 py-2 flex items-center justify-start gap-2 rounded-xl transition-all active:scale-95",
+            isLiked
+              ? "text-blue-600 font-bold"
+              : "text-slate-500 font-bold hover:text-slate-700 dark:hover:text-slate-300",
+          )}
+        >
+          <ThumbsUp
+            className={cn("w-5 h-5", isLiked && "fill-current animate-bounce")}
+          />
+          <span className="text-xs">{language === "bn" ? "লাইক" : "Like"}</span>
+        </button>
+        <button
+          onClick={() => {
+            if (navigator.share) {
+              navigator.share({
+                title: post.authorName,
+                text: post.content,
+                url: window.location.href,
+              });
+            } else {
+              alert(
+                language === "bn" ? "লিঙ্ক কপি করা হয়েছে!" : "Link copied!",
+              );
+            }
+          }}
+          className="w-24 py-2 flex items-center justify-center gap-2 text-slate-500 font-bold hover:text-slate-700 dark:hover:text-slate-300 rounded-xl transition-all active:scale-95"
+        >
+          <Share2 className="w-5 h-5" />
+          <span className="text-xs">
+            {language === "bn" ? "শেয়ার" : "Share"}
+          </span>
+        </button>
+        <button
+          onClick={() => setShowReportModal(true)}
+          className="w-24 py-2 flex items-center justify-end gap-2 text-slate-500 font-bold hover:text-slate-700 dark:hover:text-slate-300 rounded-xl transition-all active:scale-95"
+        >
+          <Flag className="w-5 h-5" />
+          <span className="text-xs">
+            {language === "bn" ? "রিপোর্ট" : "Report"}
+          </span>
+        </button>
+      </div>
+
+      {/* Report Modal */}
+      <AnimatePresence>
+        {showReportModal && (
+          <ReportModal post={post} onClose={() => setShowReportModal(false)} />
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {isDeletingModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl shadow-xl overflow-hidden border border-slate-100 dark:border-slate-800"
+            >
+              <div className="p-6 text-center">
+                <div className="w-16 h-16 bg-rose-100 dark:bg-rose-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-rose-600">
+                  <Trash2 className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">
+                  {language === "bn" ? "মুছে ফেলতে চান?" : "Delete Post?"}
+                </h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 font-medium leading-relaxed">
+                  {language === "bn"
+                    ? "এই পোস্টটি চিরতরে মুছে ফেলা হবে। আপনি কি নিশ্চিত?"
+                    : "This post will be permanently deleted. Are you sure?"}
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setIsDeletingModalOpen(false)}
+                    className="flex-1 py-3 text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors"
+                  >
+                    {language === "bn" ? "বাতিল" : "Cancel"}
+                  </button>
+                  <button
+                    onClick={handleDeleteConfirm}
+                    className="flex-1 py-3 text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-lg shadow-rose-600/20"
+                  >
+                    {language === "bn" ? "মুছুন" : "Delete"}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
 };
 
 const ProfileView = () => {
-    const { language } = useLanguage();
-    const [stats, setStats] = useState({
-        totalPosts: 0,
-        totalLikes: 0,
-        followers: 0,
-        following: 0
+  const { language } = useLanguage();
+  const [stats, setStats] = useState({
+    totalPosts: 0,
+    totalLikes: 0,
+    followers: 0,
+    following: 0,
+  });
+  const [posts, setPosts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentUserAvatar, setCurrentUserAvatar] = useState<string | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (!auth.currentUser) return;
+
+    setIsLoading(true);
+
+    // Fetch User Data for avatar
+    const fetchUserDoc = async () => {
+      try {
+        const { doc, getDoc } = await import("firebase/firestore");
+        const userDoc = await getDoc(doc(db, "users", auth.currentUser!.uid));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          const pUrl = data.photoUrl || data.photoURL;
+          if (pUrl) {
+            setCurrentUserAvatar(
+              pUrl.startsWith("/api") ? getApiUrl(pUrl) : pUrl,
+            );
+          }
+        }
+      } catch (e) {
+        console.error("Error fetching user data:", e);
+      }
+    };
+    fetchUserDoc();
+
+    // Fetch User Posts
+    const q = query(
+      collection(db, "posts"),
+      where("authorUid", "==", auth.currentUser.uid),
+    );
+
+    const unsubscribePosts = onSnapshot(q, async (snapshot) => {
+      let postsData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      // Only show approved posts in the profile
+      postsData = postsData.filter(
+        (p: any) => p.status === "approved" || !p.status,
+      );
+
+      // Sort client-side to avoid needing a composite index
+      postsData.sort((a: any, b: any) => {
+        const timeA = a.createdAt?.seconds || 0;
+        const timeB = b.createdAt?.seconds || 0;
+        return timeB - timeA;
+      });
+
+      setPosts(postsData);
+
+      let likes = 0;
+      postsData.forEach((p: any) => {
+        likes += p.reactionsCount || p.likes || 0;
+      });
+
+      // Fetch followers and following
+      const { getCountFromServer, collection, query, where } =
+        await import("firebase/firestore");
+      const followersQuery = query(
+        collection(db, "follows"),
+        where("following_id", "==", auth.currentUser!.uid),
+      );
+      const followingQuery = query(
+        collection(db, "follows"),
+        where("follower_id", "==", auth.currentUser!.uid),
+      );
+
+      const [followersSnapshot, followingSnapshot] = await Promise.all([
+        getCountFromServer(followersQuery),
+        getCountFromServer(followingQuery),
+      ]);
+
+      setStats({
+        totalPosts: snapshot.size,
+        totalLikes: likes,
+        followers: followersSnapshot.data().count,
+        following: followingSnapshot.data().count,
+      });
+      setIsLoading(false);
     });
-    const [posts, setPosts] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [currentUserAvatar, setCurrentUserAvatar] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (!auth.currentUser) return;
-        
-        setIsLoading(true);
-        
-        // Fetch User Data for avatar
-        const fetchUserDoc = async () => {
-            try {
-                const { doc, getDoc } = await import("firebase/firestore");
-                const userDoc = await getDoc(doc(db, "users", auth.currentUser!.uid));
-                if (userDoc.exists()) {
-                    const data = userDoc.data();
-                    const pUrl = data.photoUrl || data.photoURL;
-                    if (pUrl) {
-                        setCurrentUserAvatar(pUrl.startsWith('/api') ? getApiUrl(pUrl) : pUrl);
-                    }
-                }
-            } catch (e) {
-                console.error("Error fetching user data:", e);
-            }
-        };
-        fetchUserDoc();
+    return () => unsubscribePosts();
+  }, []);
 
-        // Fetch User Posts
-        const q = query(
-            collection(db, "posts"), 
-            where("authorUid", "==", auth.currentUser.uid)
-        );
-
-        const unsubscribePosts = onSnapshot(q, async (snapshot) => {
-            let postsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            
-            // Only show approved posts in the profile
-            postsData = postsData.filter((p: any) => p.status === 'approved' || !p.status);
-
-            // Sort client-side to avoid needing a composite index
-            postsData.sort((a: any, b: any) => {
-                const timeA = a.createdAt?.seconds || 0;
-                const timeB = b.createdAt?.seconds || 0;
-                return timeB - timeA;
-            });
-
-            setPosts(postsData);
-            
-            let likes = 0;
-            postsData.forEach((p: any) => {
-                likes += (p.reactionsCount || p.likes || 0);
-            });
-
-            // Fetch followers and following
-            const { getCountFromServer, collection, query, where } = await import("firebase/firestore");
-            const followersQuery = query(collection(db, 'follows'), where('following_id', '==', auth.currentUser!.uid));
-            const followingQuery = query(collection(db, 'follows'), where('follower_id', '==', auth.currentUser!.uid));
-            
-            const [followersSnapshot, followingSnapshot] = await Promise.all([
-                getCountFromServer(followersQuery),
-                getCountFromServer(followingQuery)
-            ]);
-
-            setStats({
-                totalPosts: snapshot.size,
-                totalLikes: likes,
-                followers: followersSnapshot.data().count,
-                following: followingSnapshot.data().count
-            });
-            setIsLoading(false);
-        });
-
-        return () => unsubscribePosts();
-    }, []);
-
-    if (isLoading) return (
-        <div className="p-6 space-y-6">
-            <div className="h-44 bg-slate-100 dark:bg-slate-800 rounded-2xl animate-pulse" />
-            <div className="space-y-4">
-                {[...Array(3)].map((_, i) => (
-                    <PostSkeleton key={i} />
-                ))}
-            </div>
-        </div>
-    );
-
+  if (isLoading)
     return (
-        <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="pb-20"
-        >
-            {/* Profile Header Card */}
-            <div className="p-4 sm:p-6">
-                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm relative overflow-hidden group">
-                    {/* Background Decorative Element */}
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-700" />
-                    
-                    <div className="flex flex-col items-center text-center">
-                        <div className="w-24 h-24 rounded-full p-1 bg-gradient-to-tr from-blue-500 to-indigo-600 mb-4 shadow-lg active:scale-95 transition-transform">
-                            <div className="w-full h-full rounded-full bg-white dark:bg-slate-900 p-1">
-                                {currentUserAvatar || auth.currentUser?.photoURL ? (
-                                    <img 
-                                        src={currentUserAvatar || auth.currentUser?.photoURL || ""} 
-                                        alt="Avatar" 
-                                        referrerPolicy="no-referrer"
-                                        className="w-full h-full rounded-full object-cover"
-                                    />
-                                ) : (
-                                    <div className="w-full h-full rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-                                        <User className="w-10 h-10" />
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        
-                        <h2 className="text-xl font-black text-slate-800 dark:text-white mb-1">
-                            {auth.currentUser?.displayName || (language === 'bn' ? 'ইউজার' : 'User')}
-                        </h2>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6 px-4 py-1 bg-slate-50 dark:bg-slate-800 rounded-full">
-                            {auth.currentUser?.email}
-                        </p>
-                        
-                        <div className="grid grid-cols-3 gap-8 w-full max-w-xs">
-                            <div className="flex flex-col items-center">
-                                <span className="text-lg font-black text-slate-800 dark:text-white leading-tight">
-                                    {formatCount(stats.totalPosts)}
-                                </span>
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                    {language === 'bn' ? 'পোস্ট' : 'Posts'}
-                                </span>
-                            </div>
-                            <div className="flex flex-col items-center border-x border-slate-100 dark:border-slate-800 px-4">
-                                <span className="text-lg font-black text-slate-800 dark:text-white leading-tight">
-                                    {formatCount(stats.followers)}
-                                </span>
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">
-                                    {language === 'bn' ? 'ফলোয়ার' : 'Followers'}
-                                </span>
-                            </div>
-                            <div className="flex flex-col items-center">
-                                <span className="text-lg font-black text-slate-800 dark:text-white leading-tight">
-                                    {formatCount(stats.following)}
-                                </span>
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                    {language === 'bn' ? 'ফলোইং' : 'Following'}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Section Divider */}
-            <div className="px-6 pb-2">
-                <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                    <LayoutGrid className="w-4 h-4 text-blue-500" />
-                    {language === 'bn' ? 'আপনার পোস্টসমূহ' : 'Your Posts'}
-                </h3>
-            </div>
-
-            {/* Posts Feed for Profile */}
-            <div className="flex flex-col">
-                <AnimatePresence initial={false}>
-                    {posts.length > 0 ? (
-                        posts.map(post => (
-                            <div key={post.id} className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 overflow-hidden">
-                                <PostCard post={post} />
-                            </div>
-                        ))
-                    ) : (
-                        <div className="p-12 text-center bg-white dark:bg-slate-900 border-y border-slate-100 dark:border-slate-800">
-                            <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Video className="w-8 h-8 text-slate-300" />
-                            </div>
-                            <p className="text-sm font-bold text-slate-400">
-                                {language === 'bn' ? 'কোন পোস্ট পাওয়া যায়নি' : 'No posts found'}
-                            </p>
-                        </div>
-                    )}
-                </AnimatePresence>
-            </div>
-        </motion.div>
+      <div className="p-6 space-y-6">
+        <div className="h-44 bg-slate-100 dark:bg-slate-800 rounded-2xl animate-pulse" />
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <PostSkeleton key={i} />
+          ))}
+        </div>
+      </div>
     );
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="pb-20"
+    >
+      {/* Profile Header Card */}
+      <div className="p-4 sm:p-6">
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm relative overflow-hidden group">
+          {/* Background Decorative Element */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-700" />
+
+          <div className="flex flex-col items-center text-center">
+            <div className="w-24 h-24 rounded-full p-1 bg-gradient-to-tr from-blue-500 to-indigo-600 mb-4 shadow-lg active:scale-95 transition-transform">
+              <div className="w-full h-full rounded-full bg-white dark:bg-slate-900 p-1">
+                {currentUserAvatar || auth.currentUser?.photoURL ? (
+                  <img
+                    src={currentUserAvatar || auth.currentUser?.photoURL || ""}
+                    alt="Avatar"
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                    <User className="w-10 h-10" />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <h2 className="text-xl font-black text-slate-800 dark:text-white mb-1">
+              {auth.currentUser?.displayName ||
+                (language === "bn" ? "ইউজার" : "User")}
+            </h2>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6 px-4 py-1 bg-slate-50 dark:bg-slate-800 rounded-full">
+              {auth.currentUser?.email}
+            </p>
+
+            <div className="grid grid-cols-3 gap-8 w-full max-w-xs">
+              <div className="flex flex-col items-center">
+                <span className="text-lg font-black text-slate-800 dark:text-white leading-tight">
+                  {formatCount(stats.totalPosts)}
+                </span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  {language === "bn" ? "পোস্ট" : "Posts"}
+                </span>
+              </div>
+              <div className="flex flex-col items-center border-x border-slate-100 dark:border-slate-800 px-4">
+                <span className="text-lg font-black text-slate-800 dark:text-white leading-tight">
+                  {formatCount(stats.followers)}
+                </span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">
+                  {language === "bn" ? "ফলোয়ার" : "Followers"}
+                </span>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="text-lg font-black text-slate-800 dark:text-white leading-tight">
+                  {formatCount(stats.following)}
+                </span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  {language === "bn" ? "ফলোইং" : "Following"}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section Divider */}
+      <div className="px-6 pb-2">
+        <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-widest flex items-center gap-2">
+          <LayoutGrid className="w-4 h-4 text-blue-500" />
+          {language === "bn" ? "আপনার পোস্টসমূহ" : "Your Posts"}
+        </h3>
+      </div>
+
+      {/* Posts Feed for Profile */}
+      <div className="flex flex-col">
+        <AnimatePresence initial={false}>
+          {posts.length > 0 ? (
+            posts.map((post) => (
+              <div
+                key={post.id}
+                className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 overflow-hidden"
+              >
+                <PostCard post={post} />
+              </div>
+            ))
+          ) : (
+            <div className="p-12 text-center bg-white dark:bg-slate-900 border-y border-slate-100 dark:border-slate-800">
+              <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Video className="w-8 h-8 text-slate-300" />
+              </div>
+              <p className="text-sm font-bold text-slate-400">
+                {language === "bn" ? "কোন পোস্ট পাওয়া যায়নি" : "No posts found"}
+              </p>
+            </div>
+          )}
+        </AnimatePresence>
+      </div>
+    </motion.div>
+  );
 };
 
 let globalPreloadedPosts: any[] = [];
@@ -1492,277 +1708,324 @@ const globalPreloadListeners: Set<() => void> = new Set();
 const globalSessionSalt = Math.floor(Math.random() * 1000000);
 
 function notifyGlobalPreloadListeners() {
-    globalPreloadListeners.forEach(listener => listener());
+  globalPreloadListeners.forEach((listener) => listener());
 }
 
 try {
-    const q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(20));
-    onSnapshot(q, (snapshot) => {
-        const postsData = snapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() }))
-            .filter((p: any) => p.status === 'approved' || !p.status);
-        
-        const getSortValue = (post: any) => {
-            let hash = 0;
-            for (let i = 0; i < post.id.length; i++) {
-                hash = post.id.charCodeAt(i) + ((hash << 5) - hash);
-            }
-            const time = post.createdAt?.seconds || 0;
-            return time + (Math.abs(hash + globalSessionSalt) % 259200); 
-        };
-        
-        postsData.sort((a, b) => getSortValue(b) - getSortValue(a));
+  const q = query(
+    collection(db, "posts"),
+    orderBy("createdAt", "desc"),
+    limit(20),
+  );
+  onSnapshot(
+    q,
+    (snapshot) => {
+      const postsData = snapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter((p: any) => p.status === "approved" || !p.status);
 
-        globalPreloadedPosts = postsData;
-        globalIsPreloadedPostsLoading = false;
-        notifyGlobalPreloadListeners();
-    }, (error) => {
-        console.error("Global Preload Error:", error);
-        globalIsPreloadedPostsLoading = false;
-        notifyGlobalPreloadListeners();
-    });
+      const getSortValue = (post: any) => {
+        let hash = 0;
+        for (let i = 0; i < post.id.length; i++) {
+          hash = post.id.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const time = post.createdAt?.seconds || 0;
+        return time + (Math.abs(hash + globalSessionSalt) % 259200);
+      };
+
+      postsData.sort((a, b) => getSortValue(b) - getSortValue(a));
+
+      globalPreloadedPosts = postsData;
+      globalIsPreloadedPostsLoading = false;
+      notifyGlobalPreloadListeners();
+    },
+    (error) => {
+      console.error("Global Preload Error:", error);
+      globalIsPreloadedPostsLoading = false;
+      notifyGlobalPreloadListeners();
+    },
+  );
 } catch (error) {
-    console.error("Failed to initialize global feed preloader", error);
+  console.error("Failed to initialize global feed preloader", error);
 }
 
-export const ToolsView = ({ onNavigate }: { onNavigate?: (tab: string) => void }) => {
-    const { language } = useLanguage();
-    const [activeTab, setActiveTab] = useState<'feed' | 'analytics' | 'tools' | 'profile' | 'search'>('feed');
-    const [activeToolId, setActiveToolId] = useState<string | null>(null);
-    const [isPostingOpen, setIsPostingOpen] = useState(false);
-    const [pendingPostFile, setPendingPostFile] = useState<File | null>(null);
-    const [pendingPostFileType, setPendingPostFileType] = useState<"video" | "photo" | null>(null);
-    const [posts, setPosts] = useState<any[]>(globalPreloadedPosts);
-    const [isPostsLoading, setIsPostsLoading] = useState(globalIsPreloadedPostsLoading);
-    const [isScrolled, setIsScrolled] = useState(false);
-    const [isHeaderVisible, setIsHeaderVisible] = useState(true);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [isProfileStatusModalOpen, setIsProfileStatusModalOpen] = useState(false);
-    const [isHelpSupportOpen, setIsHelpSupportOpen] = useState(false);
-    const [currentUserAvatar, setCurrentUserAvatar] = useState<string | null>(null);
-    const [selectedCategory, setSelectedCategory] = useState('all');
-    const [isUploadSheetOpen, setIsUploadSheetOpen] = useState(false);
-    
-    // Sidebar dynamic data
-    const [sidebarStats, setSidebarStats] = useState({ followers: 0, posts: 0 });
-    const [sidebarUser, setSidebarUser] = useState<any>(null);
+export const ToolsView = ({
+  onNavigate,
+}: {
+  onNavigate?: (tab: string) => void;
+}) => {
+  const { language } = useLanguage();
+  const [activeTab, setActiveTab] = useState<
+    "feed" | "analytics" | "tools" | "profile" | "search"
+  >("feed");
+  const [activeToolId, setActiveToolId] = useState<string | null>(null);
+  const [isPostingOpen, setIsPostingOpen] = useState(false);
+  const [pendingPostFile, setPendingPostFile] = useState<File | null>(null);
+  const [pendingPostFileType, setPendingPostFileType] = useState<
+    "video" | "photo" | null
+  >(null);
+  const [posts, setPosts] = useState<any[]>(globalPreloadedPosts);
+  const [isPostsLoading, setIsPostsLoading] = useState(
+    globalIsPreloadedPostsLoading,
+  );
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isProfileStatusModalOpen, setIsProfileStatusModalOpen] =
+    useState(false);
+  const [isHelpSupportOpen, setIsHelpSupportOpen] = useState(false);
+  const [currentUserAvatar, setCurrentUserAvatar] = useState<string | null>(
+    null,
+  );
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [isUploadSheetOpen, setIsUploadSheetOpen] = useState(false);
 
-    useEffect(() => {
-        if (!auth.currentUser || !isSidebarOpen) return;
-        let isP = true;
-        const fetchData = async () => {
-            try {
-                const { doc, getDoc, getCountFromServer, collection, query, where } = await import("firebase/firestore");
-                const userDoc = await getDoc(doc(db, "users", auth.currentUser!.uid));
-                if (userDoc.exists() && isP) {
-                    setSidebarUser(userDoc.data());
-                }
-                const followersQuery = query(collection(db, 'follows'), where('following_id', '==', auth.currentUser!.uid));
-                const followersSnapshot = await getCountFromServer(followersQuery);
-                const postsQuery = query(collection(db, 'posts'), where('authorUid', '==', auth.currentUser!.uid));
-                const postsSnapshot = await getCountFromServer(postsQuery);
-                if (isP) {
-                    setSidebarStats({
-                        followers: followersSnapshot.data().count,
-                        posts: postsSnapshot.data().count
-                    });
-                }
-            } catch (e) {
-                console.error("Sidebar stats error", e);
-            }
-        };
-        fetchData();
-        return () => { isP = false; };
-    }, [isSidebarOpen]);
-    
-    const photoInputRef = useRef<HTMLInputElement>(null);
-    const videoInputRef = useRef<HTMLInputElement>(null);
-    const mixedInputRef = useRef<HTMLInputElement>(null);
-    const cameraInputRef = useRef<HTMLInputElement>(null);
-    
-    const lastScrollY = useRef(0);
+  // Sidebar dynamic data
+  const [sidebarStats, setSidebarStats] = useState({ followers: 0, posts: 0 });
+  const [sidebarUser, setSidebarUser] = useState<any>(null);
 
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'photo' | 'video' | 'camera' | 'mixed') => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setPendingPostFile(file);
-            let finalType: 'photo' | 'video' = type === 'photo' ? 'photo' : 'video';
-            if (type === 'mixed') {
-                finalType = file.type.startsWith('video/') ? 'video' : 'photo';
-            }
-            setPendingPostFileType(finalType);
-            setIsUploadSheetOpen(false);
-            setIsPostingOpen(true);
-            window.history.pushState({ view: 'posting' }, "");
+  useEffect(() => {
+    if (!auth.currentUser || !isSidebarOpen) return;
+    let isP = true;
+    const fetchData = async () => {
+      try {
+        const { doc, getDoc, getCountFromServer, collection, query, where } =
+          await import("firebase/firestore");
+        const userDoc = await getDoc(doc(db, "users", auth.currentUser!.uid));
+        if (userDoc.exists() && isP) {
+          setSidebarUser(userDoc.data());
         }
-        // Reset input value so same file can be selected again
-        e.target.value = '';
+        const followersQuery = query(
+          collection(db, "follows"),
+          where("following_id", "==", auth.currentUser!.uid),
+        );
+        const followersSnapshot = await getCountFromServer(followersQuery);
+        const postsQuery = query(
+          collection(db, "posts"),
+          where("authorUid", "==", auth.currentUser!.uid),
+        );
+        const postsSnapshot = await getCountFromServer(postsQuery);
+        if (isP) {
+          setSidebarStats({
+            followers: followersSnapshot.data().count,
+            posts: postsSnapshot.data().count,
+          });
+        }
+      } catch (e) {
+        console.error("Sidebar stats error", e);
+      }
     };
+    fetchData();
+    return () => {
+      isP = false;
+    };
+  }, [isSidebarOpen]);
 
-    const handleCameraClick = async () => {
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const mixedInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  const lastScrollY = useRef(0);
+
+  const handleFileSelect = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: "photo" | "video" | "camera" | "mixed",
+  ) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPendingPostFile(file);
+      let finalType: "photo" | "video" = type === "photo" ? "photo" : "video";
+      if (type === "mixed") {
+        finalType = file.type.startsWith("video/") ? "video" : "photo";
+      }
+      setPendingPostFileType(finalType);
+      setIsUploadSheetOpen(false);
+      setIsPostingOpen(true);
+      window.history.pushState({ view: "posting" }, "");
+    }
+    // Reset input value so same file can be selected again
+    e.target.value = "";
+  };
+
+  const handleCameraClick = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+        audio: true,
+      });
+      stream.getTracks().forEach((track) => track.stop());
+      cameraInputRef.current?.click();
+      window.history.back();
+    } catch (err) {
+      console.error("Camera/Mic Permission denied or error:", err);
+      cameraInputRef.current?.click();
+      window.history.back();
+    }
+  };
+
+  const handlePhotoClick = () => {
+    photoInputRef.current?.click();
+    window.history.back();
+  };
+
+  const handleVideoClick = () => {
+    videoInputRef.current?.click();
+    window.history.back();
+  };
+
+  useEffect(() => {
+    // Toggle global navigation visibility when upload sheet is open
+    const event = new CustomEvent("set-nav-visibility", {
+      detail: !isUploadSheetOpen,
+    });
+    window.dispatchEvent(event);
+  }, [isUploadSheetOpen]);
+
+  const categories = [
+    { id: "all", label: { bn: "সব", en: "All" } },
+    { id: "turkey", label: { bn: "তুরস্ক", en: "Turkey" } },
+    { id: "news", label: { bn: "খবর", en: "News" } },
+    { id: "islamic", label: { bn: "ইসলামিক", en: "Islamic" } },
+    { id: "shorts", label: { bn: "শর্টস", en: "Shorts" } },
+    { id: "movies", label: { bn: "মুভি", en: "Movies" } },
+    { id: "mix", label: { bn: "মিক্স", en: "Mix" } },
+  ];
+
+  useEffect(() => {
+    if (auth.currentUser) {
+      // First set to auth provider photo
+      setCurrentUserAvatar(
+        auth.currentUser.photoURL
+          ? auth.currentUser.photoURL.startsWith("/api")
+            ? getApiUrl(auth.currentUser.photoURL)
+            : auth.currentUser.photoURL
+          : null,
+      );
+
+      // Then fetch latest from Firestore if exists
+      const fetchUserDoc = async () => {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: 'environment' }, 
-                audio: true 
-            });
-            stream.getTracks().forEach(track => track.stop());
-            cameraInputRef.current?.click();
-            window.history.back();
-        } catch (err) {
-            console.error("Camera/Mic Permission denied or error:", err);
-            cameraInputRef.current?.click();
-            window.history.back();
+          const { doc, getDoc } = await import("firebase/firestore");
+          const userDoc = await getDoc(doc(db, "users", auth.currentUser!.uid));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            const pUrl = data.photoUrl || data.photoURL;
+            if (pUrl) {
+              setCurrentUserAvatar(
+                pUrl.startsWith("/api") ? getApiUrl(pUrl) : pUrl,
+              );
+            }
+          }
+        } catch (e) {
+          console.error("Error fetching user data:", e);
         }
+      };
+      fetchUserDoc();
+    }
+  }, [auth.currentUser]);
+
+  const [isToolsTabLoading, setIsToolsTabLoading] = useState(false);
+
+  // Fake loading for Tools tab
+  useEffect(() => {
+    if (activeTab === "tools") {
+      setIsToolsTabLoading(true);
+      const timer = setTimeout(() => {
+        setIsToolsTabLoading(false);
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    const mainElement = document.querySelector("main");
+    if (!mainElement) return;
+
+    const handleScroll = () => {
+      const currentY = mainElement.scrollTop;
+      setIsScrolled(currentY > 20);
+
+      setIsHeaderVisible(true);
+      lastScrollY.current = currentY;
     };
+    mainElement.addEventListener("scroll", handleScroll);
+    return () => mainElement.removeEventListener("scroll", handleScroll);
+  }, [activeToolId]);
 
-    const handlePhotoClick = () => {
-        photoInputRef.current?.click();
-        window.history.back();
+  const sessionSalt = useMemo(() => globalSessionSalt, []);
+
+  // Fetch Posts
+  useEffect(() => {
+    if (selectedCategory === "all") {
+      setPosts(globalPreloadedPosts);
+      setIsPostsLoading(globalIsPreloadedPostsLoading);
+
+      const listener = () => {
+        setPosts(globalPreloadedPosts);
+        setIsPostsLoading(globalIsPreloadedPostsLoading);
+      };
+      globalPreloadListeners.add(listener);
+
+      return () => {
+        globalPreloadListeners.delete(listener);
+      };
+    } else {
+      setIsPostsLoading(true);
+      const q = query(
+        collection(db, "posts"),
+        where("category", "==", selectedCategory),
+        orderBy("createdAt", "desc"),
+        limit(20),
+      );
+
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const postsData = snapshot.docs
+            .map((doc) => ({ id: doc.id, ...doc.data() }))
+            .filter((p: any) => p.status === "approved" || !p.status); // Fallback for older posts without status
+
+          // Randomize feed except the absolute newest
+          const getSortValue = (post: any) => {
+            let hash = 0;
+            for (let i = 0; i < post.id.length; i++) {
+              hash = post.id.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const time = post.createdAt?.seconds || 0;
+            // Add up to 3 days of variance to randomize the position
+            return time + (Math.abs(hash + sessionSalt) % 259200);
+          };
+
+          postsData.sort((a, b) => getSortValue(b) - getSortValue(a));
+
+          setPosts(postsData);
+          setIsPostsLoading(false);
+        },
+        (error) => {
+          console.error("Firestore Error Fetching Posts:", error);
+          setIsPostsLoading(false);
+          // Optionally could handle the UI error feedback here
+        },
+      );
+      return () => unsubscribe();
+    }
+  }, [selectedCategory, sessionSalt]);
+
+  // Handle visibility of App Navigation
+  useEffect(() => {
+    if (isPostingOpen || activeToolId || isSidebarOpen) {
+      window.dispatchEvent(new CustomEvent("hide-nav", { detail: true }));
+    } else {
+      window.dispatchEvent(new CustomEvent("hide-nav", { detail: false }));
+    }
+
+    return () => {
+      window.dispatchEvent(new CustomEvent("hide-nav", { detail: false }));
     };
+  }, [isPostingOpen, activeToolId, isSidebarOpen]);
 
-    const handleVideoClick = () => {
-        videoInputRef.current?.click();
-        window.history.back();
-    };
-
-    useEffect(() => {
-        // Toggle global navigation visibility when upload sheet is open
-        const event = new CustomEvent('set-nav-visibility', { detail: !isUploadSheetOpen });
-        window.dispatchEvent(event);
-    }, [isUploadSheetOpen]);
-
-    const categories = [
-        { id: 'all', label: { bn: 'সব', en: 'All' } },
-        { id: 'turkey', label: { bn: 'তুরস্ক', en: 'Turkey' } },
-        { id: 'news', label: { bn: 'খবর', en: 'News' } },
-        { id: 'islamic', label: { bn: 'ইসলামিক', en: 'Islamic' } },
-        { id: 'shorts', label: { bn: 'শর্টস', en: 'Shorts' } },
-        { id: 'movies', label: { bn: 'মুভি', en: 'Movies' } },
-        { id: 'mix', label: { bn: 'মিক্স', en: 'Mix' } }
-    ];
-
-    useEffect(() => {
-        if (auth.currentUser) {
-            // First set to auth provider photo
-            setCurrentUserAvatar(auth.currentUser.photoURL ? (auth.currentUser.photoURL.startsWith('/api') ? getApiUrl(auth.currentUser.photoURL) : auth.currentUser.photoURL) : null);
-            
-            // Then fetch latest from Firestore if exists
-            const fetchUserDoc = async () => {
-                try {
-                    const { doc, getDoc } = await import("firebase/firestore");
-                    const userDoc = await getDoc(doc(db, "users", auth.currentUser!.uid));
-                    if (userDoc.exists()) {
-                        const data = userDoc.data();
-                        const pUrl = data.photoUrl || data.photoURL;
-                        if (pUrl) {
-                            setCurrentUserAvatar(pUrl.startsWith('/api') ? getApiUrl(pUrl) : pUrl);
-                        }
-                    }
-                } catch (e) {
-                    console.error("Error fetching user data:", e);
-                }
-            };
-            fetchUserDoc();
-        }
-    }, [auth.currentUser]);
-
-    const [isToolsTabLoading, setIsToolsTabLoading] = useState(false);
-    
-    // Fake loading for Tools tab
-    useEffect(() => {
-        if (activeTab === 'tools') {
-            setIsToolsTabLoading(true);
-            const timer = setTimeout(() => {
-                setIsToolsTabLoading(false);
-            }, 600);
-            return () => clearTimeout(timer);
-        }
-    }, [activeTab]);
-
-    useEffect(() => {
-        const mainElement = document.querySelector('main');
-        if (!mainElement) return;
-
-        const handleScroll = () => {
-            const currentY = mainElement.scrollTop;
-            setIsScrolled(currentY > 20);
-
-            setIsHeaderVisible(true);
-            lastScrollY.current = currentY;
-        };
-        mainElement.addEventListener('scroll', handleScroll);
-        return () => mainElement.removeEventListener('scroll', handleScroll);
-    }, [activeToolId]);
-
-    const sessionSalt = useMemo(() => globalSessionSalt, []);
-
-    // Fetch Posts
-    useEffect(() => {
-        if (selectedCategory === 'all') {
-            setPosts(globalPreloadedPosts);
-            setIsPostsLoading(globalIsPreloadedPostsLoading);
-
-            const listener = () => {
-                setPosts(globalPreloadedPosts);
-                setIsPostsLoading(globalIsPreloadedPostsLoading);
-            };
-            globalPreloadListeners.add(listener);
-
-            return () => {
-                globalPreloadListeners.delete(listener);
-            };
-        } else {
-            setIsPostsLoading(true);
-            const q = query(
-                collection(db, "posts"), 
-                where("category", "==", selectedCategory),
-                orderBy("createdAt", "desc"), 
-                limit(20)
-            );
-
-            const unsubscribe = onSnapshot(q, (snapshot) => {
-                const postsData = snapshot.docs
-                    .map(doc => ({ id: doc.id, ...doc.data() }))
-                    .filter((p: any) => p.status === 'approved' || !p.status); // Fallback for older posts without status
-                
-                // Randomize feed except the absolute newest
-                const getSortValue = (post: any) => {
-                    let hash = 0;
-                    for (let i = 0; i < post.id.length; i++) {
-                        hash = post.id.charCodeAt(i) + ((hash << 5) - hash);
-                    }
-                    const time = post.createdAt?.seconds || 0;
-                    // Add up to 3 days of variance to randomize the position
-                    return time + (Math.abs(hash + sessionSalt) % 259200); 
-                };
-                
-                postsData.sort((a, b) => getSortValue(b) - getSortValue(a));
-
-                setPosts(postsData);
-                setIsPostsLoading(false);
-            }, (error) => {
-                console.error("Firestore Error Fetching Posts:", error);
-                setIsPostsLoading(false);
-                // Optionally could handle the UI error feedback here
-            });
-            return () => unsubscribe();
-        }
-    }, [selectedCategory, sessionSalt]);
-
-    // Handle visibility of App Navigation
-    useEffect(() => {
-        if (isPostingOpen || activeToolId || isSidebarOpen) {
-            window.dispatchEvent(new CustomEvent("hide-nav", { detail: true }));
-        } else {
-            window.dispatchEvent(new CustomEvent("hide-nav", { detail: false }));
-        }
-        
-        return () => {
-            window.dispatchEvent(new CustomEvent("hide-nav", { detail: false }));
-        };
-    }, [isPostingOpen, activeToolId, isSidebarOpen]);
-
-    // Handle hardware back button
+  // Handle hardware back button
   useEffect(() => {
     const handlePopState = () => {
       if (activeToolId !== null) {
@@ -1782,10 +2045,17 @@ export const ToolsView = ({ onNavigate }: { onNavigate?: (tab: string) => void }
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [activeToolId, isPostingOpen, isSidebarOpen, isUploadSheetOpen, isProfileStatusModalOpen, isHelpSupportOpen]);
+  }, [
+    activeToolId,
+    isPostingOpen,
+    isSidebarOpen,
+    isUploadSheetOpen,
+    isProfileStatusModalOpen,
+    isHelpSupportOpen,
+  ]);
 
   const handleOpenSidebar = () => {
-    window.history.pushState({ view: 'sidebar' }, "");
+    window.history.pushState({ view: "sidebar" }, "");
     setIsSidebarOpen(true);
   };
 
@@ -1807,7 +2077,7 @@ export const ToolsView = ({ onNavigate }: { onNavigate?: (tab: string) => void }
   };
 
   const handleSeeAll = () => {
-    setActiveTab('tools');
+    setActiveTab("tools");
   };
 
   const handleShowAllBack = () => {
@@ -1819,131 +2089,173 @@ export const ToolsView = ({ onNavigate }: { onNavigate?: (tab: string) => void }
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 relative">
       {/* 1. Fake Status Bar Header - Persistent background that transitions to minimal state */}
-      <div className={cn(
-        "fixed top-0 inset-x-0 h-safe bg-white dark:bg-slate-900 z-[201] transition-all duration-300",
-        !isHeaderVisible ? "bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800" : "border-none"
-      )} />
+      <div
+        className={cn(
+          "fixed top-0 inset-x-0 h-safe bg-white dark:bg-slate-900 z-[201] transition-all duration-300",
+          !isHeaderVisible
+            ? "bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800"
+            : "border-none",
+        )}
+      />
 
       {/* 2. Main Header - Fixed at top */}
-      <header className={cn(
-        "w-full bg-white dark:bg-slate-900 transition-all z-[140] fixed top-0 pt-safe duration-300",
-        !isHeaderVisible && "-translate-y-full",
-        activeToolId 
-          ? "inset-x-0 pb-3 shadow-sm border-b border-slate-100 dark:border-slate-800 z-[170] px-6" 
-          : "border-none"
-      )}>
+      <header
+        className={cn(
+          "w-full bg-white dark:bg-slate-900 transition-all z-[140] fixed top-0 pt-safe duration-300",
+          !isHeaderVisible && "-translate-y-full",
+          activeToolId
+            ? "inset-x-0 pb-3 shadow-sm border-b border-slate-100 dark:border-slate-800 z-[170] px-6"
+            : "border-none",
+        )}
+      >
         {!activeToolId ? (
-            <div className="flex flex-col w-full">
-                {/* Top Row: Brand and Menu */}
-                <div className="flex items-center justify-between pl-4 pr-6 h-[52px]">
-                    <h1 className="text-[26px] font-black text-blue-600 dark:text-blue-500 tracking-tighter">
-                      MuslimFeed
-                    </h1>
-                    
-                    <div className="flex items-center gap-1">
-                        <button 
-                            onClick={() => {
-                                window.history.pushState({ view: 'upload-sheet' }, "");
-                                setIsUploadSheetOpen(true);
-                            }}
-                            className="w-[24px] h-[24px] flex items-center justify-center text-white dark:text-black transition-colors active:scale-95 rounded-full bg-black dark:bg-white shrink-0 shadow-sm"
-                        >
-                            <Plus className="w-4 h-4" />
-                        </button>
-                        <button 
-                            onClick={handleOpenSidebar}
-                            className="w-10 h-10 flex items-center justify-center text-slate-900 dark:text-white transition-colors hover:text-blue-600"
-                        >
-                            <Menu className="w-6 h-6" />
-                        </button>
-                    </div>
-                </div>
+          <div className="flex flex-col w-full">
+            {/* Top Row: Brand and Menu */}
+            <div className="flex items-center justify-between pl-4 pr-6 h-[52px]">
+              <h1 className="text-[26px] font-black text-blue-600 dark:text-blue-500 tracking-tighter">
+                MuslimFeed
+              </h1>
 
-                {/* Bottom Row: Navigation Tabs */}
-                <div className="flex items-center justify-around w-full border-t border-slate-50 dark:border-slate-800/40">
-                    <button 
-                        onClick={() => setActiveTab('feed')}
-                        className="flex-1 flex flex-col items-center h-10 justify-center relative"
-                    >
-                        <Home className={cn(
-                            "w-[22px] h-[22px] transition-colors", 
-                            activeTab === 'feed' ? "text-blue-600 dark:text-blue-400" : "text-slate-400"
-                        )} />
-                        {activeTab === 'feed' && (
-                            <motion.div layoutId="tabUnderline" className="absolute bottom-0 h-[3px] w-full bg-blue-600 rounded-t-full" />
-                        )}
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('analytics')}
-                        className="flex-1 flex flex-col items-center h-10 justify-center relative"
-                    >
-                        <Activity className={cn(
-                            "w-[22px] h-[22px] transition-colors", 
-                            activeTab === 'analytics' ? "text-blue-600 dark:text-blue-400" : "text-slate-400"
-                        )} />
-                        {activeTab === 'analytics' && (
-                            <motion.div layoutId="tabUnderline" className="absolute bottom-0 h-[3px] w-full bg-blue-600 rounded-t-full" />
-                        )}
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('tools')}
-                        className="flex-1 flex flex-col items-center h-10 justify-center relative"
-                    >
-                        <LayoutGrid className={cn(
-                            "w-[22px] h-[22px] transition-colors", 
-                            activeTab === 'tools' ? "text-blue-600 dark:text-blue-400" : "text-slate-400"
-                        )} />
-                        {activeTab === 'tools' && (
-                            <motion.div layoutId="tabUnderline" className="absolute bottom-0 h-[3px] w-full bg-blue-600 rounded-t-full" />
-                        )}
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('profile')}
-                        className="flex-1 flex flex-col items-center h-10 justify-center relative"
-                    >
-                        <User className={cn(
-                            "w-[22px] h-[22px] transition-colors", 
-                            activeTab === 'profile' ? "text-blue-600 dark:text-blue-400" : "text-slate-400"
-                        )} />
-                        {activeTab === 'profile' && (
-                            <motion.div layoutId="tabUnderline" className="absolute bottom-0 h-[3px] w-full bg-blue-600 rounded-t-full" />
-                        )}
-                    </button>
-                </div>
-            </div>
-        ) : (
-            <div className="flex items-center gap-3 w-full h-14">
-                <button 
+              <div className="flex items-center gap-1">
+                <button
                   onClick={() => {
-                    if (activeToolId) {
-                      handleCloseTool();
-                    }
+                    window.history.pushState({ view: "upload-sheet" }, "");
+                    setIsUploadSheetOpen(true);
                   }}
-                  className="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-900 dark:text-white"
+                  className="w-[24px] h-[24px] flex items-center justify-center text-white dark:text-black transition-colors active:scale-95 rounded-full bg-black dark:bg-white shrink-0 shadow-sm"
                 >
-                  <ArrowLeft className="w-6 h-6" />
+                  <Plus className="w-4 h-4" />
                 </button>
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight truncate flex-1 leading-none">
-                  {SOCIAL_TOOLS.find(t => t.id === activeToolId)?.title[language === 'bn' ? 'bn' : 'en']}
-                </h1>
+                <button
+                  onClick={handleOpenSidebar}
+                  className="w-10 h-10 flex items-center justify-center text-slate-900 dark:text-white transition-colors hover:text-blue-600"
+                >
+                  <Menu className="w-6 h-6" />
+                </button>
+              </div>
             </div>
+
+            {/* Bottom Row: Navigation Tabs */}
+            <div className="flex items-center justify-around w-full border-t border-slate-50 dark:border-slate-800/40">
+              <button
+                onClick={() => setActiveTab("feed")}
+                className="flex-1 flex flex-col items-center h-10 justify-center relative"
+              >
+                <Home
+                  className={cn(
+                    "w-[22px] h-[22px] transition-colors",
+                    activeTab === "feed"
+                      ? "text-blue-600 dark:text-blue-400"
+                      : "text-slate-400",
+                  )}
+                />
+                {activeTab === "feed" && (
+                  <motion.div
+                    layoutId="tabUnderline"
+                    className="absolute bottom-0 h-[3px] w-full bg-blue-600 rounded-t-full"
+                  />
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab("analytics")}
+                className="flex-1 flex flex-col items-center h-10 justify-center relative"
+              >
+                <Activity
+                  className={cn(
+                    "w-[22px] h-[22px] transition-colors",
+                    activeTab === "analytics"
+                      ? "text-blue-600 dark:text-blue-400"
+                      : "text-slate-400",
+                  )}
+                />
+                {activeTab === "analytics" && (
+                  <motion.div
+                    layoutId="tabUnderline"
+                    className="absolute bottom-0 h-[3px] w-full bg-blue-600 rounded-t-full"
+                  />
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab("tools")}
+                className="flex-1 flex flex-col items-center h-10 justify-center relative"
+              >
+                <LayoutGrid
+                  className={cn(
+                    "w-[22px] h-[22px] transition-colors",
+                    activeTab === "tools"
+                      ? "text-blue-600 dark:text-blue-400"
+                      : "text-slate-400",
+                  )}
+                />
+                {activeTab === "tools" && (
+                  <motion.div
+                    layoutId="tabUnderline"
+                    className="absolute bottom-0 h-[3px] w-full bg-blue-600 rounded-t-full"
+                  />
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab("profile")}
+                className="flex-1 flex flex-col items-center h-10 justify-center relative"
+              >
+                <User
+                  className={cn(
+                    "w-[22px] h-[22px] transition-colors",
+                    activeTab === "profile"
+                      ? "text-blue-600 dark:text-blue-400"
+                      : "text-slate-400",
+                  )}
+                />
+                {activeTab === "profile" && (
+                  <motion.div
+                    layoutId="tabUnderline"
+                    className="absolute bottom-0 h-[3px] w-full bg-blue-600 rounded-t-full"
+                  />
+                )}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 w-full h-14">
+            <button
+              onClick={() => {
+                if (activeToolId) {
+                  handleCloseTool();
+                }
+              }}
+              className="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-900 dark:text-white"
+            >
+              <ArrowLeft className="w-6 h-6" />
+            </button>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight truncate flex-1 leading-none">
+              {
+                SOCIAL_TOOLS.find((t) => t.id === activeToolId)?.title[
+                  language === "bn" ? "bn" : "en"
+                ]
+              }
+            </h1>
+          </div>
         )}
       </header>
 
       <AnimatePresence mode="wait">
         {(isPostsLoading || isToolsTabLoading) && (
-            <motion.div 
-                initial={{ opacity: 1 }}
-                exit={{ opacity: 0, scaleX: 1, transition: { duration: 0.2 } }}
-                className="fixed top-0 inset-x-0 h-1 z-[200] origin-left bg-blue-100"
-            >
-                <motion.div 
-                    className="h-full bg-blue-600"
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: [0, 0.3, 0.6, 0.85] }}
-                    transition={{ duration: 2, times: [0, 0.3, 0.6, 1], ease: "easeOut" }}
-                />
-            </motion.div>
+          <motion.div
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0, scaleX: 1, transition: { duration: 0.2 } }}
+            className="fixed top-0 inset-x-0 h-1 z-[200] origin-left bg-blue-100"
+          >
+            <motion.div
+              className="h-full bg-blue-600"
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: [0, 0.3, 0.6, 0.85] }}
+              transition={{
+                duration: 2,
+                times: [0, 0.3, 0.6, 1],
+                ease: "easeOut",
+              }}
+            />
+          </motion.div>
         )}
       </AnimatePresence>
 
@@ -2353,242 +2665,276 @@ export const ToolsView = ({ onNavigate }: { onNavigate?: (tab: string) => void }
             className="min-h-screen bg-slate-50 dark:bg-slate-950"
           >
             <div className="flex flex-col w-full mx-auto max-w-2xl">
-                <div className="pt-safe">
-                    <div className="transition-all duration-300 pt-[92px]">
-                        {activeTab === 'analytics' && !activeToolId ? (
+              <div className="pt-safe">
+                <div className="transition-all duration-300 pt-[92px]">
+                  {activeTab === "analytics" && !activeToolId ? (
                     <AnalyticsDashboard />
-                ) : activeTab === 'profile' && !activeToolId ? (
+                  ) : activeTab === "profile" && !activeToolId ? (
                     <ProfileView />
-                ) : activeTab === 'search' && !activeToolId ? (
-                    <MuslimBrowser language={language} onBack={() => setActiveTab('feed')} />
-                ) : activeTab === 'tools' && !activeToolId ? (
+                  ) : activeTab === "search" && !activeToolId ? (
+                    <MuslimBrowser
+                      language={language}
+                      onBack={() => setActiveTab("feed")}
+                    />
+                  ) : activeTab === "tools" && !activeToolId ? (
                     <div className="flex-1 p-4 pb-32">
-                        <div className="grid grid-cols-4 gap-x-2 gap-y-4">
-                            {isToolsTabLoading ? (
-                                [...Array(8)].map((_, i) => (
-                                    <div key={i} className="flex flex-col items-center gap-1.5">
-                                        <div className="w-11 h-11 rounded-full shimmer bg-slate-200 dark:bg-slate-800" />
-                                        <div className="w-12 h-2 rounded shimmer bg-slate-200 dark:bg-slate-800" />
-                                    </div>
-                                ))
-                            ) : (
-                                SOCIAL_TOOLS.map((tool) => (
-                                    <button
-                                        key={tool.id}
-                                        onClick={() => handleOpenTool(tool.id)}
-                                        className="relative flex flex-col items-center gap-1.5 group"
-                                    >
-                                        <div className={cn(
-                                            "w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm",
-                                            tool.bg,
-                                            "group-hover:scale-110 active:scale-95"
-                                        )}>
-                                            <tool.icon className="w-5 h-5 text-white" />
-                                        </div>
-                                        <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 text-center leading-tight truncate w-full px-0.5">
-                                            {language === "bn" ? tool.title.bn : tool.title.en}
-                                        </span>
-                                    </button>
-                                ))
-                            )}
-                        </div>
-                    </div>
-                ) : (
-                    <>
-                {/* Attached "What's on your mind?" - Attached directly with border-t */}
-                <div className="bg-white dark:bg-slate-900 px-4 pt-3 pb-2">
-                    <button 
-                        onClick={() => mixedInputRef.current?.click()}
-                        className="w-full flex items-center gap-3 active:scale-95 transition-transform text-left"
-                    >
-                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 shadow-sm flex items-center justify-center shrink-0 overflow-hidden border border-slate-200 dark:border-slate-700">
-                            {currentUserAvatar ? (
-                                <img 
-                                    src={currentUserAvatar} 
-                                    alt="Avatar" 
-                                    referrerPolicy="no-referrer"
-                                    className="w-full h-full object-cover"
-                                />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-primary-light/20 dark:bg-primary-dark/30 text-primary dark:text-primary-light font-bold text-lg">
-                                    {auth.currentUser?.displayName ? auth.currentUser.displayName.charAt(0).toUpperCase() : 'U'}
+                      <div className="grid grid-cols-4 gap-x-2 gap-y-4">
+                        {isToolsTabLoading
+                          ? [...Array(8)].map((_, i) => (
+                              <div
+                                key={i}
+                                className="flex flex-col items-center gap-1.5"
+                              >
+                                <div className="w-11 h-11 rounded-full shimmer bg-slate-200 dark:bg-slate-800" />
+                                <div className="w-12 h-2 rounded shimmer bg-slate-200 dark:bg-slate-800" />
+                              </div>
+                            ))
+                          : SOCIAL_TOOLS.map((tool) => (
+                              <button
+                                key={tool.id}
+                                onClick={() => handleOpenTool(tool.id)}
+                                className="relative flex flex-col items-center gap-1.5 group"
+                              >
+                                <div
+                                  className={cn(
+                                    "w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm",
+                                    tool.bg,
+                                    "group-hover:scale-110 active:scale-95",
+                                  )}
+                                >
+                                  <tool.icon className="w-5 h-5 text-white" />
                                 </div>
-                            )}
-                        </div>
-                        <div className="flex-1 bg-slate-50 dark:bg-slate-800/50 rounded-full py-2.5 px-4 text-slate-400 dark:text-slate-500 text-base font-medium border border-slate-100 dark:border-slate-800">
-                            {language === 'bn' ? 'আপনার মনে কি আছে?' : "What's on your mind?"}
-                        </div>
-                        <div className="flex items-center justify-center w-10 h-10 shrink-0">
-                            <ImageIcon className="w-6 h-6 text-emerald-500" />
-                        </div>
-                    </button>
-                </div>
-                
-                {/* Categories Bar */}
-                <div 
-                    className="w-full overflow-x-auto hide-scrollbar h-12 px-4 flex items-center gap-2 border-none bg-white dark:bg-slate-900 transition-all duration-300"
-                >
-                    {categories.map((cat) => (
+                                <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 text-center leading-tight truncate w-full px-0.5">
+                                  {language === "bn"
+                                    ? tool.title.bn
+                                    : tool.title.en}
+                                </span>
+                              </button>
+                            ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Attached "What's on your mind?" - Attached directly with border-t */}
+                      <div className="bg-white dark:bg-slate-900 px-4 pt-3 pb-2">
                         <button
+                          onClick={() => mixedInputRef.current?.click()}
+                          className="w-full flex items-center gap-3 active:scale-95 transition-transform text-left"
+                        >
+                          <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 shadow-sm flex items-center justify-center shrink-0 overflow-hidden border border-slate-200 dark:border-slate-700">
+                            {currentUserAvatar ? (
+                              <img
+                                src={currentUserAvatar}
+                                alt="Avatar"
+                                referrerPolicy="no-referrer"
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-primary-light/20 dark:bg-primary-dark/30 text-primary dark:text-primary-light font-bold text-lg">
+                                {auth.currentUser?.displayName
+                                  ? auth.currentUser.displayName
+                                      .charAt(0)
+                                      .toUpperCase()
+                                  : "U"}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 bg-slate-50 dark:bg-slate-800/50 rounded-full py-2.5 px-4 text-slate-400 dark:text-slate-500 text-base font-medium border border-slate-100 dark:border-slate-800">
+                            {language === "bn"
+                              ? "আপনার মনে কি আছে?"
+                              : "What's on your mind?"}
+                          </div>
+                          <div className="flex items-center justify-center w-10 h-10 shrink-0">
+                            <ImageIcon className="w-6 h-6 text-emerald-500" />
+                          </div>
+                        </button>
+                      </div>
+
+                      {/* Categories Bar */}
+                      <div className="w-full overflow-x-auto hide-scrollbar h-12 px-4 flex items-center gap-2 border-none bg-white dark:bg-slate-900 transition-all duration-300">
+                        {categories.map((cat) => (
+                          <button
                             key={cat.id}
                             onClick={() => setSelectedCategory(cat.id)}
                             className={cn(
-                                "px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border",
-                                selectedCategory === cat.id
-                                    ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-md"
-                                    : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
+                              "px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border",
+                              selectedCategory === cat.id
+                                ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-md"
+                                : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700",
                             )}
-                        >
-                            {cat.label[language === 'bn' ? 'bn' : 'en']}
-                        </button>
-                    ))}
-                </div>
+                          >
+                            {cat.label[language === "bn" ? "bn" : "en"]}
+                          </button>
+                        ))}
+                      </div>
 
-                {/* Posts Feed Section */}
-                <div className="pb-0 flex flex-col border-t border-slate-100 dark:border-slate-800">
-                    <AnimatePresence initial={false}>
-                        {isPostsLoading ? (
+                      {/* Posts Feed Section */}
+                      <div className="pb-0 flex flex-col border-t border-slate-100 dark:border-slate-800">
+                        <AnimatePresence initial={false}>
+                          {isPostsLoading ? (
                             <div className="space-y-0">
-                                <PostSkeleton />
-                                <PostSkeleton />
-                                <PostSkeleton />
+                              <PostSkeleton />
+                              <PostSkeleton />
+                              <PostSkeleton />
                             </div>
-                        ) : posts.length > 0 ? (
-                            posts.map(post => (
-                                <div key={post.id} className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 overflow-hidden">
-                                    <PostCard post={post} isOverlayOpen={isUploadSheetOpen || isPostingOpen || isSidebarOpen || isProfileStatusModalOpen || isHelpSupportOpen || activeToolId !== null} />
-                                </div>
+                          ) : posts.length > 0 ? (
+                            posts.map((post) => (
+                              <div
+                                key={post.id}
+                                className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 overflow-hidden"
+                              >
+                                <PostCard
+                                  post={post}
+                                  isOverlayOpen={
+                                    isUploadSheetOpen ||
+                                    isPostingOpen ||
+                                    isSidebarOpen ||
+                                    isProfileStatusModalOpen ||
+                                    isHelpSupportOpen ||
+                                    activeToolId !== null
+                                  }
+                                />
+                              </div>
                             ))
-                        ) : (
-                            <motion.div 
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="bg-white dark:bg-slate-900 p-12 text-center border-b border-slate-100 dark:border-slate-800"
+                          ) : (
+                            <motion.div
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              className="bg-white dark:bg-slate-900 p-12 text-center border-b border-slate-100 dark:border-slate-800"
                             >
-                                <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <Sparkles className="w-8 h-8 text-slate-300" />
-                                </div>
-                                <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 mb-1">
-                                    {language === 'bn' ? 'কোন পোস্ট নেই' : 'No posts yet'}
-                                </h3>
-                                <p className="text-xs font-medium text-slate-400">
-                                    {language === 'bn' ? 'প্রথম পোস্টটি আপনিই করুন!' : 'Be the first to post something!'}
-                                </p>
+                              <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Sparkles className="w-8 h-8 text-slate-300" />
+                              </div>
+                              <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 mb-1">
+                                {language === "bn"
+                                  ? "কোন পোস্ট নেই"
+                                  : "No posts yet"}
+                              </h3>
+                              <p className="text-xs font-medium text-slate-400">
+                                {language === "bn"
+                                  ? "প্রথম পোস্টটি আপনিই করুন!"
+                                  : "Be the first to post something!"}
+                              </p>
                             </motion.div>
-                        )}
-                    </AnimatePresence>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    </>
+                  )}
                 </div>
-                </>
-                )}
-                </div>
-                </div>
+              </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-        {/* Upload Sheet (Facebook Style Dropdown) */}
-        <AnimatePresence>
-            {isUploadSheetOpen && (
-                <>
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={() => {
-                            if (isUploadSheetOpen) window.history.back();
-                        }}
-                        className="fixed inset-0 bg-black/40 z-[300]"
-                    />
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: -10, transformOrigin: 'top right' }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                        className="fixed right-4 w-36 bg-white dark:bg-slate-900 z-[301] rounded-2xl shadow-[0_10px_40px_rgb(0,0,0,0.15)] border border-slate-100 dark:border-slate-800 overflow-hidden"
-                        style={{
-                            top: 'calc(62px + env(safe-area-inset-top, 0px))'
-                        }}
-                    >
-                        <div className="flex flex-col py-2">
-                            <button 
-                                onClick={handleCameraClick}
-                                className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                            >
-                                <Camera className="w-4 h-4 text-black dark:text-white" />
-                                <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">
-                                    {language === 'bn' ? 'ক্যামেরা' : 'Camera'}
-                                </span>
-                            </button>
+      {/* Upload Sheet (Facebook Style Dropdown) */}
+      <AnimatePresence>
+        {isUploadSheetOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                if (isUploadSheetOpen) window.history.back();
+              }}
+              className="fixed inset-0 bg-black/40 z-[300]"
+            />
+            <motion.div
+              initial={{
+                opacity: 0,
+                scale: 0.95,
+                y: -10,
+                transformOrigin: "top right",
+              }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+              className="fixed right-4 w-36 bg-white dark:bg-slate-900 z-[301] rounded-2xl shadow-[0_10px_40px_rgb(0,0,0,0.15)] border border-slate-100 dark:border-slate-800 overflow-hidden"
+              style={{
+                top: "calc(62px + env(safe-area-inset-top, 0px))",
+              }}
+            >
+              <div className="flex flex-col py-2">
+                <button
+                  onClick={handleCameraClick}
+                  className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <Camera className="w-4 h-4 text-black dark:text-white" />
+                  <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">
+                    {language === "bn" ? "ক্যামেরা" : "Camera"}
+                  </span>
+                </button>
 
-                            <button 
-                                onClick={handlePhotoClick}
-                                className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                            >
-                                <Image className="w-4 h-4 text-black dark:text-white" />
-                                <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">
-                                    {language === 'bn' ? 'ফটো' : 'Photo'}
-                                </span>
-                            </button>
+                <button
+                  onClick={handlePhotoClick}
+                  className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <Image className="w-4 h-4 text-black dark:text-white" />
+                  <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">
+                    {language === "bn" ? "ফটো" : "Photo"}
+                  </span>
+                </button>
 
-                            <button 
-                                onClick={handleVideoClick}
-                                className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                            >
-                                <Video className="w-4 h-4 text-black dark:text-white" />
-                                <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">
-                                    {language === 'bn' ? 'ভিডিও' : 'Video'}
-                                </span>
-                            </button>
-                        </div>
-                    </motion.div>
-                </>
-            )}
-        </AnimatePresence>
+                <button
+                  onClick={handleVideoClick}
+                  className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <Video className="w-4 h-4 text-black dark:text-white" />
+                  <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">
+                    {language === "bn" ? "ভিডিও" : "Video"}
+                  </span>
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
-        {/* Hidden Inputs */}
-        <input 
-            ref={cameraInputRef}
-            type="file" 
-            accept="video/*" 
-            capture="environment"
-            className="hidden" 
-            onChange={(e) => handleFileSelect(e, 'camera')}
-        />
-        <input 
-            ref={photoInputRef}
-            type="file" 
-            accept="image/*" 
-            className="hidden" 
-            onChange={(e) => handleFileSelect(e, 'photo')}
-        />
-        <input 
-            ref={videoInputRef}
-            type="file" 
-            accept="video/*" 
-            className="hidden" 
-            onChange={(e) => handleFileSelect(e, 'video')}
-        />
-        <input 
-            ref={mixedInputRef}
-            type="file" 
-            accept="image/*,video/*" 
-            className="hidden" 
-            onChange={(e) => handleFileSelect(e, 'mixed')}
-        />
+      {/* Hidden Inputs */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="video/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => handleFileSelect(e, "camera")}
+      />
+      <input
+        ref={photoInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => handleFileSelect(e, "photo")}
+      />
+      <input
+        ref={videoInputRef}
+        type="file"
+        accept="video/*"
+        className="hidden"
+        onChange={(e) => handleFileSelect(e, "video")}
+      />
+      <input
+        ref={mixedInputRef}
+        type="file"
+        accept="image/*,video/*"
+        className="hidden"
+        onChange={(e) => handleFileSelect(e, "mixed")}
+      />
 
       <AnimatePresence>
-          {isPostingOpen && (
-              <PostContentOverlay 
-                initialFile={pendingPostFile}
-                initialFileType={pendingPostFileType}
-                onClose={() => {
-                    window.history.back();
-                    setIsPostingOpen(false);
-                    setPendingPostFile(null);
-                    setPendingPostFileType(null);
-                }} 
-              />
-          )}
+        {isPostingOpen && (
+          <PostContentOverlay
+            initialFile={pendingPostFile}
+            initialFileType={pendingPostFileType}
+            onClose={() => {
+              window.history.back();
+              setIsPostingOpen(false);
+              setPendingPostFile(null);
+              setPendingPostFileType(null);
+            }}
+          />
+        )}
       </AnimatePresence>
 
       {/* Sidebar Overlay */}
@@ -2611,102 +2957,120 @@ export const ToolsView = ({ onNavigate }: { onNavigate?: (tab: string) => void }
             >
               {/* Profile Header */}
               <div className="p-5 pb-4 border-b border-slate-100 dark:border-slate-800">
-                  <div className="w-14 h-14 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 mb-3 border border-slate-200 dark:border-slate-700">
-                    {currentUserAvatar || sidebarUser?.photoURL || sidebarUser?.photoUrl ? (
-                        <img 
-                            src={(() => {
-                                const url = currentUserAvatar || sidebarUser?.photoURL || sidebarUser?.photoUrl;
-                                return url?.startsWith('/api') ? getApiUrl(url) : url;
-                            })()}
-                            alt="Profile" 
-                            className="w-full h-full object-cover" 
-                            referrerPolicy="no-referrer"
-                        />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                            <User className="w-6 h-6 text-slate-400" />
-                        </div>
-                    )}
+                <div className="w-14 h-14 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 mb-3 border border-slate-200 dark:border-slate-700">
+                  {currentUserAvatar ||
+                  sidebarUser?.photoURL ||
+                  sidebarUser?.photoUrl ? (
+                    <img
+                      src={(() => {
+                        const url =
+                          currentUserAvatar ||
+                          sidebarUser?.photoURL ||
+                          sidebarUser?.photoUrl;
+                        return url?.startsWith("/api") ? getApiUrl(url) : url;
+                      })()}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <User className="w-6 h-6 text-slate-400" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <h2 className="font-bold text-lg leading-tight text-slate-900 dark:text-white truncate">
+                    {sidebarUser?.username ||
+                      sidebarUser?.displayName ||
+                      auth.currentUser?.displayName ||
+                      "MuslimFeed User"}
+                  </h2>
+                  {(sidebarUser?.isVerified || sidebarUser?.blueBadge) && (
+                    <BadgeCheck className="w-5 h-5 text-blue-500 shrink-0" />
+                  )}
+                </div>
+
+                <div className="flex items-center gap-4 mt-3">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-slate-900 dark:text-white">
+                      {sidebarStats.followers}
+                    </span>
+                    <span className="text-sm text-slate-500">
+                      {language === "bn" ? "ফলোয়ার" : "Followers"}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-1.5 mb-1">
-                      <h2 className="font-bold text-lg leading-tight text-slate-900 dark:text-white truncate">
-                          {sidebarUser?.username || sidebarUser?.displayName || auth.currentUser?.displayName || 'MuslimFeed User'}
-                      </h2>
-                      {(sidebarUser?.isVerified || sidebarUser?.blueBadge) && (
-                          <BadgeCheck className="w-5 h-5 text-blue-500 shrink-0" />
-                      )}
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-slate-900 dark:text-white">
+                      {sidebarStats.posts}
+                    </span>
+                    <span className="text-sm text-slate-500">
+                      {language === "bn" ? "পোস্ট" : "Posts"}
+                    </span>
                   </div>
-                  
-                  <div className="flex items-center gap-4 mt-3">
-                      <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-slate-900 dark:text-white">{sidebarStats.followers}</span>
-                          <span className="text-sm text-slate-500">{language === 'bn' ? 'ফলোয়ার' : 'Followers'}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-slate-900 dark:text-white">{sidebarStats.posts}</span>
-                          <span className="text-sm text-slate-500">{language === 'bn' ? 'পোস্ট' : 'Posts'}</span>
-                      </div>
-                  </div>
+                </div>
               </div>
 
               <div className="flex-1 overflow-y-auto py-3 px-3 flex flex-col gap-1">
                 {/* All Tools changed to generic button or keep? Let's just keep All Tools if they want. */}
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider px-3 mb-1 mt-2">
-                    {language === 'bn' ? 'ম্যানেজমেন্ট' : 'Management'}
+                  {language === "bn" ? "ম্যানেজমেন্ট" : "Management"}
                 </h3>
-                
+
                 <button
                   onClick={() => {
-                      handleCloseSidebar();
+                    handleCloseSidebar();
                   }}
                   className="w-full px-3 py-3 flex items-center gap-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left active:scale-[0.98]"
                 >
                   <div className="w-9 h-9 rounded-full bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center relative">
-                      <Coins className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                      <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center">
-                          <Lock className="w-3 h-3 text-slate-400" />
-                      </div>
+                    <Coins className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center">
+                      <Lock className="w-3 h-3 text-slate-400" />
+                    </div>
                   </div>
                   <span className="font-semibold text-[15px] text-slate-700 dark:text-slate-200 flex-1">
-                      {language === 'bn' ? 'মনিটাইজেশন' : 'Monetization'}
+                    {language === "bn" ? "মনিটাইজেশন" : "Monetization"}
                   </span>
                 </button>
-                
+
                 <button
                   onClick={() => {
-                      handleCloseSidebar();
-                      setTimeout(() => {
-                          window.history.pushState({ view: 'profile-status' }, "");
-                          setIsProfileStatusModalOpen(true);
-                      }, 50);
+                    handleCloseSidebar();
+                    setTimeout(() => {
+                      window.history.pushState({ view: "profile-status" }, "");
+                      setIsProfileStatusModalOpen(true);
+                    }, 50);
                   }}
                   className="w-full px-3 py-3 flex items-center gap-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left active:scale-[0.98]"
                 >
                   <div className="w-9 h-9 rounded-full bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
-                      <ShieldCheck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    <ShieldCheck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                   </div>
                   <span className="font-semibold text-[15px] text-slate-700 dark:text-slate-200 flex-1">
-                      {language === 'bn' ? 'প্রোফাইল স্ট্যাটাস' : 'Profile Status'}
+                    {language === "bn"
+                      ? "প্রোফাইল স্ট্যাটাস"
+                      : "Profile Status"}
                   </span>
                 </button>
 
                 <div className="h-px w-full bg-slate-100 dark:bg-slate-800/60 my-2" />
-                
+
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider px-3 mb-1 mt-1">
-                    {language === 'bn' ? 'অন্যান্য' : 'More'}
+                  {language === "bn" ? "অন্যান্য" : "More"}
                 </h3>
 
                 <button
                   onClick={() => {
-                      handleCloseSidebar();
+                    // handleCloseSidebar();
                   }}
                   className="w-full px-3 py-3 flex items-center gap-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left active:scale-[0.98]"
                 >
                   <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                      <Bookmark className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                    <Bookmark className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                   </div>
                   <span className="font-semibold text-[15px] text-slate-700 dark:text-slate-200 flex-1">
-                      {language === 'bn' ? 'সংরক্ষিত পোস্ট' : 'Saved Posts'}
+                    {language === "bn" ? "কামিং সুন..." : "Coming Soon..."}
                   </span>
                 </button>
 
@@ -2718,43 +3082,43 @@ export const ToolsView = ({ onNavigate }: { onNavigate?: (tab: string) => void }
                   className="w-full px-3 py-3 flex items-center gap-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left active:scale-[0.98]"
                 >
                   <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                      <LayoutGrid className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                    <LayoutGrid className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                   </div>
                   <span className="font-semibold text-[15px] text-slate-700 dark:text-slate-200 flex-1">
-                      {language === 'bn' ? 'সকল টুলস' : 'All Tools'}
+                    {language === "bn" ? "সকল টুলস" : "All Tools"}
                   </span>
                 </button>
 
                 <button
-                  onClick={() => { 
-                      handleCloseSidebar();
-                      setTimeout(() => onNavigate?.('settings'), 50);
+                  onClick={() => {
+                    handleCloseSidebar();
+                    setTimeout(() => onNavigate?.("settings"), 50);
                   }}
                   className="w-full px-3 py-3 flex items-center gap-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left active:scale-[0.98]"
                 >
                   <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                      <Settings className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                    <Settings className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                   </div>
                   <span className="font-semibold text-[15px] text-slate-700 dark:text-slate-200 flex-1">
-                      {language === 'bn' ? 'সেটিংস' : 'Settings'}
+                    {language === "bn" ? "সেটিংস" : "Settings"}
                   </span>
                 </button>
-                
+
                 <button
                   onClick={() => {
                     handleCloseSidebar();
                     setTimeout(() => {
-                      window.history.pushState({ view: 'help-support' }, "");
+                      window.history.pushState({ view: "help-support" }, "");
                       setIsHelpSupportOpen(true);
                     }, 50);
                   }}
                   className="w-full px-3 py-3 flex items-center gap-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left active:scale-[0.98]"
                 >
                   <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                      <HelpCircle className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                    <HelpCircle className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                   </div>
                   <span className="font-semibold text-[15px] text-slate-700 dark:text-slate-200 flex-1">
-                      {language === 'bn' ? 'সাহায্য ও সাপোর্ট' : 'Help & Support'}
+                    {language === "bn" ? "সাহায্য ও সাপোর্ট" : "Help & Support"}
                   </span>
                 </button>
               </div>
@@ -2763,21 +3127,20 @@ export const ToolsView = ({ onNavigate }: { onNavigate?: (tab: string) => void }
         )}
       </AnimatePresence>
 
-      <ProfileStatusModal 
+      <ProfileStatusModal
         isOpen={isProfileStatusModalOpen}
         onClose={() => {
-            if (isProfileStatusModalOpen) window.history.back();
+          if (isProfileStatusModalOpen) window.history.back();
         }}
         userProfile={sidebarUser || auth.currentUser}
       />
 
-      <HelpSupportModal 
+      <HelpSupportModal
         isOpen={isHelpSupportOpen}
         onClose={() => {
-            if (isHelpSupportOpen) window.history.back();
+          if (isHelpSupportOpen) window.history.back();
         }}
       />
-
     </div>
   );
 };

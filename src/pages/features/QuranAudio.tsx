@@ -71,8 +71,10 @@ export function QuranAudio({ onBack }: AudioPlayerProps) {
         for (let i = 0; i < surahs.length; i += batchSize) {
           const batch = surahs.slice(i, i + batchSize);
           await Promise.allSettled(batch.map(surah => {
-            const audioUrl = `https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/${surah.number}.mp3`;
-            return cache.add(audioUrl);
+            const originalAudioUrl = `https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/${surah.number}.mp3`;
+            const proxyUrl = `/api/proxy/audio?url=${encodeURIComponent(originalAudioUrl)}`;
+            // We cache the proxy URL so that playback can fetch it later
+            return cache.add(proxyUrl);
           }));
         }
       }
@@ -122,6 +124,21 @@ export function QuranAudio({ onBack }: AudioPlayerProps) {
           } catch (e) {
             // File not downloaded natively, keep onlineUrl
           }
+        } else {
+          try {
+            const proxyUrl = `/api/proxy/audio?url=${encodeURIComponent(onlineUrl)}`;
+            const cache = await caches.open('quran-audio-offline');
+            let cachedResponse = await cache.match(proxyUrl);
+            if (!cachedResponse) {
+              cachedResponse = await cache.match(onlineUrl);
+            }
+            if (cachedResponse) {
+              const blob = await cachedResponse.blob();
+              audioUrl = URL.createObjectURL(blob);
+            } else {
+              audioUrl = proxyUrl; // Use proxy for online to ensure consistency and bypass CORS if any
+            }
+          } catch(e) {}
         }
         
         if (audioRef.current) {
@@ -197,23 +214,32 @@ export function QuranAudio({ onBack }: AudioPlayerProps) {
     if (!currentSurah) return;
     
     setIsDownloading(true);
-    const audioUrl = `https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/${currentSurah.number}.mp3`;
+    const originalAudioUrl = `https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/${currentSurah.number}.mp3`;
+    const proxyUrl = `/api/proxy/audio?url=${encodeURIComponent(originalAudioUrl)}`;
     const fileName = `Surah-${currentSurah.englishName}-${currentSurah.number}.mp3`;
 
     try {
       if (Capacitor.isNativePlatform()) {
         // Native Download using Filesystem
         const downloadResult = await Filesystem.downloadFile({
-          url: audioUrl,
+          url: originalAudioUrl,
           path: fileName,
           directory: Directory.Documents,
         });
         
         alert(language === 'bn' ? 'ডাউনলোড সম্পন্ন হয়েছে! আপনি এটি আপনার ডকুমেন্টস ফোল্ডারে পাবেন।' : 'Download complete! You can find it in your Documents folder.');
       } else {
-        // Web Download Logic
-        const response = await fetch(audioUrl);
+        // Web Download Logic using Proxy
+        const response = await fetch(proxyUrl);
+        if (!response.ok) throw new Error("Network response was not ok");
         const blob = await response.blob();
+        
+        // Add to cache for in-app offline playback as well
+        try {
+           const cache = await caches.open('quran-audio-offline');
+           await cache.put(proxyUrl, new Response(blob));
+        } catch(e) {}
+        
         const blobUrl = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = blobUrl;
@@ -226,7 +252,7 @@ export function QuranAudio({ onBack }: AudioPlayerProps) {
     } catch (err) {
       console.error('Download error:', err);
       // Fallback to browser download if everything fails
-      window.open(audioUrl, '_blank');
+      window.open(originalAudioUrl, '_blank');
     } finally {
       setIsDownloading(null);
       setIsDownloading(false);

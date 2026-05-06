@@ -4,7 +4,9 @@
   "requestFramePermissions": [
     "geolocation",
     "camera",
-    "microphone"
+    "microphone",
+    "publickey-credentials-create",
+    "publickey-credentials-get"
   ],
   "majorCapabilities": []
 }

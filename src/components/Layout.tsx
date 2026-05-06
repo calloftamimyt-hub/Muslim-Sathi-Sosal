@@ -11,7 +11,7 @@ import {
   Rss,
   Menu,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getApiUrl } from "@/lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import { auth } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
@@ -55,10 +55,11 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
 
   useEffect(() => {
     const handleNavVisibility = (e: any) => {
-        setIsVisible(e.detail);
+      setIsVisible(e.detail);
     };
-    window.addEventListener('set-nav-visibility', handleNavVisibility);
-    return () => window.removeEventListener('set-nav-visibility', handleNavVisibility);
+    window.addEventListener("set-nav-visibility", handleNavVisibility);
+    return () =>
+      window.removeEventListener("set-nav-visibility", handleNavVisibility);
   }, []);
 
   useEffect(() => {
@@ -83,7 +84,12 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
       label: t("tracker" as any) || "Tracker",
       icon: CheckSquare,
     },
-    { id: "profile", label: t("profile" as any) || (language === "bn" ? "প্রোফাইল" : "Profile"), icon: User },
+    {
+      id: "profile",
+      label:
+        t("profile" as any) || (language === "bn" ? "প্রোফাইল" : "Profile"),
+      icon: User,
+    },
   ];
 
   return (
@@ -93,7 +99,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
         ref={mainRef}
         className={cn(
           "flex-1 overflow-y-auto scrolling-touch overscroll-y-none",
-          "pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 md:pl-20 lg:pl-64"
+          "pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 md:pl-20 lg:pl-64",
         )}
       >
         {children}
@@ -153,8 +159,16 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
                       >
                         <img
                           src={
-                            user.photoURL ||
-                            user.user_metadata?.avatar_url ||
+                            (user.photoURL?.startsWith("/")
+                              ? getApiUrl(user.photoURL)
+                              : user.photoURL) ||
+                            ((
+                              user.user_metadata?.avatar_url as string
+                            )?.startsWith("/")
+                              ? getApiUrl(
+                                  user.user_metadata?.avatar_url as string,
+                                )
+                              : user.user_metadata?.avatar_url) ||
                             user.user_metadata?.picture
                           }
                           alt="Profile"
@@ -222,8 +236,16 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
                       >
                         <img
                           src={
-                            user.photoURL ||
-                            user.user_metadata?.avatar_url ||
+                            (user.photoURL?.startsWith("/")
+                              ? getApiUrl(user.photoURL)
+                              : user.photoURL) ||
+                            ((
+                              user.user_metadata?.avatar_url as string
+                            )?.startsWith("/")
+                              ? getApiUrl(
+                                  user.user_metadata?.avatar_url as string,
+                                )
+                              : user.user_metadata?.avatar_url) ||
                             user.user_metadata?.picture
                           }
                           alt="Profile"

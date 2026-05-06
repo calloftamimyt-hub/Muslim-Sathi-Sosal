@@ -1,43 +1,59 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Capacitor } from '@capacitor/core';
-import { 
-  X, User, Mail, Phone, Lock, CheckCircle2, AlertCircle, 
-  Loader2, ChevronLeft, Camera, Shield, Eye, EyeOff
-} from 'lucide-react';
-import { auth, db } from '@/lib/firebase';
-import { 
-  updateProfile, 
-  updatePassword, 
-  reauthenticateWithCredential, 
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "motion/react";
+import { Capacitor } from "@capacitor/core";
+import {
+  X,
+  User,
+  Mail,
+  Phone,
+  Lock,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  ChevronLeft,
+  Camera,
+  Shield,
+  Eye,
+  EyeOff,
+} from "lucide-react";
+import { auth, db } from "@/lib/firebase";
+import {
+  updateProfile,
+  updatePassword,
+  reauthenticateWithCredential,
   EmailAuthProvider,
   GoogleAuthProvider,
-  linkWithCredential
-} from 'firebase/auth';
-import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  collection, 
-  query, 
-  where, 
+  linkWithCredential,
+} from "firebase/auth";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  collection,
+  query,
+  where,
   getDocs,
-  limit
-} from 'firebase/firestore';
-import { cn } from '@/lib/utils';
+  limit,
+} from "firebase/firestore";
+import { cn, getApiUrl } from "@/lib/utils";
 
 interface EditProfilePageProps {
   currentUser: any;
   onBack: () => void;
   onUpdate: (newData: any) => void;
-  language: 'en' | 'bn';
+  language: "en" | "bn";
 }
 
-export function EditProfilePage({ currentUser, onBack, onUpdate, language }: EditProfilePageProps) {
-  const [fullName, setFullName] = useState(currentUser?.displayName || '');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+export function EditProfilePage({
+  currentUser,
+  onBack,
+  onUpdate,
+  language,
+}: EditProfilePageProps) {
+  const [fullName, setFullName] = useState(currentUser?.displayName || "");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,12 +73,13 @@ export function EditProfilePage({ currentUser, onBack, onUpdate, language }: Edi
       available: "Username is available",
       taken: "Username is already taken",
       invalid: "Invalid username format",
-      googleUserNote: "You signed up with Google. You can set a password for direct login.",
+      googleUserNote:
+        "You signed up with Google. You can set a password for direct login.",
       success: "Profile updated successfully!",
       error: "Something went wrong. Please try again.",
       usernameHint: "Only lowercase letters, numbers, and underscores (_)",
       reauthRequired: "Please re-login to change your password.",
-      passwordMismatch: "Passwords do not match"
+      passwordMismatch: "Passwords do not match",
     },
     bn: {
       title: "প্রোফাইল এডিট করুন",
@@ -77,23 +94,25 @@ export function EditProfilePage({ currentUser, onBack, onUpdate, language }: Edi
       available: "ইউজারনেমটি পাওয়া যাবে",
       taken: "এই ইউজারনেমটি ইতিমধ্যে নেয়া হয়েছে",
       invalid: "ইউজারনেম ফরম্যাট সঠিক নয়",
-      googleUserNote: "আপনি গুগল দিয়ে সাইন আপ করেছেন। সরাসরি লগইনের জন্য পাসওয়ার্ড সেট করতে পারেন।",
+      googleUserNote:
+        "আপনি গুগল দিয়ে সাইন আপ করেছেন। সরাসরি লগইনের জন্য পাসওয়ার্ড সেট করতে পারেন।",
       success: "প্রোফাইল সফলভাবে আপডেট করা হয়েছে!",
       error: "কিছু সমস্যা হয়েছে। আবার চেষ্টা করুন।",
-      usernameHint: "শুধুমাত্র ছোট হাতের অক্ষর, সংখ্যা এবং আন্ডারস্কোর (_) ব্যবহার করা যাবে।",
+      usernameHint:
+        "শুধুমাত্র ছোট হাতের অক্ষর, সংখ্যা এবং আন্ডারস্কোর (_) ব্যবহার করা যাবে।",
       reauthRequired: "পাসওয়ার্ড পরিবর্তনের জন্য পুনরায় লগইন করা প্রয়োজন।",
-      passwordMismatch: "পাসওয়ার্ড দুটি মিলছে না"
-    }
+      passwordMismatch: "পাসওয়ার্ড দুটি মিলছে না",
+    },
   }[language];
 
   useEffect(() => {
     const fetchUserData = async () => {
       if (!currentUser) return;
       try {
-        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        const userDoc = await getDoc(doc(db, "users", currentUser.uid));
         if (userDoc.exists()) {
           const data = userDoc.data();
-          setPhoneNumber(data.phoneNumber || '');
+          setPhoneNumber(data.phoneNumber || "");
         }
       } catch (err) {
         console.error("Error fetching user data:", err);
@@ -120,18 +139,22 @@ export function EditProfilePage({ currentUser, onBack, onUpdate, language }: Edi
       }
 
       // 2. Update Firestore User Document
-      await setDoc(doc(db, 'users', currentUser.uid), {
-        displayName: fullName,
-        phoneNumber: phoneNumber,
-        updatedAt: new Date().toISOString()
-      }, { merge: true });
+      await setDoc(
+        doc(db, "users", currentUser.uid),
+        {
+          displayName: fullName,
+          phoneNumber: phoneNumber,
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true },
+      );
 
       // 3. Update Password if provided
       if (newPassword) {
         try {
           await updatePassword(currentUser, newPassword);
         } catch (pwErr: any) {
-          if (pwErr.code === 'auth/requires-recent-login') {
+          if (pwErr.code === "auth/requires-recent-login") {
             setError(t.reauthRequired);
             setIsSaving(false);
             return;
@@ -152,35 +175,43 @@ export function EditProfilePage({ currentUser, onBack, onUpdate, language }: Edi
   };
 
   return (
-    <motion.div 
-      initial={{ x: '100%' }}
+    <motion.div
+      initial={{ x: "100%" }}
       animate={{ x: 0 }}
-      exit={{ x: '100%' }}
-      transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+      exit={{ x: "100%" }}
+      transition={{ type: "spring", damping: 25, stiffness: 200 }}
       className="fixed inset-0 z-[1000] bg-white dark:bg-slate-950 flex flex-col"
     >
       {/* Header */}
-      <div className={cn(
-        "flex items-center justify-between px-4 pb-4 border-b border-slate-100 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md sticky top-0 z-10",
-        "pt-safe"
-      )}>
+      <div
+        className={cn(
+          "flex items-center justify-between px-4 pb-4 border-b border-slate-100 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md sticky top-0 z-10",
+          "pt-safe",
+        )}
+      >
         <div className="flex items-center space-x-3">
           {!Capacitor.isNativePlatform() && (
-            <button 
+            <button
               onClick={onBack}
               className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
             >
               <ChevronLeft className="w-6 h-6 text-slate-600 dark:text-slate-400" />
             </button>
           )}
-          <h1 className="text-xl font-bold text-slate-800 dark:text-white">{t.title}</h1>
+          <h1 className="text-xl font-bold text-slate-800 dark:text-white">
+            {t.title}
+          </h1>
         </div>
-        <button 
+        <button
           onClick={handleSave}
           disabled={isSaving}
           className="bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white px-6 py-2 rounded-full font-bold transition-all shadow-lg shadow-primary-500/20 flex items-center space-x-2"
         >
-          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>{t.save}</span>}
+          {isSaving ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <span>{t.save}</span>
+          )}
         </button>
       </div>
 
@@ -190,7 +221,16 @@ export function EditProfilePage({ currentUser, onBack, onUpdate, language }: Edi
           <div className="relative">
             <div className="w-28 h-28 rounded-full bg-slate-100 dark:bg-slate-800 border-4 border-white dark:border-slate-900 shadow-xl overflow-hidden flex items-center justify-center">
               {currentUser?.photoURL ? (
-                <img src={currentUser.photoURL} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <img
+                  src={
+                    currentUser.photoURL.startsWith("/")
+                      ? getApiUrl(currentUser.photoURL)
+                      : currentUser.photoURL
+                  }
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
               ) : (
                 <User className="w-12 h-12 text-slate-400" />
               )}
@@ -199,18 +239,21 @@ export function EditProfilePage({ currentUser, onBack, onUpdate, language }: Edi
               <Camera className="w-4 h-4" />
             </button>
           </div>
-          <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">{currentUser?.email}</p>
+          <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
+            {currentUser?.email}
+          </p>
         </div>
-
         {/* Form Fields */}
         <div className="space-y-4">
           {/* Full Name */}
           <div className="space-y-1.5">
-            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">{t.fullName}</label>
+            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">
+              {t.fullName}
+            </label>
             <div className="relative">
               <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl py-3.5 pl-12 pr-4 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
@@ -221,13 +264,15 @@ export function EditProfilePage({ currentUser, onBack, onUpdate, language }: Edi
 
           {/* Email (Read-only) */}
           <div className="space-y-1.5 opacity-60">
-            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">{t.email}</label>
+            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">
+              {t.email}
+            </label>
             <div className="relative">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <input 
-                type="email" 
-                value={currentUser?.email || ''} 
-                readOnly 
+              <input
+                type="email"
+                value={currentUser?.email || ""}
+                readOnly
                 className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-3.5 pl-12 pr-4 outline-none cursor-not-allowed"
               />
             </div>
@@ -235,11 +280,13 @@ export function EditProfilePage({ currentUser, onBack, onUpdate, language }: Edi
 
           {/* Phone Number */}
           <div className="space-y-1.5">
-            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">{t.phone}</label>
+            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">
+              {t.phone}
+            </label>
             <div className="relative">
               <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <input 
-                type="tel" 
+              <input
+                type="tel"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl py-3.5 pl-12 pr-4 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
@@ -252,10 +299,14 @@ export function EditProfilePage({ currentUser, onBack, onUpdate, language }: Edi
           <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
             <div className="flex items-center space-x-2 mb-4">
               <Shield className="w-5 h-5 text-primary-600" />
-              <h3 className="font-bold text-slate-800 dark:text-white">{t.password}</h3>
+              <h3 className="font-bold text-slate-800 dark:text-white">
+                {t.password}
+              </h3>
             </div>
-            
-            {currentUser?.providerData.some((p: any) => p.providerId === 'google.com') && (
+
+            {currentUser?.providerData.some(
+              (p: any) => p.providerId === "google.com",
+            ) && (
               <div className="bg-primary-50 dark:bg-primary-900/20 p-3 rounded-xl mb-4">
                 <p className="text-xs text-primary-700 dark:text-primary-400 leading-relaxed">
                   {t.googleUserNote}
@@ -266,25 +317,29 @@ export function EditProfilePage({ currentUser, onBack, onUpdate, language }: Edi
             <div className="space-y-4">
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input 
+                <input
                   type={showPassword ? "text" : "password"}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl py-3.5 pl-12 pr-12 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                   placeholder="New password"
                 />
-                <button 
+                <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
                 </button>
               </div>
 
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input 
+                <input
                   type={showPassword ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
@@ -295,34 +350,36 @@ export function EditProfilePage({ currentUser, onBack, onUpdate, language }: Edi
             </div>
           </div>
         </div>
-
         {/* Status Messages */}
         <AnimatePresence>
           {error && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
               className="bg-rose-50 dark:bg-rose-900/20 p-4 rounded-2xl flex items-start space-x-3"
             >
               <AlertCircle className="w-5 h-5 text-rose-500 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>
+              <p className="text-sm text-rose-600 dark:text-rose-400">
+                {error}
+              </p>
             </motion.div>
           )}
 
           {success && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
               className="bg-primary-50 dark:bg-primary-900/20 p-4 rounded-2xl flex items-start space-x-3"
             >
               <CheckCircle2 className="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-primary-600 dark:text-primary-400">{t.success}</p>
+              <p className="text-sm text-primary-600 dark:text-primary-400">
+                {t.success}
+              </p>
             </motion.div>
           )}
         </AnimatePresence>
-
         <div className="h-20" /> {/* Spacer */}
       </div>
     </motion.div>
