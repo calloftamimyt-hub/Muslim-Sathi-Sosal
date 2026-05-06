@@ -49,26 +49,8 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
   const lastScrollY = useRef(0);
 
   useEffect(() => {
-    const main = mainRef.current;
-    if (!main) return;
-
-    const handleScroll = () => {
-      const currentScrollY = main.scrollTop;
-      
-      // If scrolling down and past a threshold, hide
-      if (currentScrollY > lastScrollY.current && currentScrollY > 60) {
-        setIsVisible(false);
-      } 
-      // If scrolling up, show
-      else if (currentScrollY < lastScrollY.current) {
-        setIsVisible(true);
-      }
-
-      lastScrollY.current = currentScrollY;
-    };
-
-    main.addEventListener("scroll", handleScroll, { passive: true });
-    return () => main.removeEventListener("scroll", handleScroll);
+    // We no longer hide the navigation bar on scroll
+    // The navigation bar will remain fixed at the bottom
   }, [activeTab]);
 
   useEffect(() => {

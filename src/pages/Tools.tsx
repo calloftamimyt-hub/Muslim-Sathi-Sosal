@@ -1486,6 +1486,45 @@ const ProfileView = () => {
     );
 };
 
+let globalPreloadedPosts: any[] = [];
+let globalIsPreloadedPostsLoading = true;
+const globalPreloadListeners: Set<() => void> = new Set();
+const globalSessionSalt = Math.floor(Math.random() * 1000000);
+
+function notifyGlobalPreloadListeners() {
+    globalPreloadListeners.forEach(listener => listener());
+}
+
+try {
+    const q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(20));
+    onSnapshot(q, (snapshot) => {
+        const postsData = snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter((p: any) => p.status === 'approved' || !p.status);
+        
+        const getSortValue = (post: any) => {
+            let hash = 0;
+            for (let i = 0; i < post.id.length; i++) {
+                hash = post.id.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const time = post.createdAt?.seconds || 0;
+            return time + (Math.abs(hash + globalSessionSalt) % 259200); 
+        };
+        
+        postsData.sort((a, b) => getSortValue(b) - getSortValue(a));
+
+        globalPreloadedPosts = postsData;
+        globalIsPreloadedPostsLoading = false;
+        notifyGlobalPreloadListeners();
+    }, (error) => {
+        console.error("Global Preload Error:", error);
+        globalIsPreloadedPostsLoading = false;
+        notifyGlobalPreloadListeners();
+    });
+} catch (error) {
+    console.error("Failed to initialize global feed preloader", error);
+}
+
 export const ToolsView = ({ onNavigate }: { onNavigate?: (tab: string) => void }) => {
     const { language } = useLanguage();
     const [activeTab, setActiveTab] = useState<'feed' | 'analytics' | 'tools' | 'profile' | 'search'>('feed');
@@ -1493,8 +1532,8 @@ export const ToolsView = ({ onNavigate }: { onNavigate?: (tab: string) => void }
     const [isPostingOpen, setIsPostingOpen] = useState(false);
     const [pendingPostFile, setPendingPostFile] = useState<File | null>(null);
     const [pendingPostFileType, setPendingPostFileType] = useState<"video" | "photo" | null>(null);
-    const [posts, setPosts] = useState<any[]>([]);
-    const [isPostsLoading, setIsPostsLoading] = useState(true);
+    const [posts, setPosts] = useState<any[]>(globalPreloadedPosts);
+    const [isPostsLoading, setIsPostsLoading] = useState(globalIsPreloadedPostsLoading);
     const [isScrolled, setIsScrolled] = useState(false);
     const [isHeaderVisible, setIsHeaderVisible] = useState(true);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -1648,66 +1687,67 @@ export const ToolsView = ({ onNavigate }: { onNavigate?: (tab: string) => void }
             const currentY = mainElement.scrollTop;
             setIsScrolled(currentY > 20);
 
-            if (activeToolId) {
-                setIsHeaderVisible(true);
-                return;
-            }
-
-            if (currentY > lastScrollY.current && currentY > 100) {
-                setIsHeaderVisible(false);
-            } else if (currentY < lastScrollY.current) {
-                setIsHeaderVisible(true);
-            }
+            setIsHeaderVisible(true);
             lastScrollY.current = currentY;
         };
         mainElement.addEventListener('scroll', handleScroll);
         return () => mainElement.removeEventListener('scroll', handleScroll);
     }, [activeToolId]);
 
-    const sessionSalt = useMemo(() => Math.floor(Math.random() * 1000000), []);
+    const sessionSalt = useMemo(() => globalSessionSalt, []);
 
     // Fetch Posts
     useEffect(() => {
-        setIsPostsLoading(true);
-        let q;
         if (selectedCategory === 'all') {
-            q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(20));
+            setPosts(globalPreloadedPosts);
+            setIsPostsLoading(globalIsPreloadedPostsLoading);
+
+            const listener = () => {
+                setPosts(globalPreloadedPosts);
+                setIsPostsLoading(globalIsPreloadedPostsLoading);
+            };
+            globalPreloadListeners.add(listener);
+
+            return () => {
+                globalPreloadListeners.delete(listener);
+            };
         } else {
-            q = query(
+            setIsPostsLoading(true);
+            const q = query(
                 collection(db, "posts"), 
                 where("category", "==", selectedCategory),
                 orderBy("createdAt", "desc"), 
                 limit(20)
             );
+
+            const unsubscribe = onSnapshot(q, (snapshot) => {
+                const postsData = snapshot.docs
+                    .map(doc => ({ id: doc.id, ...doc.data() }))
+                    .filter((p: any) => p.status === 'approved' || !p.status); // Fallback for older posts without status
+                
+                // Randomize feed except the absolute newest
+                const getSortValue = (post: any) => {
+                    let hash = 0;
+                    for (let i = 0; i < post.id.length; i++) {
+                        hash = post.id.charCodeAt(i) + ((hash << 5) - hash);
+                    }
+                    const time = post.createdAt?.seconds || 0;
+                    // Add up to 3 days of variance to randomize the position
+                    return time + (Math.abs(hash + sessionSalt) % 259200); 
+                };
+                
+                postsData.sort((a, b) => getSortValue(b) - getSortValue(a));
+
+                setPosts(postsData);
+                setIsPostsLoading(false);
+            }, (error) => {
+                console.error("Firestore Error Fetching Posts:", error);
+                setIsPostsLoading(false);
+                // Optionally could handle the UI error feedback here
+            });
+            return () => unsubscribe();
         }
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const postsData = snapshot.docs
-                .map(doc => ({ id: doc.id, ...doc.data() }))
-                .filter((p: any) => p.status === 'approved' || !p.status); // Fallback for older posts without status
-            
-            // Randomize feed except the absolute newest
-            const getSortValue = (post: any) => {
-                let hash = 0;
-                for (let i = 0; i < post.id.length; i++) {
-                    hash = post.id.charCodeAt(i) + ((hash << 5) - hash);
-                }
-                const time = post.createdAt?.seconds || 0;
-                // Add up to 3 days of variance to randomize the position
-                return time + (Math.abs(hash + sessionSalt) % 259200); 
-            };
-            
-            postsData.sort((a, b) => getSortValue(b) - getSortValue(a));
-
-            setPosts(postsData);
-            setIsPostsLoading(false);
-        }, (error) => {
-            console.error("Firestore Error Fetching Posts:", error);
-            setIsPostsLoading(false);
-            // Optionally could handle the UI error feedback here
-        });
-        return () => unsubscribe();
-    }, [selectedCategory]);
+    }, [selectedCategory, sessionSalt]);
 
     // Handle visibility of App Navigation
     useEffect(() => {
