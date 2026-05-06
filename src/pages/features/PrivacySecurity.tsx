@@ -6,6 +6,7 @@ import { privacyContent } from '../../data/privacyContent';
 
 interface PrivacySecurityProps {
   type: 'privacy' | 'terms';
+  onBack?: () => void;
 }
 
 export function PrivacySecurityView({ type }: PrivacySecurityProps) {

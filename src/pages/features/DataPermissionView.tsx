@@ -7,6 +7,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 interface DataPermissionProps {
   settings: Record<string, any>;
   onToggle: (id: string) => void;
+  onBack?: () => void;
 }
 
 export function DataPermissionView({ settings, onToggle }: DataPermissionProps) {

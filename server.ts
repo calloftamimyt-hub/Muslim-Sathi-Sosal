@@ -280,7 +280,10 @@ async function startServer() {
       const formData = new FormData();
       formData.append("chat_id", ADMIN_CHAT_ID);
       formData.append("caption", `New ${type} Post Request:\n\nUser: ${authorName}\nText: ${title}`);
-      formData.append(type === "video" ? "video" : "photo", fs.createReadStream(file.path));
+      formData.append(type === "video" ? "video" : "photo", fs.createReadStream(file.path), {
+        filename: file.originalname || (type === "video" ? "video.mp4" : "photo.jpg"),
+        contentType: file.mimetype || (type === "video" ? "video/mp4" : "image/jpeg")
+      });
 
       const telegramUrl = `https://api.telegram.org/bot${BOT_TOKEN}/${type === "video" ? "sendVideo" : "sendPhoto"}`;
 

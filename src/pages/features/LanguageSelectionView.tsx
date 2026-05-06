@@ -5,7 +5,9 @@ import { useLanguage, LanguagePreference } from '../../contexts/LanguageContext'
 import { Capacitor } from '@capacitor/core';
 import { cn } from '@/lib/utils';
 
-interface LanguageSelectionProps {}
+interface LanguageSelectionProps {
+  onBack?: () => void;
+}
 
 export function LanguageSelectionView({}: LanguageSelectionProps) {
   const { preference, setPreference, t } = useLanguage();

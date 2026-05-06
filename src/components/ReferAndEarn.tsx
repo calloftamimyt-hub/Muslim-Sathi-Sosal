@@ -36,7 +36,7 @@ export function ReferAndEarn() {
   };
 
   return (
-    <div className="relative overflow-hidden group">
+    <div className="relative overflow-hidden group pb-4">
       {/* Background Decorative Element */}
       <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-orange-500/10 transition-all duration-700 pointer-events-none" />
       
@@ -125,7 +125,7 @@ export function ReferAndEarn() {
       </div>
 
       {/* Action Buttons */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 pb-2 pt-1">
         <motion.button 
           whileTap={{ scale: 0.96 }}
           onClick={handleShare}

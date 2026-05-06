@@ -97,6 +97,8 @@ import {
   Bookmark,
   HelpCircle,
   Rss,
+  VolumeX,
+  Pause,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { cn, getApiUrl } from "@/lib/utils";
@@ -129,7 +131,6 @@ import { MDEditorTool } from "@/components/tools/MDEditorTool";
 import { RandomNumTool } from "@/components/tools/RandomNumTool";
 import { TextCaseTool } from "@/components/tools/TextCaseTool";
 import { ProfileStatusModal } from '@/components/ProfileStatusModal';
-import { SettingsPage } from '@/components/SettingsPage';
 import { UUIDMakerTool } from "@/components/tools/UUIDMakerTool";
 import { CodeFormatTool } from "@/components/tools/CodeFormatTool";
 import { DeviceInfoTool } from "@/components/tools/DeviceInfoTool";
@@ -142,17 +143,10 @@ import { PercentageCalcTool } from "@/components/tools/PercentageCalcTool";
 import { YTThumbnailTool } from "@/components/tools/YTThumbnailTool";
 import { PostContentOverlay } from "@/components/tools/PostContentOverlay";
 import { ReportModal } from "@/components/tools/ReportModal";
-import { 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer 
-} from "recharts";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { MuslimBrowser } from "@/components/MuslimBrowser";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
+import { HelpSupportModal } from "@/components/tools/HelpSupportModal";
 
 const SOCIAL_TOOLS = [
   {
@@ -730,11 +724,10 @@ const AnalyticsDashboard = () => {
     );
 };
 
-const PostCard = ({ post }: { post: any }) => {
+const PostCard = ({ post, isOverlayOpen }: { post: any, isOverlayOpen?: boolean }) => {
     const { language } = useLanguage();
     const [isLiked, setIsLiked] = useState(false);
     const [likes, setLikes] = useState(post.reactionsCount || post.likes || 0);
-    const [isVideoLoading, setIsVideoLoading] = useState(true);
     
     // Author states
     const [isVerified, setIsVerified] = useState(false);
@@ -787,30 +780,37 @@ const PostCard = ({ post }: { post: any }) => {
 
     // Play/Pause video based on intersection and count views
     const [hasCountedView, setHasCountedView] = useState(false);
+    const [isIntersecting, setIsIntersecting] = useState(false);
+
     useEffect(() => {
         if (!videoRef.current) return;
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
-                if (entry.isIntersecting && videoRef.current) {
-                    videoRef.current.play().catch(e => console.log('Autoplay prevented', e));
-                    
-                    if (!hasCountedView) {
-                        setHasCountedView(true);
-                        import("firebase/firestore").then(({ doc, increment, updateDoc }) => {
-                            if (post.id) {
-                                const postRef = doc(db, 'posts', post.id);
-                                updateDoc(postRef, { views: increment(1) }).catch(console.error);
-                            }
-                        });
-                    }
-                } else if (!entry.isIntersecting && videoRef.current) {
-                    videoRef.current.pause();
-                }
+                setIsIntersecting(entry.isIntersecting);
             });
         }, { threshold: 0.5 });
         observer.observe(videoRef.current);
         return () => observer.disconnect();
-    }, [post.fileId, post.id, hasCountedView]);
+    }, [post.fileId, post.id]);
+
+    useEffect(() => {
+        if (!videoRef.current) return;
+        if (isIntersecting && !isOverlayOpen) {
+            videoRef.current.play().catch(e => console.log('Autoplay prevented', e));
+            
+            if (!hasCountedView) {
+                setHasCountedView(true);
+                import("firebase/firestore").then(({ doc, increment, updateDoc }) => {
+                    if (post.id) {
+                        const postRef = doc(db, 'posts', post.id);
+                        updateDoc(postRef, { views: increment(1) }).catch(console.error);
+                    }
+                });
+            }
+        } else {
+            videoRef.current.pause();
+        }
+    }, [isIntersecting, isOverlayOpen, hasCountedView, post.id]);
 
     // Check if current user has already liked
     useEffect(() => {
@@ -895,6 +895,31 @@ const PostCard = ({ post }: { post: any }) => {
     const [showMenu, setShowMenu] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editContent, setEditContent] = useState("");
+    const [isMuted, setIsMuted] = useState(true);
+    const [isPlaying, setIsPlaying] = useState(false);
+
+    const togglePlay = (e?: React.MouseEvent) => {
+        if (e) {
+            e.stopPropagation();
+            e.preventDefault();
+        }
+        if (videoRef.current) {
+            if (videoRef.current.paused) {
+                videoRef.current.play();
+            } else {
+                videoRef.current.pause();
+            }
+        }
+    };
+
+    const toggleMute = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+        if (videoRef.current) {
+            videoRef.current.muted = !videoRef.current.muted;
+            setIsMuted(videoRef.current.muted);
+        }
+    };
 
     const handleFollowToggle = async () => {
         if (!auth.currentUser) {
@@ -1105,28 +1130,46 @@ const PostCard = ({ post }: { post: any }) => {
             {fallbackFileId && (
                 <div className="bg-white dark:bg-slate-900 border-y border-slate-50 dark:border-slate-800 relative group flex flex-col overflow-hidden">
                     {fallbackType === 'video' ? (
-                        <>
-                            {isVideoLoading && (
-                                <div className="absolute inset-0 z-10 bg-slate-200/80 dark:bg-slate-800/80 shimmer min-h-[220px]">
-                                </div>
-                            )}
+                        <div className="relative w-full cursor-pointer" onClick={togglePlay}>
                             <video 
                                 ref={videoRef}
-                                controls 
-                                preload="auto"
+                                preload="metadata"
                                 playsInline
-                                onLoadedData={() => setIsVideoLoading(false)}
-                                onWaiting={() => setIsVideoLoading(true)}
-                                onPlaying={() => setIsVideoLoading(false)}
-                                className={cn(
-                                    "w-full h-auto block transition-opacity duration-500",
-                                    isVideoLoading ? "opacity-0" : "opacity-100"
-                                )}
+                                loop
+                                muted={isMuted}
+                                onPlay={() => setIsPlaying(true)}
+                                onPause={() => setIsPlaying(false)}
+                                className="w-full h-auto block"
                             >
                                 <source src={getApiUrl(`/api/telegram/file/${fallbackFileId}`)} type="video/mp4" />
                                 Your browser does not support the video tag.
                             </video>
-                        </>
+                            
+                            {/* Play/Pause Overlay Component */}
+                            <AnimatePresence>
+                                {!isPlaying && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, scale: 0.8 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.8 }}
+                                        transition={{ duration: 0.2 }}
+                                        className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                                    >
+                                        <div className="w-16 h-16 rounded-full bg-black/40 flex items-center justify-center text-white backdrop-blur-sm">
+                                            <Play className="w-8 h-8 ml-1" fill="currentColor" />
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            {/* Mute/Unmute toggle */}
+                            <button 
+                                onClick={toggleMute}
+                                className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-black/60 flex items-center justify-center text-white backdrop-blur-sm hover:bg-black/80 transition-colors z-[10]"
+                            >
+                                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                            </button>
+                        </div>
                     ) : (
                         <div className="w-full h-full">
                             <img 
@@ -1443,7 +1486,7 @@ const ProfileView = () => {
     );
 };
 
-export const ToolsView = () => {
+export const ToolsView = ({ onNavigate }: { onNavigate?: (tab: string) => void }) => {
     const { language } = useLanguage();
     const [activeTab, setActiveTab] = useState<'feed' | 'analytics' | 'tools' | 'profile' | 'search'>('feed');
     const [activeToolId, setActiveToolId] = useState<string | null>(null);
@@ -1455,8 +1498,8 @@ export const ToolsView = () => {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isHeaderVisible, setIsHeaderVisible] = useState(true);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isProfileStatusModalOpen, setIsProfileStatusModalOpen] = useState(false);
+    const [isHelpSupportOpen, setIsHelpSupportOpen] = useState(false);
     const [currentUserAvatar, setCurrentUserAvatar] = useState<string | null>(null);
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [isUploadSheetOpen, setIsUploadSheetOpen] = useState(false);
@@ -1525,22 +1568,22 @@ export const ToolsView = () => {
             });
             stream.getTracks().forEach(track => track.stop());
             cameraInputRef.current?.click();
-            setIsUploadSheetOpen(false);
+            window.history.back();
         } catch (err) {
             console.error("Camera/Mic Permission denied or error:", err);
             cameraInputRef.current?.click();
-            setIsUploadSheetOpen(false);
+            window.history.back();
         }
     };
 
     const handlePhotoClick = () => {
         photoInputRef.current?.click();
-        setIsUploadSheetOpen(false);
+        window.history.back();
     };
 
     const handleVideoClick = () => {
         videoInputRef.current?.click();
-        setIsUploadSheetOpen(false);
+        window.history.back();
     };
 
     useEffect(() => {
@@ -1686,6 +1729,12 @@ export const ToolsView = () => {
         setActiveToolId(null);
       } else if (isPostingOpen) {
         setIsPostingOpen(false);
+      } else if (isUploadSheetOpen) {
+        setIsUploadSheetOpen(false);
+      } else if (isHelpSupportOpen) {
+        setIsHelpSupportOpen(false);
+      } else if (isProfileStatusModalOpen) {
+        setIsProfileStatusModalOpen(false);
       } else if (isSidebarOpen) {
         setIsSidebarOpen(false);
       }
@@ -1693,7 +1742,7 @@ export const ToolsView = () => {
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [activeToolId, isPostingOpen, isSidebarOpen]);
+  }, [activeToolId, isPostingOpen, isSidebarOpen, isUploadSheetOpen, isProfileStatusModalOpen, isHelpSupportOpen]);
 
   const handleOpenSidebar = () => {
     window.history.pushState({ view: 'sidebar' }, "");
@@ -1753,10 +1802,13 @@ export const ToolsView = () => {
                     
                     <div className="flex items-center gap-1">
                         <button 
-                            onClick={() => setIsUploadSheetOpen(true)}
-                            className="w-10 h-10 flex items-center justify-center text-slate-900 dark:text-white transition-colors hover:text-blue-600 active:scale-95"
+                            onClick={() => {
+                                window.history.pushState({ view: 'upload-sheet' }, "");
+                                setIsUploadSheetOpen(true);
+                            }}
+                            className="w-[24px] h-[24px] flex items-center justify-center text-white dark:text-black transition-colors active:scale-95 rounded-full bg-black dark:bg-white shrink-0 shadow-sm"
                         >
-                            <Plus className="w-6 h-6" />
+                            <Plus className="w-4 h-4" />
                         </button>
                         <button 
                             onClick={handleOpenSidebar}
@@ -2364,7 +2416,7 @@ export const ToolsView = () => {
                         ) : posts.length > 0 ? (
                             posts.map(post => (
                                 <div key={post.id} className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 overflow-hidden">
-                                    <PostCard post={post} />
+                                    <PostCard post={post} isOverlayOpen={isUploadSheetOpen || isPostingOpen || isSidebarOpen || isProfileStatusModalOpen || isHelpSupportOpen || activeToolId !== null} />
                                 </div>
                             ))
                         ) : (
@@ -2403,7 +2455,9 @@ export const ToolsView = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        onClick={() => setIsUploadSheetOpen(false)}
+                        onClick={() => {
+                            if (isUploadSheetOpen) window.history.back();
+                        }}
                         className="fixed inset-0 bg-black/40 z-[300]"
                     />
                     <motion.div
@@ -2562,7 +2616,9 @@ export const ToolsView = () => {
                 </h3>
                 
                 <button
-                  onClick={() => {}}
+                  onClick={() => {
+                      handleCloseSidebar();
+                  }}
                   className="w-full px-3 py-3 flex items-center gap-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left active:scale-[0.98]"
                 >
                   <div className="w-9 h-9 rounded-full bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center relative">
@@ -2577,7 +2633,13 @@ export const ToolsView = () => {
                 </button>
                 
                 <button
-                  onClick={() => setIsProfileStatusModalOpen(true)}
+                  onClick={() => {
+                      handleCloseSidebar();
+                      setTimeout(() => {
+                          window.history.pushState({ view: 'profile-status' }, "");
+                          setIsProfileStatusModalOpen(true);
+                      }, 50);
+                  }}
                   className="w-full px-3 py-3 flex items-center gap-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left active:scale-[0.98]"
                 >
                   <div className="w-9 h-9 rounded-full bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
@@ -2595,7 +2657,9 @@ export const ToolsView = () => {
                 </h3>
 
                 <button
-                  onClick={() => {}}
+                  onClick={() => {
+                      handleCloseSidebar();
+                  }}
                   className="w-full px-3 py-3 flex items-center gap-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left active:scale-[0.98]"
                 >
                   <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
@@ -2622,7 +2686,10 @@ export const ToolsView = () => {
                 </button>
 
                 <button
-                  onClick={() => setIsSettingsOpen(true)}
+                  onClick={() => { 
+                      handleCloseSidebar();
+                      setTimeout(() => onNavigate?.('settings'), 50);
+                  }}
                   className="w-full px-3 py-3 flex items-center gap-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left active:scale-[0.98]"
                 >
                   <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
@@ -2634,7 +2701,13 @@ export const ToolsView = () => {
                 </button>
                 
                 <button
-                  onClick={() => {}}
+                  onClick={() => {
+                    handleCloseSidebar();
+                    setTimeout(() => {
+                      window.history.pushState({ view: 'help-support' }, "");
+                      setIsHelpSupportOpen(true);
+                    }, 50);
+                  }}
                   className="w-full px-3 py-3 flex items-center gap-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left active:scale-[0.98]"
                 >
                   <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
@@ -2652,15 +2725,18 @@ export const ToolsView = () => {
 
       <ProfileStatusModal 
         isOpen={isProfileStatusModalOpen}
-        onClose={() => setIsProfileStatusModalOpen(false)}
+        onClose={() => {
+            if (isProfileStatusModalOpen) window.history.back();
+        }}
         userProfile={sidebarUser || auth.currentUser}
       />
 
-      <AnimatePresence>
-        {isSettingsOpen && (
-          <SettingsPage onClose={() => setIsSettingsOpen(false)} />
-        )}
-      </AnimatePresence>
+      <HelpSupportModal 
+        isOpen={isHelpSupportOpen}
+        onClose={() => {
+            if (isHelpSupportOpen) window.history.back();
+        }}
+      />
 
     </div>
   );

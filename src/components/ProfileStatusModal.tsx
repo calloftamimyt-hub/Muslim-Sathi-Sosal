@@ -63,10 +63,10 @@ export function ProfileStatusModal({ isOpen, onClose, userProfile }: any) {
                 </div>
 
                 {/* Dashboard Content */}
-                <div className="flex-1 overflow-y-auto w-full max-w-2xl mx-auto px-4 py-6 pb-24 space-y-5">
+                <div className="flex-1 overflow-y-auto w-full max-w-2xl mx-auto px-4 py-8 pb-24 space-y-5">
                     
                     {/* Header Score/Badge card */}
-                    <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden mt-2">
+                    <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden mt-4">
                         <div className="absolute top-0 right-0 p-8 opacity-10">
                             <ShieldCheck className="w-32 h-32" />
                         </div>
@@ -100,7 +100,7 @@ export function ProfileStatusModal({ isOpen, onClose, userProfile }: any) {
                     </div>
 
                     {/* Chart Section */}
-                    <div className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-200 dark:border-slate-700/50 shadow-sm">
+                    <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/50 shadow-sm">
                         <div className="flex items-center gap-2 mb-6">
                             <TrendingUp className="w-5 h-5 text-blue-500" />
                             <h3 className="font-bold text-slate-800 dark:text-white text-base">
@@ -142,7 +142,7 @@ export function ProfileStatusModal({ isOpen, onClose, userProfile }: any) {
 
                     {/* Account Details Grid */}
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-200 dark:border-slate-700/50 shadow-sm flex flex-col items-center justify-center text-center">
+                        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/50 shadow-sm flex flex-col items-center justify-center text-center">
                             <Star className="w-8 h-8 text-amber-500 mb-3" />
                             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
                                 {language === 'bn' ? 'অ্যাকাউন্ট টাইপ' : 'Account Type'}
@@ -154,7 +154,7 @@ export function ProfileStatusModal({ isOpen, onClose, userProfile }: any) {
                             </span>
                         </div>
 
-                        <div className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-200 dark:border-slate-700/50 shadow-sm flex flex-col items-center justify-center text-center">
+                        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/50 shadow-sm flex flex-col items-center justify-center text-center">
                             <Calendar className="w-8 h-8 text-blue-500 mb-3" />
                             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
                                 {language === 'bn' ? 'যোগদানের তারিখ' : 'Joined Date'}
@@ -168,7 +168,7 @@ export function ProfileStatusModal({ isOpen, onClose, userProfile }: any) {
                     </div>
 
                     {/* Violations / Strikes (Zero state) */}
-                    <div className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-200 dark:border-slate-700/50 shadow-sm">
+                    <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/50 shadow-sm">
                         <div className="flex items-center justify-between mb-4 px-1">
                             <div className="flex items-center gap-2">
                                 <AlertTriangle className="w-5 h-5 text-slate-400" />

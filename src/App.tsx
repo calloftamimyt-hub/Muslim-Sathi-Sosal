@@ -26,7 +26,7 @@ import { IslamicNames } from './pages/features/IslamicNames';
 import { EarningView } from './pages/features/Earning';
 import { DuaView } from './pages/features/Dua';
 import { ComingSoon } from './pages/features/ComingSoon';
-import { SettingsView } from './pages/features/Settings';
+import { AppSettings } from './pages/features/AppSettings';
 import { CategoriesView } from './pages/features/Categories';
 import { SudokuGame } from './pages/features/SudokuGame';
 import { ReferralDetail } from './pages/features/ReferralDetail';
@@ -496,7 +496,7 @@ export default function App() {
                     )}
                   </AnimatePresence>
                   {activeTab === 'home' && <Home setActiveTab={handleNavigate} />}
-                  {activeTab === 'tools' && <ToolsView />}
+                  {activeTab === 'tools' && <ToolsView onNavigate={handleNavigate} />}
                   {activeTab === 'quran' && <Quran />}
                   {activeTab === 'earning' && <EarningView onBack={() => handleNavigate('home')} setActiveTab={handleNavigate} />}
                   {activeTab === 'tracker' && <Tracker />}
@@ -560,7 +560,7 @@ export default function App() {
                   {activeTab === 'notes' && <NotesView onBack={() => window.history.back()} />}
                   {activeTab === 'calligraphy' && <CalligraphyView />}
                   {activeTab === 'wallpaper' && <CalligraphyView />}
-                  {activeTab === 'settings' && <SettingsView onBack={() => window.history.back()} />}
+                  {activeTab === 'settings' && <AppSettings onBack={() => window.history.back()} />}
                   {activeTab === 'quiz' && (
                     <QuizView 
                       onBack={() => {

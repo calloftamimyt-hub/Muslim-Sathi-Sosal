@@ -3,7 +3,9 @@ import { motion } from 'motion/react';
 import { ArrowLeft, AlertTriangle, Trash2 } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 
-interface DeleteAccountProps {}
+interface DeleteAccountProps {
+  onBack?: () => void;
+}
 
 export function DeleteAccountView({}: DeleteAccountProps) {
   const { t } = useLanguage();
