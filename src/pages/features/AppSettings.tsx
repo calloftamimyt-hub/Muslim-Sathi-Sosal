@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ArrowLeft, Globe, Palette, Shield, ChevronRight, Trash2, Loader2, Check,
-  Lock, Smartphone, UserX, Eye, LogOut, Bell, PlayCircle
+  Lock, Smartphone, UserX, Eye, LogOut, Bell, PlayCircle, Search, Settings2, Moon, Focus, Type, User, Book
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -116,10 +116,10 @@ export function AppSettings({ onBack }: AppSettingsProps) {
     }
   };
 
-  const OptionRow = ({ title, value, options, onSelect, icon: Icon, colorClass, isLanguage }: any) => {
+  const OptionRow = ({ title, value, description, options, onSelect, icon: Icon, isLanguage }: any) => {
     const [isOpen, setIsOpen] = useState(false);
     return (
-      <div className="flex flex-col border-b last:border-b-0 border-slate-100 dark:border-slate-800/50">
+      <div className="flex flex-col">
         <button 
           onClick={() => {
             if (isLanguage) {
@@ -129,26 +129,25 @@ export function AppSettings({ onBack }: AppSettingsProps) {
                setIsOpen(!isOpen);
             }
           }}
-          className="w-full px-4 py-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-left"
+          className="w-full py-2 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors text-left"
         >
-          <div className="flex items-center gap-4 flex-1">
+          <div className="flex items-center gap-4 flex-1 pr-4">
             {Icon && (
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${colorClass}`}>
-                <Icon className="w-5 h-5" />
-              </div>
+              <Icon className="w-7 h-7 text-slate-800 dark:text-slate-200 stroke-[1.5px] shrink-0" />
             )}
             <div>
-              <h4 className="font-semibold text-slate-800 dark:text-slate-200 text-[15px]">{title}</h4>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                {isLanguage ? value : (value || 'Select option')}
-              </p>
+              <h4 className="font-medium text-slate-900 dark:text-slate-100 text-[17px]">{title}</h4>
+              {(description || value) && (
+                <p className="text-[14px] text-slate-500 dark:text-slate-400 mt-0.5 font-normal">
+                  {description || (isLanguage ? value : (value || 'Select option'))}
+                </p>
+              )}
             </div>
           </div>
-          <ChevronRight className={cn("w-5 h-5 text-slate-400 transition-transform", isOpen && !isLanguage && "rotate-90")} />
         </button>
         
         {isOpen && !isLanguage && (
-          <div className="bg-slate-50 dark:bg-slate-800/30 p-3 grid grid-cols-1 sm:grid-cols-2 gap-2 border-t border-slate-100 dark:border-slate-800/50">
+          <div className="bg-slate-50 dark:bg-slate-800/30 p-2 mb-2 rounded-2xl grid grid-cols-1 sm:grid-cols-2 gap-2 border border-slate-100 dark:border-slate-800">
             {options.map((opt: any) => {
               const optLabel = typeof opt === 'string' ? opt : opt.label;
               const optValue = typeof opt === 'string' ? opt : opt.value;
@@ -179,40 +178,39 @@ export function AppSettings({ onBack }: AppSettingsProps) {
     );
   };
 
-  const ActionRow = ({ title, onClick, icon: Icon, colorClass, customIcon }: any) => (
+  const ActionRow = ({ title, description, onClick, icon: Icon, customIcon }: any) => (
     <button 
       onClick={onClick}
-      className="w-full px-4 py-4 border-b last:border-b-0 border-slate-100 dark:border-slate-800/50 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-left"
+      className="w-full py-2 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors text-left"
     >
-      <div className="flex items-center gap-4 flex-1">
+      <div className="flex items-center gap-4 flex-1 pr-4">
         {Icon && (
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${colorClass}`}>
-            <Icon className="w-5 h-5" />
-          </div>
+          <Icon className="w-7 h-7 text-slate-800 dark:text-slate-200 stroke-[1.5px] shrink-0" />
         )}
-        <h4 className="font-semibold text-slate-800 dark:text-slate-200 text-[15px]">{title}</h4>
+        <div className="flex flex-col justify-center">
+          <h4 className="font-medium text-slate-900 dark:text-slate-100 text-[17px]">{title}</h4>
+          {description && <p className="text-[14px] text-slate-500 dark:text-slate-400 mt-0.5 font-normal">{description}</p>}
+        </div>
       </div>
-      {customIcon || <ChevronRight className="w-5 h-5 text-slate-400" />}
+      {customIcon}
     </button>
   );
 
-  const ToggleRow = ({ icon: Icon, title, description, isActive, onClick, colorClass }: any) => (
+  const ToggleRow = ({ icon: Icon, title, description, isActive, onClick }: any) => (
     <button 
       onClick={onClick}
-      className="w-full px-4 py-4 border-b last:border-b-0 border-slate-100 dark:border-slate-800/50 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-left"
+      className="w-full py-2 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors text-left"
     >
-      <div className="flex items-center gap-4 flex-1">
+      <div className="flex items-center gap-4 flex-1 pr-4">
         {Icon && (
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${colorClass}`}>
-            <Icon className="w-5 h-5" />
-          </div>
+          <Icon className="w-7 h-7 text-slate-800 dark:text-slate-200 stroke-[1.5px] shrink-0" />
         )}
         <div>
-          <h4 className="font-semibold text-slate-800 dark:text-slate-200 text-[15px]">{title}</h4>
-          {description && <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{description}</p>}
+          <h4 className="font-medium text-slate-900 dark:text-slate-100 text-[17px]">{title}</h4>
+          {description && <p className="text-[14px] text-slate-500 dark:text-slate-400 mt-0.5 font-normal">{description}</p>}
         </div>
       </div>
-      <div className={`w-12 h-6 rounded-full p-1 transition-colors ${isActive ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-600'}`}>
+      <div className={`w-12 h-6 rounded-full p-1 transition-colors border ${isActive ? 'bg-blue-600 border-blue-600' : 'bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600'}`}>
         <motion.div 
           layout
           className={`w-4 h-4 rounded-full bg-white shadow-sm ${isActive ? 'ml-auto' : ''}`}
@@ -221,15 +219,17 @@ export function AppSettings({ onBack }: AppSettingsProps) {
     </button>
   );
 
-  const Section = ({ title, icon: TitleIcon, children }: any) => (
-    <div className="flex flex-col">
-      <div className="flex items-center gap-2 px-4 pt-6 pb-2 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800/50">
-        <TitleIcon className="w-4 h-4 text-primary dark:text-primary-light" />
-        <h3 className="text-[14px] font-bold text-primary dark:text-primary-light uppercase tracking-wider">
+  const Section = ({ title, description, children }: any) => (
+    <div className="flex flex-col px-4 pt-5 pb-1">
+      <div className="mb-1">
+        <h3 className="text-[20px] sm:text-[22px] font-bold text-slate-900 dark:text-white tracking-tight">
           {title}
         </h3>
+        {description && (
+          <p className="text-[15px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">{description}</p>
+        )}
       </div>
-      <div className="bg-white dark:bg-slate-900">
+      <div className="flex flex-col">
         {children}
       </div>
     </div>
@@ -243,34 +243,48 @@ export function AppSettings({ onBack }: AppSettingsProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col font-sans relative">
-      <header className="sticky top-0 z-40 bg-white dark:bg-slate-900 px-4 pt-safe pb-4 flex items-center border-b border-slate-200 dark:border-slate-800 shadow-sm shrink-0">
-        <button onClick={onBack} className="p-2 -ml-2 mr-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors active:scale-95">
-          <ArrowLeft className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-        </button>
-        <h1 className="text-xl font-bold text-slate-900 dark:text-white">
-          {language === 'bn' ? 'অ্যাপ সেটিংস' : 'App Settings'}
-        </h1>
+    <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col font-sans relative">
+      <header className="sticky top-0 z-40 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md px-3 pt-safe pb-2 flex items-center justify-between shrink-0">
+        <div className="flex items-center">
+          <button onClick={onBack} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors active:scale-95">
+            <ArrowLeft className="w-6 h-6 stroke-[2px] text-slate-800 dark:text-slate-200" />
+          </button>
+          <h1 className="text-[20px] font-bold text-slate-900 dark:text-white ml-2">
+            {language === 'bn' ? 'সেটিংস' : 'Settings & privacy'}
+          </h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+            <Search className="w-6 h-6 stroke-[2px] text-slate-800 dark:text-slate-200" />
+          </button>
+          {auth.currentUser?.photoURL ? (
+            <img src={auth.currentUser.photoURL} alt="Profile" className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-800" />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center">
+              <User className="w-4 h-4 text-slate-500" />
+            </div>
+          )}
+        </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto w-full pb-24 bg-white dark:bg-slate-900">
+      <div className="flex-1 overflow-y-auto w-full pb-24">
         
-        <Section title={t('language-settings' as any) || 'ভাষা ও মাযহাব'} icon={Globe}>
+        <Section title={language === 'bn' ? 'প্রেফারেন্স' : 'Preferences'} description={language === 'bn' ? 'আপনার ফেসবুক এবং অ্যাপ ব্যবহারের অভিজ্ঞতা কাস্টমাইজ করুন।' : 'Customize your experience on the app.'}>
           <OptionRow 
+            icon={Globe}
             title={t('select-language' as any) || 'ভাষা নির্বাচন'}
             value={preference === 'auto' ? (t('auto-language' as any) || 'Auto (Device Language)') : preference === 'bn' ? 'বাংলা' : 'English'}
             isLanguage={true}
           />
           <OptionRow 
+            icon={Book}
             title="মাযহাব (Madhab)"
             value={localStorage.getItem('islamic_app_madhab') || 'Shafi'}
             options={['Hanafi', 'Maliki', 'Shafi', 'Hanbali']}
             onSelect={(v: string) => updateSelectSetting('madhab-selection', v)}
           />
-        </Section>
-
-        <Section title={t('theme-settings' as any) || 'থিম / ডিজাইন'} icon={Palette}>
           <OptionRow 
+            icon={Moon}
             title={t('dark-light-mode')}
             value={themeMode}
             options={[
@@ -281,62 +295,57 @@ export function AppSettings({ onBack }: AppSettingsProps) {
             onSelect={(v: string) => updateSelectSetting('theme-mode', v)}
           />
           <OptionRow 
+            icon={Palette}
             title={t('app-color-theme')}
             value={colorTheme}
             options={['Green', 'Blue', 'Gold', 'Dark Green']}
             onSelect={(v: string) => updateSelectSetting('app-color-theme', v)}
           />
           <OptionRow 
+            icon={Type}
             title="সাধারণ ফন্ট (বাংলা/ইংরেজি)"
             value={normalFont}
             options={['Bengali', 'Inter', 'Roboto']}
             onSelect={(v: string) => updateSelectSetting('normal-font', v)}
           />
           <OptionRow 
+            icon={Type}
             title="আরবি ফন্ট (কুরআনের জন্য)"
             value={arabicFont}
             options={['Amiri', 'Scheherazade', 'Traditional']}
             onSelect={(v: string) => updateSelectSetting('arabic-font', v)}
           />
           <OptionRow 
+            icon={Settings2}
             title={t('font-size')}
             value={fontSize}
             options={['Small', 'Medium', 'Large']}
             onSelect={(v: string) => updateSelectSetting('font-size', v)}
           />
+          <ToggleRow 
+              icon={PlayCircle}
+              title={language === 'bn' ? "মিডিয়া" : "Media"}
+              isActive={settings['auto-play-video'] !== false}
+              onClick={() => {
+                 const newValue = settings['auto-play-video'] === false ? true : false;
+                 setSettings(prev => ({ ...prev, 'auto-play-video': newValue }));
+              }}
+          />
+          <ToggleRow 
+              icon={Bell}
+              title={language === 'bn' ? "নোটিফিকেশন" : "Notifications"}
+              isActive={notificationsEnabled}
+              onClick={() => setNotificationsEnabled(!notificationsEnabled)}
+          />
         </Section>
 
-        <Section title={language === 'bn' ? "মিডিয়া" : "Media"} icon={PlayCircle}>
-            <ToggleRow 
-                icon={PlayCircle}
-                title={language === 'bn' ? "অটো-প্লে ভিডিও" : "Auto-Play Video"}
-                description={language === 'bn' ? "ভিডিওগুলি সয়ংক্রিয়ভাবে চালু হবে" : "Videos will play automatically"}
-                isActive={settings['auto-play-video'] !== false}
-                onClick={() => {
-                   const newValue = settings['auto-play-video'] === false ? true : false;
-                   setSettings(prev => ({ ...prev, 'auto-play-video': newValue }));
-                }}
-                colorClass="bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
-            />
-        </Section>
+        <div className="h-[6px] w-full bg-slate-100 dark:bg-slate-900 border-y border-slate-200 dark:border-slate-800" />
 
-        <Section title={language === 'bn' ? "নোটিফিকেশন" : "Notifications"} icon={Bell}>
-            <ToggleRow 
-                icon={Bell}
-                title={language === 'bn' ? "পুশ নোটিফিকেশন" : "Push Notifications"}
-                description={language === 'bn' ? "গুরুত্বপূর্ণ আপডেট এবং মেসেজ" : "Important updates and messages"}
-                isActive={notificationsEnabled}
-                onClick={() => setNotificationsEnabled(!notificationsEnabled)}
-                colorClass="bg-orange-100 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400"
-            />
-        </Section>
-
-        <Section title={t('privacy-settings' as any) || 'প্রাইভেসি ও সিকিউরিটি'} icon={Shield}>
+        <Section title={language === 'bn' ? 'টুলস ও রিসোর্স' : 'Tools and resources'} description={language === 'bn' ? 'আমাদের টুলস আপনার প্রাইভেসি নিয়ন্ত্রণ করতে সাহায্য করে।' : 'Our tools help you control and manage your privacy.'}>
             <ActionRow 
               title={language === 'bn' ? 'পাসওয়ার্ড পরিবর্তন' : 'Change Password'}
               onClick={() => {}}
               icon={Lock}
-              colorClass="bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
             />
             <ActionRow 
               title={language === 'bn' ? 'টু-স্টেপ ভেরিফিকেশন' : 'Two-Step Verification'}
@@ -345,19 +354,16 @@ export function AppSettings({ onBack }: AppSettingsProps) {
                 setActiveModal('two-step-view');
               }}
               icon={Smartphone}
-              colorClass="bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
             />
             <ActionRow 
               title={language === 'bn' ? 'ব্লকড ইউজার্স' : 'Blocked Users'}
               onClick={() => {}}
               icon={UserX}
-              colorClass="bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400"
             />
             <ActionRow 
               title={language === 'bn' ? 'প্রোফাইল ভিজিবিলিটি' : 'Profile Visibility'}
               onClick={() => {}}
               icon={Eye}
-              colorClass="bg-purple-100 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400"
             />
             <ActionRow 
               title={t('privacy-policy')}
@@ -366,7 +372,6 @@ export function AppSettings({ onBack }: AppSettingsProps) {
                 setActiveModal('privacy-security-view');
               }}
               icon={Shield}
-              colorClass="bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
             />
             <ActionRow 
               title={t('terms-conditions')}
@@ -375,7 +380,6 @@ export function AppSettings({ onBack }: AppSettingsProps) {
                  setActiveModal('terms-view');
               }}
               icon={Shield}
-              colorClass="bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
             />
             <ActionRow 
               title={t('data-permission-control')}
@@ -383,8 +387,7 @@ export function AppSettings({ onBack }: AppSettingsProps) {
                  window.history.pushState({ modal: 'data' }, '');
                  setActiveModal('data-permission-view');
               }}
-              icon={Shield}
-              colorClass="bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
+              icon={Settings2}
             />
             <ActionRow 
               title={t('account-delete')}
@@ -393,22 +396,17 @@ export function AppSettings({ onBack }: AppSettingsProps) {
                  setActiveModal('delete-account-view');
               }}
               icon={Trash2}
-              colorClass="bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400"
             />
         </Section>
 
-        <div className="flex flex-col">
-          <div className="flex items-center gap-2 px-4 pt-6 pb-2 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800/50">
-            <h3 className="text-[14px] font-bold text-primary dark:text-primary-light uppercase tracking-wider">
-              {language === 'bn' ? 'অ্যাকাউন্ট' : 'Account'}
-            </h3>
-          </div>
+        <div className="h-[6px] w-full bg-slate-100 dark:bg-slate-900 border-y border-slate-200 dark:border-slate-800" />
+
+        <div className="flex flex-col px-4 pt-4 pb-6">
           <button 
               onClick={handleLogout}
-              className="w-full bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800/50 text-red-600 dark:text-red-500 font-bold py-4 px-6 flex items-center justify-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              className="w-full bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-bold mt-2 py-3.5 px-6 rounded-lg flex items-center justify-center gap-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
           >
-              <LogOut className="w-5 h-5" />
-              {language === 'bn' ? 'লগআউট করুন' : 'Log Out'}
+              {language === 'bn' ? 'লগআউট করুন' : 'Log out'}
           </button>
         </div>
       </div>

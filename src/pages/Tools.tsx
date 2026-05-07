@@ -25,6 +25,7 @@ import {
   Calculator,
   Edit3,
   TrendingUp,
+  TrendingDown,
   Youtube,
   Facebook,
   Wrench,
@@ -100,6 +101,8 @@ import {
   Rss,
   VolumeX,
   Pause,
+  Rocket,
+  BarChart2,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { cn, getApiUrl } from "@/lib/utils";
@@ -142,6 +145,10 @@ import { MDEditorTool } from "@/components/tools/MDEditorTool";
 import { RandomNumTool } from "@/components/tools/RandomNumTool";
 import { TextCaseTool } from "@/components/tools/TextCaseTool";
 import { ProfileStatusModal } from "@/components/ProfileStatusModal";
+import { VideoAnalyticsOverlay } from "@/components/tools/VideoAnalyticsOverlay";
+import { VideoBoostOverlay } from "@/components/tools/VideoBoostOverlay";
+import { BoostCenterModal } from "@/components/tools/BoostCenterModal";
+import { DepositModal } from "@/components/DepositModal";
 import { UUIDMakerTool } from "@/components/tools/UUIDMakerTool";
 import { CodeFormatTool } from "@/components/tools/CodeFormatTool";
 import { DeviceInfoTool } from "@/components/tools/DeviceInfoTool";
@@ -482,6 +489,7 @@ const AnalyticsDashboard = () => {
     totalFollowers: 0,
     totalComments: 0,
     totalShares: 0,
+    lastPostDate: 0,
   });
   const [chartData, setChartData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -500,6 +508,7 @@ const AnalyticsDashboard = () => {
       let views = 0;
       let comments = 0;
       let shares = 0;
+      let latestPostTime = 0;
 
       const dayStats: Record<string, number> = {};
       const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -524,6 +533,9 @@ const AnalyticsDashboard = () => {
         shares += s;
 
         if (data.createdAt) {
+          const t = data.createdAt.toMillis ? data.createdAt.toMillis() : data.createdAt.seconds * 1000;
+          if (t > latestPostTime) latestPostTime = t;
+          
           const date = data.createdAt.toDate();
           const dayName = days[date.getDay()];
           if (dayStats[dayName] !== undefined) {
@@ -554,6 +566,7 @@ const AnalyticsDashboard = () => {
         totalFollowers: followersSnapshot.data().count,
         totalComments: comments,
         totalShares: shares,
+        lastPostDate: latestPostTime,
       });
       setIsLoading(false);
     });
@@ -576,6 +589,16 @@ const AnalyticsDashboard = () => {
         <div className="h-32 bg-slate-100 dark:bg-slate-800 rounded-2xl" />
       </div>
     );
+
+  const isRecentPost = Date.now() - stats.lastPostDate < 4 * 24 * 60 * 60 * 1000;
+  const trendPercent = isRecentPost ? "+12.5%" : "-8.3%";
+  const trendColor = isRecentPost ? "text-emerald-500" : "text-rose-500";
+  const trendBg = isRecentPost ? "bg-emerald-50 dark:bg-emerald-500/10" : "bg-rose-50 dark:bg-rose-500/10";
+  const TrendIcon = isRecentPost ? TrendingUp : TrendingDown;
+
+  const engagementRate = stats.totalViews > 0 
+    ? (((stats.totalLikes + stats.totalComments + stats.totalShares) / stats.totalViews) * 100).toFixed(1) 
+    : "0.0";
 
   return (
     <motion.div
@@ -637,72 +660,100 @@ const AnalyticsDashboard = () => {
         ))}
       </div>
 
-      {/* 2. Engagement Graph */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-2xl shadow-sm">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-              {language === "bn" ? "পারফরম্যান্স ট্রেন্ড" : "Performance Trend"}
-            </h3>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-              {language === "bn" ? "গত ৭ দিনের ভিউ" : "Views over last 7 days"}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-blue-500" />
-              <span className="text-[10px] font-bold text-slate-500">
-                {language === "bn" ? "ভিউ" : "Views"}
-              </span>
+      {/* 2. Engagement Graph & Rate */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-2xl shadow-sm">
+          <div className="flex items-start justify-between mb-6">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                {language === "bn" ? "পারফরম্যান্স ট্রেন্ড" : "Performance Trend"}
+              </h3>
+              <div className="mt-2 flex items-baseline gap-2">
+                 <span className="text-3xl font-black text-slate-900 dark:text-white leading-none">
+                    {formatCount(stats.totalViews)}
+                 </span>
+                 <div className={cn("flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[11px] font-bold", trendBg, trendColor)}>
+                    <TrendIcon className="w-3.5 h-3.5" />
+                    <span>{trendPercent}</span>
+                 </div>
+              </div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">
+                {language === "bn" ? "গত ৭ দিনের ভিউ" : "Views over last 7 days"}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/50 px-2 py-1 rounded">
+                <div className="w-2 h-2 rounded-full bg-blue-500" />
+                <span className="text-[10px] font-bold text-slate-500">
+                  {language === "bn" ? "ভিউ" : "Views"}
+                </span>
+              </div>
             </div>
           </div>
+          <div className="h-48 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={chartData}
+                margin={{ top: 0, right: 0, left: -20, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="#f1f5f9"
+                />
+                <XAxis
+                  dataKey="name"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fontWeight: 700, fill: "#94a3b8" }}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fontWeight: 700, fill: "#94a3b8" }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: "16px",
+                    border: "none",
+                    boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                    fontSize: "12px",
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="views"
+                  stroke="#3b82f6"
+                  strokeWidth={3}
+                  fillOpacity={1}
+                  fill="url(#colorViews)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-        <div className="h-48 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
-              data={chartData}
-              margin={{ top: 0, right: 0, left: -20, bottom: 0 }}
-            >
-              <defs>
-                <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke="#f1f5f9"
-              />
-              <XAxis
-                dataKey="name"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 10, fontWeight: 700, fill: "#94a3b8" }}
-              />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 10, fontWeight: 700, fill: "#94a3b8" }}
-              />
-              <Tooltip
-                contentStyle={{
-                  borderRadius: "16px",
-                  border: "none",
-                  boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-                  fontSize: "12px",
-                }}
-              />
-              <Area
-                type="monotone"
-                dataKey="views"
-                stroke="#3b82f6"
-                strokeWidth={3}
-                fillOpacity={1}
-                fill="url(#colorViews)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+
+        <div className="lg:col-span-1 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-2xl shadow-sm flex flex-col">
+          <div className="w-12 h-12 rounded-xl bg-violet-50 dark:bg-violet-500/10 flex items-center justify-center mb-4">
+            <Activity className="w-6 h-6 text-violet-500" />
+          </div>
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight mb-2">
+            {language === "bn" ? "গড় এঙ্গেজমেন্ট রেট" : "Avg Engagement Rate"}
+          </h3>
+          <div className="mt-auto">
+             <div className="text-4xl font-black text-violet-500 mb-2">{engagementRate}%</div>
+             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed">
+               {language === "bn" 
+                  ? "আপনার মোট ভিউ এর তুলনায় লাইক, কমেন্ট ও শেয়ারের গড় অনুপাত।" 
+                  : "Average ratio of likes, comments, and shares to your total views."}
+             </p>
+          </div>
         </div>
       </div>
 
@@ -817,9 +868,13 @@ const AnalyticsDashboard = () => {
 const PostCard = ({
   post,
   isOverlayOpen,
+  onBoostClick,
+  onAnalyticsClick
 }: {
   post: any;
   isOverlayOpen?: boolean;
+  onBoostClick?: (post: any) => void;
+  onAnalyticsClick?: (post: any) => void;
 }) => {
   const { language } = useLanguage();
   const [isLiked, setIsLiked] = useState(false);
@@ -1254,12 +1309,18 @@ const PostCard = ({
             </div>
             <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mt-0.5">
               <span>
-                {post.createdAt?.toDate
-                  ? new Date(post.createdAt.toDate()).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : "Just now"}
+                {post.boostInfo?.isActive ? (
+                  <span className="text-violet-600 dark:text-violet-400">
+                    {language === "bn" ? "প্রমোটেড" : "Sponsored"}
+                  </span>
+                ) : post.createdAt?.toDate ? (
+                  new Date(post.createdAt.toDate()).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                ) : (
+                  "Just now"
+                )}
               </span>
               <span>•</span>
               <span>
@@ -1462,11 +1523,11 @@ const PostCard = ({
       </div>
 
       {/* Post Actions */}
-      <div className="px-4 py-2 flex items-center justify-between border-t border-slate-50 dark:border-slate-800/50">
+      <div className="px-4 py-1 flex items-center justify-between border-t border-slate-50 dark:border-slate-800/50">
         <button
           onClick={handleLike}
           className={cn(
-            "w-24 py-2 flex items-center justify-start gap-2 rounded-xl transition-all active:scale-95",
+            "w-24 py-1.5 flex items-center justify-start gap-2 rounded-xl transition-all active:scale-95",
             isLiked
               ? "text-blue-600 font-bold"
               : "text-slate-500 font-bold hover:text-slate-700 dark:hover:text-slate-300",
@@ -1491,7 +1552,7 @@ const PostCard = ({
               );
             }
           }}
-          className="w-24 py-2 flex items-center justify-center gap-2 text-slate-500 font-bold hover:text-slate-700 dark:hover:text-slate-300 rounded-xl transition-all active:scale-95"
+          className="w-24 py-1.5 flex items-center justify-center gap-2 text-slate-500 font-bold hover:text-slate-700 dark:hover:text-slate-300 rounded-xl transition-all active:scale-95"
         >
           <Share2 className="w-5 h-5" />
           <span className="text-xs">
@@ -1500,7 +1561,7 @@ const PostCard = ({
         </button>
         <button
           onClick={() => setShowReportModal(true)}
-          className="w-24 py-2 flex items-center justify-end gap-2 text-slate-500 font-bold hover:text-slate-700 dark:hover:text-slate-300 rounded-xl transition-all active:scale-95"
+          className="w-24 py-1.5 flex items-center justify-end gap-2 text-slate-500 font-bold hover:text-slate-700 dark:hover:text-slate-300 rounded-xl transition-all active:scale-95"
         >
           <Flag className="w-5 h-5" />
           <span className="text-xs">
@@ -1508,6 +1569,26 @@ const PostCard = ({
           </span>
         </button>
       </div>
+
+      {/* Author Tools (Boost & Analytics) */}
+      {post.authorUid === auth.currentUser?.uid && (
+        <div className="px-4 pb-2 pt-0.5 flex items-center gap-2">
+          <button
+            onClick={() => onBoostClick?.(post)}
+            className="flex-1 py-1.5 flex items-center justify-center gap-1.5 text-white bg-blue-600 hover:bg-blue-700 font-bold rounded-lg transition-all active:scale-95 text-[13px] shadow-sm"
+          >
+            <Rocket className="w-4 h-4" />
+            {language === "bn" ? "প্রমোট" : "Boost"}
+          </button>
+          <button
+            onClick={() => onAnalyticsClick?.(post)}
+            className="flex-1 py-1.5 flex items-center justify-center gap-1.5 text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 font-bold rounded-lg transition-all active:scale-95 text-[13px]"
+          >
+            <BarChart2 className="w-4 h-4" />
+            {language === "bn" ? "অ্যানালিটিক্স" : "Analytics"}
+          </button>
+        </div>
+      )}
 
       {/* Report Modal */}
       <AnimatePresence>
@@ -1561,7 +1642,13 @@ const PostCard = ({
   );
 };
 
-const ProfileView = () => {
+const ProfileView = ({
+  onBoostClick,
+  onAnalyticsClick
+}: {
+  onBoostClick?: (post: any) => void;
+  onAnalyticsClick?: (post: any) => void;
+}) => {
   const { language } = useLanguage();
   const [stats, setStats] = useState({
     totalPosts: 0,
@@ -1757,7 +1844,11 @@ const ProfileView = () => {
                 key={post.id}
                 className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 overflow-hidden"
               >
-                <PostCard post={post} />
+                <PostCard 
+                  post={post} 
+                  onBoostClick={(p) => onBoostClick?.(p)}
+                  onAnalyticsClick={(p) => onAnalyticsClick?.(p)}
+                />
               </div>
             ))
           ) : (
@@ -1798,6 +1889,17 @@ try {
         .map((doc) => ({ id: doc.id, ...doc.data() }))
         .filter((p: any) => p.status === "approved" || !p.status);
 
+      const normalPosts: any[] = [];
+      const boostedPosts: any[] = [];
+
+      postsData.forEach((p: any) => {
+        if (p.isBoosted || (p.boostInfo && p.boostInfo.status === "approved")) {
+          boostedPosts.push(p);
+        } else {
+          normalPosts.push(p);
+        }
+      });
+
       const getSortValue = (post: any) => {
         let hash = 0;
         for (let i = 0; i < post.id.length; i++) {
@@ -1805,14 +1907,28 @@ try {
         }
         const time = post.createdAt?.seconds || 0;
         const randomBoost = Math.abs(hash + globalSessionSalt) % 259200;
-        // If post is boosted/viral, add a huge number to ensure it appears at the top
-        const viralBonus = post.isBoosted ? 9999999999 : 0;
-        return time + randomBoost + viralBonus;
+        return time + randomBoost;
       };
 
-      postsData.sort((a, b) => getSortValue(b) - getSortValue(a));
+      normalPosts.sort((a, b) => getSortValue(b) - getSortValue(a));
+      boostedPosts.sort((a, b) => getSortValue(b) - getSortValue(a));
 
-      globalPreloadedPosts = postsData;
+      const mergedPosts: any[] = [];
+      let normalIndex = 0;
+      let boostedIndex = 0;
+
+      // Interleave: 1 boosted post followed by 3 normal posts
+      for (let i = 0; i < postsData.length; i++) {
+        if (i % 4 === 0 && boostedIndex < boostedPosts.length) {
+          mergedPosts.push(boostedPosts[boostedIndex++]);
+        } else if (normalIndex < normalPosts.length) {
+          mergedPosts.push(normalPosts[normalIndex++]);
+        } else if (boostedIndex < boostedPosts.length) {
+          mergedPosts.push(boostedPosts[boostedIndex++]);
+        }
+      }
+
+      globalPreloadedPosts = mergedPosts;
       globalIsPreloadedPostsLoading = false;
       notifyGlobalPreloadListeners();
     },
@@ -1851,6 +1967,13 @@ export const ToolsView = ({
   const [isProfileStatusModalOpen, setIsProfileStatusModalOpen] =
     useState(false);
   const [isHelpSupportOpen, setIsHelpSupportOpen] = useState(false);
+  
+  // Analytics and Boost States
+  const [selectedPostForBoost, setSelectedPostForBoost] = useState<any>(null);
+  const [selectedPostForAnalytics, setSelectedPostForAnalytics] = useState<any>(null);
+  const [isBoostCenterModalOpen, setIsBoostCenterModalOpen] = useState(false);
+  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
+  
   const [currentUserAvatar, setCurrentUserAvatar] = useState<string | null>(
     null,
   );
@@ -1952,12 +2075,13 @@ export const ToolsView = ({
   };
 
   useEffect(() => {
-    // Toggle global navigation visibility when upload sheet is open
+    // Toggle global navigation visibility when modals are open
+    const isAnyModalOpen = isUploadSheetOpen || !!selectedPostForBoost || !!selectedPostForAnalytics || isBoostCenterModalOpen;
     const event = new CustomEvent("set-nav-visibility", {
-      detail: !isUploadSheetOpen,
+      detail: !isAnyModalOpen,
     });
     window.dispatchEvent(event);
-  }, [isUploadSheetOpen]);
+  }, [isUploadSheetOpen, selectedPostForBoost, selectedPostForAnalytics, isBoostCenterModalOpen]);
 
   const categories = [
     { id: "all", label: { bn: "সব", en: "All" } },
@@ -2063,6 +2187,17 @@ export const ToolsView = ({
             .map((doc) => ({ id: doc.id, ...doc.data() }))
             .filter((p: any) => p.status === "approved" || !p.status); // Fallback for older posts without status
 
+          const normalPosts: any[] = [];
+          const boostedPosts: any[] = [];
+
+          postsData.forEach((p: any) => {
+            if (p.isBoosted || (p.boostInfo && p.boostInfo.status === "approved")) {
+              boostedPosts.push(p);
+            } else {
+              normalPosts.push(p);
+            }
+          });
+
           // Randomize feed except the absolute newest
           const getSortValue = (post: any) => {
             let hash = 0;
@@ -2072,13 +2207,28 @@ export const ToolsView = ({
             const time = post.createdAt?.seconds || 0;
             // Add up to 3 days of variance to randomize the position
             const randomBoost = Math.abs(hash + sessionSalt) % 259200;
-            const viralBonus = post.isBoosted ? 9999999999 : 0;
-            return time + randomBoost + viralBonus;
+            return time + randomBoost;
           };
 
-          postsData.sort((a, b) => getSortValue(b) - getSortValue(a));
+          normalPosts.sort((a, b) => getSortValue(b) - getSortValue(a));
+          boostedPosts.sort((a, b) => getSortValue(b) - getSortValue(a));
 
-          setPosts(postsData);
+          const mergedPosts: any[] = [];
+          let normalIndex = 0;
+          let boostedIndex = 0;
+
+          // Interleave: 1 boosted post followed by 3 normal posts
+          for (let i = 0; i < postsData.length; i++) {
+            if (i % 4 === 0 && boostedIndex < boostedPosts.length) {
+              mergedPosts.push(boostedPosts[boostedIndex++]);
+            } else if (normalIndex < normalPosts.length) {
+              mergedPosts.push(normalPosts[normalIndex++]);
+            } else if (boostedIndex < boostedPosts.length) {
+              mergedPosts.push(boostedPosts[boostedIndex++]);
+            }
+          }
+
+          setPosts(mergedPosts);
           setIsPostsLoading(false);
         },
         (error) => {
@@ -2749,7 +2899,10 @@ export const ToolsView = ({
                   {activeTab === "analytics" && !activeToolId ? (
                     <AnalyticsDashboard />
                   ) : activeTab === "profile" && !activeToolId ? (
-                    <ProfileView />
+                    <ProfileView 
+                      onBoostClick={(p) => setSelectedPostForBoost(p)}
+                      onAnalyticsClick={(p) => setSelectedPostForAnalytics(p)}
+                    />
                   ) : activeTab === "search" && !activeToolId ? (
                     <MuslimBrowser
                       language={language}
@@ -2864,13 +3017,18 @@ export const ToolsView = ({
                               >
                                 <PostCard
                                   post={post}
+                                  onBoostClick={(p) => setSelectedPostForBoost(p)}
+                                  onAnalyticsClick={(p) => setSelectedPostForAnalytics(p)}
                                   isOverlayOpen={
                                     isUploadSheetOpen ||
                                     isPostingOpen ||
                                     isSidebarOpen ||
                                     isProfileStatusModalOpen ||
                                     isHelpSupportOpen ||
-                                    activeToolId !== null
+                                    activeToolId !== null ||
+                                    selectedPostForBoost !== null ||
+                                    selectedPostForAnalytics !== null ||
+                                    isBoostCenterModalOpen
                                   }
                                 />
                               </div>
@@ -3133,6 +3291,25 @@ export const ToolsView = ({
                   </span>
                 </button>
 
+                <button
+                  onClick={() => {
+                    handleCloseSidebar();
+                    setTimeout(() => {
+                      setIsBoostCenterModalOpen(true);
+                    }, 50);
+                  }}
+                  className="w-full px-3 py-3 flex items-center gap-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left active:scale-[0.98]"
+                >
+                  <div className="w-9 h-9 rounded-full bg-violet-50 dark:bg-violet-500/10 flex items-center justify-center">
+                    <Rocket className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                  </div>
+                  <span className="font-semibold text-[15px] text-slate-700 dark:text-slate-200 flex-1">
+                    {language === "bn"
+                      ? "বুস্ট সেন্টার"
+                      : "Boost Center"}
+                  </span>
+                </button>
+
                 <div className="h-px w-full bg-slate-100 dark:bg-slate-800/60 my-2" />
 
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider px-3 mb-1 mt-1">
@@ -3220,6 +3397,47 @@ export const ToolsView = ({
           if (isHelpSupportOpen) window.history.back();
         }}
       />
+      
+      <AnimatePresence>
+        {selectedPostForBoost && (
+          <VideoBoostOverlay
+            post={selectedPostForBoost}
+            isOpen={!!selectedPostForBoost}
+            onClose={() => setSelectedPostForBoost(null)}
+            onOpenDeposit={() => setIsDepositModalOpen(true)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {selectedPostForAnalytics && (
+          <VideoAnalyticsOverlay
+            post={selectedPostForAnalytics}
+            isOpen={!!selectedPostForAnalytics}
+            onClose={() => setSelectedPostForAnalytics(null)}
+          />
+        )}
+      </AnimatePresence>
+      
+      <AnimatePresence>
+        {isDepositModalOpen && (
+           <DepositModal 
+              isOpen={isDepositModalOpen}
+              onClose={() => setIsDepositModalOpen(false)}
+           />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isBoostCenterModalOpen && (
+          <BoostCenterModal
+            isOpen={isBoostCenterModalOpen}
+            onClose={() => setIsBoostCenterModalOpen(false)}
+            onOpenAnalytics={(post) => setSelectedPostForAnalytics(post)}
+            onOpenBoost={(post) => setSelectedPostForBoost(post)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Copy, CheckCircle2, AlertCircle, History, Clock, Zap, Check, Trash2, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { Copy, CheckCircle2, AlertCircle, History, Clock, Zap, Check, Trash2, AlertTriangle, ArrowLeft, Upload, X, Image as ImageIcon } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import { showInterstitialAd, showRewardedInterstitialAd } from '@/lib/admob';
 import { db, auth } from '@/lib/firebase';
 import { cn } from '@/lib/utils';
@@ -35,16 +35,26 @@ export const DepositView: React.FC<DepositViewProps> = ({ onBack }) => {
   const [amount, setAmount] = useState('');
   const [senderNumber, setSenderNumber] = useState('');
   const [transactionId, setTransactionId] = useState('');
+  const [screenshot, setScreenshot] = useState<File | null>(null);
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [showHistory, setShowHistory] = useState(false);
   const [history, setHistory] = useState<DepositHistory[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (screenshotPreview) URL.revokeObjectURL(screenshotPreview);
+    };
+  }, [screenshotPreview]);
 
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
@@ -58,6 +68,19 @@ export const DepositView: React.FC<DepositViewProps> = ({ onBack }) => {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        setError(language === 'bn' ? 'ফাইল সাইজ ১০ এমবির ছোট হতে হবে।' : 'File size must be under 10MB.');
+        return;
+      }
+      setScreenshot(file);
+      setScreenshotPreview(URL.createObjectURL(file));
+      setError('');
+    }
+  };
 
   const fetchHistory = () => {
     setLoadingHistory(true);
@@ -106,11 +129,11 @@ export const DepositView: React.FC<DepositViewProps> = ({ onBack }) => {
     setIsDeleteModalOpen(false);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleValidation = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
-      setError(language === 'bn' ? 'সঠিক টাকার পরিমাণ দিন' : 'Enter a valid amount');
+    if (!amount || isNaN(Number(amount)) || Number(amount) < 50) {
+      setError(language === 'bn' ? 'নূন্যতম ডিপোজিট ৫০ টাকা।' : 'Minimum deposit is 50 Tk');
       return;
     }
     
@@ -124,59 +147,107 @@ export const DepositView: React.FC<DepositViewProps> = ({ onBack }) => {
       return;
     }
 
+    if (!screenshot) {
+      setError(language === 'bn' ? 'পেমেন্ট স্ক্রিনশট আপলোড করুন' : 'Upload payment screenshot');
+      return;
+    }
+
+    setError('');
+    setShowConfirm(true);
+  };
+
+  const handleSubmit = async () => {
     setSubmitting(true);
     setError('');
 
     try {
       showRewardedInterstitialAd(
-        // Reward granted
-        () => {
-          console.log('User rewarded for submission');
-        },
-        // Ad dismissed or error - proceed with submission
+        () => console.log('User rewarded for submission'),
         async () => {
           try {
             const user = auth.currentUser;
             if (!user) throw new Error('Not authenticated');
 
+            // 1. Fetch Telegram Setup
+            const settingsDoc = await getDoc(doc(db, 'admin_settings', 'general'));
+            const settings = settingsDoc.exists() ? settingsDoc.data() : null;
+            const botToken = settings?.telegramBotToken || '8577168806:AAEvPksc7qHSYmr0wzE7DwHQeglzOUZZn5U';
+            const chatId = settings?.telegramChatId || '-1002647379129';
+
+            // 2. Upload to Telegram
+            const formData = new FormData();
+            formData.append('chat_id', chatId);
+            formData.append('photo', screenshot as File);
+            
+            const caption = `🚨 <b>New Deposit Request</b>\n\n👤 User: <code>${user.uid}</code>\n📧 Email: ${user.email}\n💰 Amount: <b>${amount} Tk</b>\n📞 Sender: <code>${senderNumber}</code>\n🆔 TrxID: <code>${transactionId}</code>\n🏦 Method: ${selectedMethod.name}\n\n📌 <i>Please review from Admin Panel.</i>`;
+            formData.append('caption', caption);
+            formData.append('parse_mode', 'HTML');
+
+            const tgResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+              method: 'POST',
+              body: formData
+            });
+
+            if (!tgResponse.ok) throw new Error('Telegram API failure');
+
+            const tgData = await tgResponse.json();
+            let uploadedFileUrl = '';
+            if (tgData.ok && tgData.result.photo) {
+              const photoArray = tgData.result.photo;
+              const fileId = photoArray[photoArray.length - 1].file_id;
+              const fileRes = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`);
+              const fileData = await fileRes.json();
+              if (fileData.ok) {
+                 uploadedFileUrl = `https://api.telegram.org/file/bot${botToken}/${fileData.result.file_path}`;
+              }
+            }
+
             const depositData = {
               userId: user.uid,
+              userEmail: user.email,
               method: selectedMethod.id,
               amount: Number(amount),
               senderNumber,
-              transactionId,
+              trxId: transactionId,
+              screenshotUrl: uploadedFileUrl,
               status: 'pending' as const,
             };
 
-            // Save to Firestore for admin
-            await addDoc(collection(db, 'deposits'), {
+            // Save to Firestore (deposit_requests)
+            await addDoc(collection(db, 'deposit_requests'), {
               ...depositData,
               createdAt: serverTimestamp()
             });
 
             // Save to Local Storage for user
-            await earningService.addDepositRecord(depositData);
+            await earningService.addDepositRecord({
+              ...depositData,
+              transactionId
+            });
 
+            setShowConfirm(false);
             setSuccess(true);
             setAmount('');
             setSenderNumber('');
             setTransactionId('');
+            setScreenshot(null);
+            setScreenshotPreview(null);
           } catch (err) {
             console.error("Error submitting deposit:", err);
-            setError(language === 'bn' ? 'সাবমিট করতে সমস্যা হয়েছে' : 'Failed to submit');
+            setError(language === 'bn' ? 'সাবমিট করতে সমস্যা হয়েছে, আবার চেষ্টা করুন।' : 'Failed to submit. Please try again.');
+          } finally {
             setSubmitting(false);
           }
         },
         (err) => {
           console.error('Ad error, proceeding anyway', err);
+          setSubmitting(false);
         }
       );
     } catch (err) {
       console.error("Error in submission flow:", err);
       setError(language === 'bn' ? 'সাবমিট করতে সমস্যা হয়েছে' : 'Failed to submit');
       setSubmitting(false);
-    } finally {
-      // Don't set submitting false here as ad is showing or submission is in nested async
     }
   };
 
@@ -285,6 +356,44 @@ export const DepositView: React.FC<DepositViewProps> = ({ onBack }) => {
                 required
               />
             </div>
+
+            <div>
+              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                {language === 'bn' ? 'পেমেন্ট স্ক্রিনশট' : 'Payment Screenshot'}
+              </label>
+              {!screenshotPreview ? (
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                >
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                     <Upload className="w-6 h-6 text-primary" />
+                  </div>
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-300 text-center">
+                     {language === 'bn' ? 'স্ক্রিনশট আপলোড করতে ক্লিক করুন' : 'Click to upload screenshot'}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">PNG, JPG, max 10MB</p>
+                </div>
+              ) : (
+                <div className="relative rounded-xl border-2 border-slate-200 dark:border-slate-700 p-2">
+                   <img src={screenshotPreview} alt="Screenshot" className="w-full h-48 object-cover rounded-lg" />
+                   <button 
+                     type="button"
+                     onClick={() => { setScreenshot(null); setScreenshotPreview(null); }}
+                     className="absolute top-4 right-4 w-8 h-8 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center backdrop-blur-sm transition-colors"
+                   >
+                     <X className="w-4 h-4" />
+                   </button>
+                </div>
+              )}
+              <input 
+                type="file" 
+                accept="image/*"
+                className="hidden" 
+                ref={fileInputRef}
+                onChange={handleFileChange}
+              />
+            </div>
           </div>
 
           {error && (
@@ -302,16 +411,87 @@ export const DepositView: React.FC<DepositViewProps> = ({ onBack }) => {
           )}
 
           <button
-            type="submit"
+            type="button"
+            onClick={handleValidation}
             disabled={submitting || success}
             className="w-full py-3.5 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all active:scale-[0.98] disabled:opacity-70 disabled:pointer-events-none mt-2"
           >
-            {submitting 
-              ? (language === 'bn' ? 'সাবমিট হচ্ছে...' : 'Submitting...') 
-              : (language === 'bn' ? 'সাবমিট করুন' : 'Submit Deposit')}
+            {language === 'bn' ? 'সাবমিট করুন' : 'Submit Deposit'}
           </button>
         </form>
       </div>
+
+      {/* Confirmation Bottom Sheet */}
+      <AnimatePresence>
+        {showConfirm && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[700] flex items-end sm:items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm"
+          >
+            <motion.div 
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+              className="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-3xl sm:rounded-2xl overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]"
+            >
+              <div className="flex items-center justify-between p-4 sm:px-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/20 sticky top-0 shrink-0 z-10">
+                <h3 className="font-bold text-lg text-slate-800 dark:text-white flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-rose-500" />
+                  {language === 'bn' ? 'সতর্কতা ও নিশ্চিতকরণ' : 'Warning & Confirmation'}
+                </h3>
+                <button 
+                  onClick={() => !submitting && setShowConfirm(false)}
+                  disabled={submitting}
+                  className="p-2 -mr-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                >
+                  <X className="w-5 h-5 text-slate-500" />
+                </button>
+              </div>
+
+              <div className="p-4 sm:p-6 overflow-y-auto">
+                <div className="bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-xl p-4 mb-6">
+                  <ul className="space-y-3 text-sm text-rose-700 dark:text-rose-300 list-disc list-outside ml-4 font-medium">
+                     <li>{language === 'bn' ? 'ভুল বা ফেইক ডিপোজিট রিকুয়েস্ট দিলে আপনার একাউন্ট চিরতরে সাসপেন্ড করা হবে।' : 'Fake deposit requests will result in permanent account suspension.'}</li>
+                     <li>{language === 'bn' ? 'সঠিক সেন্ডার নাম্বার, TrxID এবং সঠিক স্ক্রিনশট দিতে হবে।' : 'Correct Sender Number, TrxID, and Screenshot are mandatory.'}</li>
+                     <li>{language === 'bn' ? 'এডমিন ম্যানুয়ালি চেক করার পর আপনার ব্যালেন্স এড হবে, দয়া করে অপেক্ষা করুন।' : 'Wait until admin reviews your transaction manually.'}</li>
+                  </ul>
+                </div>
+
+                <p className="text-center font-bold text-slate-700 dark:text-slate-300 mb-6">
+                  {language === 'bn' ? 'আপনি কি নিশ্চিত যে আপনার দেওয়া তথ্য সঠিক?' : 'Are you sure your provided information is correct?'}
+                </p>
+
+                <div className="flex gap-3">
+                  <button 
+                    onClick={() => setShowConfirm(false)}
+                    disabled={submitting}
+                    className="flex-1 py-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 font-bold text-slate-700 dark:text-slate-300 transition-colors disabled:opacity-50"
+                  >
+                    {language === 'bn' ? 'বাতিল' : 'Cancel'}
+                  </button>
+                  <button 
+                    onClick={handleSubmit}
+                    disabled={submitting}
+                    className="flex-1 py-3.5 rounded-xl bg-primary hover:bg-primary/90 font-bold text-white shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:active:scale-100"
+                  >
+                    {submitting ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>{language === 'bn' ? 'পাঠানো হচ্ছে...' : 'Sending...'}</span>
+                      </>
+                    ) : (
+                      language === 'bn' ? 'হ্যাঁ, আমি নিশ্চিত' : 'Yes, Confirm'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* History Overlay */}
       <AnimatePresence>
