@@ -15,7 +15,8 @@ import {
   ChevronRight,
   ChevronDown,
   Navigation,
-  Scissors
+  Scissors,
+  Hash
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { cn, getApiUrl } from "@/lib/utils";
@@ -43,6 +44,12 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({
   const [location, setLocation] = useState("");
   const [subtitlesEnabled, setSubtitlesEnabled] = useState(false);
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  
+  // Hashtag State
+  const [isHashtagModalOpen, setIsHashtagModalOpen] = useState(false);
+  const [selectedHashtags, setSelectedHashtags] = useState<string[]>([]);
+  const [customHashtag, setCustomHashtag] = useState("");
+  const predefinedHashtags = ["#viral", "#foryou", "#boost", "#muslimsathi", "#calloftamim"];
 
   // Video Editing Flow State
   const [isVideoEditing, setIsVideoEditing] = useState(initialFileType === 'video' && !!initialFile);
@@ -157,9 +164,16 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({
       const appUrl = window.location.origin;
       formData.append("appUrl", appUrl);
 
+      // Check if it contains viral hashtags
+      const isViral = selectedHashtags.some(tag => predefinedHashtags.slice(0, 3).includes(tag.toLowerCase()));
+      
+      // Remove all hashtags from the title string so they are not saved in Firebase
+      const cleanTitle = title.replace(/#[a-zA-Z0-9_]+/g, '').trim();
+
       const postsCollection = collection(db, "posts");
       const postRef = await addDoc(postsCollection, {
-          content: title,
+          content: cleanTitle,
+          isBoosted: isViral,
           type: fileType,
           category: category,
           location: location,
@@ -352,10 +366,27 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({
                     value={title}
                     onChange={(e) => setTitle(e.target.value.slice(0, 20))}
                     placeholder={language === 'bn' ? 'পোস্ট টাইটেল যোগ করুন...' : 'Add a title...'}
-                    className="w-full h-32 bg-transparent text-gray-900 dark:text-white text-[15px] resize-none focus:outline-none placeholder:text-gray-400"
+                    className="w-full bg-transparent text-gray-900 dark:text-white text-[15px] resize-none focus:outline-none placeholder:text-gray-400 min-h-[80px]"
                 />
-                <div className="text-right text-xs text-gray-400 font-medium">
-                    {title.length}/20
+                
+                {selectedHashtags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {selectedHashtags.map(tag => (
+                      <span key={tag} className="text-blue-500 font-medium text-[13px]">{tag}</span>
+                    ))}
+                  </div>
+                )}
+                
+                <div className="flex items-center justify-between">
+                  <button 
+                    onClick={() => setIsHashtagModalOpen(true)}
+                    className="text-xs font-medium px-2.5 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-md text-gray-600 dark:text-gray-300 flex items-center gap-1.5 active:scale-95 transition-all"
+                  >
+                    <Hash className="w-3.5 h-3.5" /> <span>Hashtags</span>
+                  </button>
+                  <div className="text-right text-xs text-gray-400 font-medium">
+                      {title.length}/20
+                  </div>
                 </div>
             </div>
             
@@ -656,6 +687,116 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({
             e.target.value = "";
         }}
       />
+      
+      {/* Hashtag Modal */}
+      <AnimatePresence>
+        {isHashtagModalOpen && (
+          <motion.div
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="fixed inset-0 z-[400] bg-white dark:bg-slate-950 flex flex-col pt-safe"
+          >
+              <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-900">
+                  <button onClick={() => setIsHashtagModalOpen(false)}>
+                      <ArrowLeft className="w-6 h-6 text-gray-900 dark:text-white" />
+                  </button>
+                  <h2 className="text-[17px] font-bold text-gray-900 dark:text-white tracking-tight">
+                      {language === 'bn' ? 'হ্যাশট্যাগ নির্বাচন' : 'Select Hashtags'}
+                  </h2>
+                  <div className="w-6" />
+              </div>
+              
+              <div className="flex-1 p-4 overflow-y-auto">
+                  <div className="flex gap-2 mb-6">
+                    <input 
+                        value={customHashtag}
+                        onChange={(e) => setCustomHashtag(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
+                        placeholder={language === 'bn' ? 'কাস্টম হ্যাশট্যাগ...' : 'Custom hashtag...'}
+                        className="flex-1 px-4 py-3 bg-gray-100 dark:bg-slate-900 rounded-xl focus:outline-none text-[15px] font-medium placeholder:font-normal"
+                    />
+                    <button 
+                        onClick={() => {
+                            if (customHashtag) {
+                                const tag = "#" + customHashtag;
+                                if (!selectedHashtags.includes(tag)) {
+                                    setSelectedHashtags([...selectedHashtags, tag]);
+                                }
+                                setCustomHashtag("");
+                            }
+                        }}
+                        className="px-5 bg-blue-500 rounded-xl font-bold text-white active:scale-95 transition-transform"
+                    >
+                        {language === 'bn' ? 'যোগ' : 'Add'}
+                    </button>
+                  </div>
+
+                  <p className="text-sm text-gray-500 mb-4 font-medium">
+                      {language === 'bn' ? 'ভাইরাল হতে হ্যাশট্যাগগুলো নির্বাচন করুন' : 'Select hashtags to boost your post'}
+                  </p>
+                  
+                  <div className="flex flex-wrap gap-2.5">
+                     {predefinedHashtags.map(tag => {
+                        const isSelected = selectedHashtags.includes(tag);
+                        return (
+                           <button
+                              key={tag}
+                              onClick={() => {
+                                  if (isSelected) {
+                                      setSelectedHashtags(selectedHashtags.filter(t => t !== tag));
+                                  } else {
+                                      setSelectedHashtags([...selectedHashtags, tag]);
+                                  }
+                              }}
+                              className={cn(
+                                  "px-4 py-2 rounded-full font-medium transition-all text-sm border",
+                                  isSelected 
+                                      ? "bg-blue-500 border-blue-500 text-white shadow-md shadow-blue-500/20" 
+                                      : "bg-white dark:bg-slate-950 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-800"
+                              )}
+                           >
+                              {tag}
+                           </button>
+                        );
+                     })}
+                  </div>
+                  
+                  {/* Selected Custom ones not in predefined */}
+                  {selectedHashtags.filter(t => !predefinedHashtags.includes(t)).length > 0 && (
+                     <div className="mt-8">
+                        <p className="text-sm text-gray-400 mb-3 font-medium">
+                            {language === 'bn' ? 'আপনার হ্যাশট্যাগ' : 'Your Hashtags'}
+                        </p>
+                        <div className="flex flex-wrap gap-2.5">
+                            {selectedHashtags.filter(t => !predefinedHashtags.includes(t)).map(tag => (
+                                <button
+                                    key={tag}
+                                    onClick={() => {
+                                        setSelectedHashtags(selectedHashtags.filter(t => t !== tag));
+                                    }}
+                                    className="px-4 py-2 rounded-full font-medium transition-all text-sm border bg-blue-500 border-blue-500 text-white flex items-center gap-2"
+                                >
+                                    {tag} <X className="w-3.5 h-3.5" />
+                                </button>
+                            ))}
+                        </div>
+                     </div>
+                  )}
+
+              </div>
+              
+              <div className="p-4 border-t border-gray-100 dark:border-gray-900 pb-safe">
+                  <button
+                      onClick={() => setIsHashtagModalOpen(false)}
+                      className="w-full h-12 bg-gray-900 dark:bg-white text-white dark:text-gray-900 active:scale-[0.98] transition-all font-bold rounded-xl"
+                  >
+                      {language === 'bn' ? 'সম্পন্ন' : 'Done'}
+                  </button>
+              </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };

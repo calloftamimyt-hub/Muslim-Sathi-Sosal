@@ -56,6 +56,7 @@ import { SeerahView } from "./pages/features/Seerah";
 import { SahabaView } from "./pages/features/Sahaba";
 import { HalalHaramView } from "./pages/features/HalalHaram";
 import { SunnahView } from "./pages/features/Sunnah";
+import { CreatorStudioView } from "./pages/features/CreatorStudioView";
 import { AlarmSettingsView } from "./pages/features/AlarmSettings";
 import Notifications from "./pages/Notifications";
 import { Scholars } from "./pages/Scholars";
@@ -606,8 +607,42 @@ export default function App() {
 
   if (isCheckingLock) {
     return (
-      <div className="fixed inset-0 z-50 bg-white dark:bg-slate-950 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="bg-white dark:bg-slate-950 pb-8 font-sans min-h-[100dvh]">
+        {/* YouTube Style Top Progress Bar */}
+        <div className="fixed top-0 inset-x-0 h-[2px] z-[300] overflow-hidden bg-transparent">
+            <div className="h-full w-full bg-[#FF0000] origin-left animate-[youtubeLoad_1.5s_infinite_ease-in-out]" />
+        </div>
+        
+        {/* Top Header Placeholder (App Bar always visible in YT) */}
+        <div className="relative pt-safe pt-4 px-4 pb-2 border-b border-transparent">
+          <div className="flex justify-between items-start mb-6">
+            <div className="space-y-1.5 flex-1">
+              <div className="h-3 w-28 bg-slate-200 dark:bg-slate-800 shimmer rounded-sm"></div>
+              <div className="h-2 w-20 bg-slate-200 dark:bg-slate-800 shimmer rounded-sm opacity-50"></div>
+            </div>
+            <div className="flex space-x-2">
+              <div className="w-6 h-6 bg-slate-200 dark:bg-slate-800 shimmer rounded-full"></div>
+            </div>
+          </div>
+
+          {/* YouTube Video Style Skeletons Below App Bar */}
+          <div className="space-y-6 mt-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="w-full">
+                {/* Big Rect */}
+                <div className="w-full aspect-[16/9] bg-slate-200 dark:bg-slate-800 shimmer rounded-xl mb-3"></div>
+                {/* Circle and Two Lines */}
+                <div className="flex gap-3 px-1">
+                  <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 shimmer shrink-0"></div>
+                  <div className="space-y-2.5 flex-1 pt-1 mt-0.5">
+                    <div className="h-3.5 bg-slate-200 dark:bg-slate-800 shimmer w-[90%] rounded-sm"></div>
+                    <div className="h-3 bg-slate-200 dark:bg-slate-800 shimmer w-[60%] rounded-sm"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -798,6 +833,12 @@ export default function App() {
                 {activeTab === "sahaba" && <SahabaView />}
                 {activeTab === "halal-haram" && <HalalHaramView />}
                 {activeTab === "sunnah" && <SunnahView />}
+                {activeTab === "creator-studio" && (
+                  <CreatorStudioView 
+                    onBack={() => window.history.back()} 
+                    onNavigate={handleNavigate}
+                  />
+                )}
                 {activeTab === "notes" && (
                   <NotesView onBack={() => window.history.back()} />
                 )}

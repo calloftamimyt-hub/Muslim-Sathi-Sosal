@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ArrowLeft, Globe, Palette, Shield, ChevronRight, Trash2, Loader2, Check,
-  Lock, Smartphone, UserX, Eye, LogOut, Bell
+  Lock, Smartphone, UserX, Eye, LogOut, Bell, PlayCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -39,6 +39,7 @@ export function AppSettings({ onBack }: AppSettingsProps) {
       'profile-visibility': 'Public',
       'theme': 'System',
       'offline-mode': false,
+      'auto-play-video': true,
     };
   });
 
@@ -303,6 +304,20 @@ export function AppSettings({ onBack }: AppSettingsProps) {
             options={['Small', 'Medium', 'Large']}
             onSelect={(v: string) => updateSelectSetting('font-size', v)}
           />
+        </Section>
+
+        <Section title={language === 'bn' ? "মিডিয়া" : "Media"} icon={PlayCircle}>
+            <ToggleRow 
+                icon={PlayCircle}
+                title={language === 'bn' ? "অটো-প্লে ভিডিও" : "Auto-Play Video"}
+                description={language === 'bn' ? "ভিডিওগুলি সয়ংক্রিয়ভাবে চালু হবে" : "Videos will play automatically"}
+                isActive={settings['auto-play-video'] !== false}
+                onClick={() => {
+                   const newValue = settings['auto-play-video'] === false ? true : false;
+                   setSettings(prev => ({ ...prev, 'auto-play-video': newValue }));
+                }}
+                colorClass="bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
+            />
         </Section>
 
         <Section title={language === 'bn' ? "নোটিফিকেশন" : "Notifications"} icon={Bell}>

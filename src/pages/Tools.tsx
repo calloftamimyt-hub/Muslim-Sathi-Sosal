@@ -96,6 +96,7 @@ import {
   Lock,
   Bookmark,
   HelpCircle,
+  AlertCircle,
   Rss,
   VolumeX,
   Pause,
@@ -889,6 +890,18 @@ const PostCard = ({
   // Play/Pause video based on intersection and count views
   const [hasCountedView, setHasCountedView] = useState(false);
   const [isIntersecting, setIsIntersecting] = useState(false);
+  const [autoPlayEnabled, setAutoPlayEnabled] = useState(() => {
+    const saved = localStorage.getItem('islamic_app_settings');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return parsed['auto-play-video'] !== false;
+      } catch (e) {
+        return true;
+      }
+    }
+    return true;
+  });
 
   useEffect(() => {
     if (!videoRef.current) return;
@@ -907,23 +920,72 @@ const PostCard = ({
   useEffect(() => {
     if (!videoRef.current) return;
     if (isIntersecting && !isOverlayOpen) {
-      videoRef.current
-        .play()
-        .catch((e) => console.log("Autoplay prevented", e));
-
-      if (!hasCountedView) {
-        setHasCountedView(true);
-        import("firebase/firestore").then(({ doc, increment, updateDoc }) => {
-          if (post.id) {
-            const postRef = doc(db, "posts", post.id);
-            updateDoc(postRef, { views: increment(1) }).catch(console.error);
-          }
-        });
+      const shouldAutoPlay = post.authorUid === auth.currentUser?.uid ? autoPlayEnabled : true;
+      if (shouldAutoPlay) {
+        videoRef.current
+          .play()
+          .catch((e) => console.log("Autoplay prevented", e));
       }
     } else {
       videoRef.current.pause();
     }
-  }, [isIntersecting, isOverlayOpen, hasCountedView, post.id]);
+  }, [isIntersecting, isOverlayOpen, post.id, autoPlayEnabled, post.authorUid]);
+
+  // --- SMART WATCH TIME TRACKING ---
+  const lastTrackedTime = React.useRef(0);
+  const sessionWatchTime = React.useRef(0);
+  const isDocumentVisible = React.useRef(!document.hidden);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      isDocumentVisible.current = !document.hidden;
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, []);
+
+  const handleTimeUpdate = () => {
+    if (!videoRef.current || !isDocumentVisible.current) return;
+    const currentTime = videoRef.current.currentTime;
+    const diff = currentTime - lastTrackedTime.current;
+
+    // Strict Rule limit: Max 1.5 second difference allowed (ignores seeking)
+    if (diff > 0 && diff <= 1.5) {
+      sessionWatchTime.current += diff;
+    }
+    lastTrackedTime.current = currentTime;
+  };
+
+  const handleSeeked = () => {
+    if (videoRef.current) {
+      lastTrackedTime.current = videoRef.current.currentTime;
+    }
+  };
+
+  useEffect(() => {
+    const syncInterval = setInterval(() => {
+      if (sessionWatchTime.current >= 10 && auth.currentUser) {
+        const secondsToSave = Math.floor(sessionWatchTime.current);
+        sessionWatchTime.current -= secondsToSave;
+
+        import("firebase/firestore").then(({ doc, increment, setDoc }) => {
+          if (post.authorUid !== auth.currentUser?.uid) {
+            const userRef = doc(db, 'users', post.authorUid);
+            setDoc(userRef, { watchTimeSeconds: increment(secondsToSave) }, { merge: true }).catch(console.error);
+          } else {
+            // Penalty: Decreases page reach when watching own videos
+            const userRef = doc(db, 'users', post.authorUid);
+            setDoc(userRef, { 
+              pageReachScore: increment(-secondsToSave),
+              selfWatchPenalty: increment(secondsToSave)
+            }, { merge: true }).catch(console.error);
+          }
+        });
+      }
+    }, 10000);
+    return () => clearInterval(syncInterval);
+  }, [post.authorUid]);
+  // --- END SMART WATCH TIME TRACKING ---
 
   // Check if current user has already liked
   useEffect(() => {
@@ -1306,8 +1368,21 @@ const PostCard = ({
                 playsInline
                 loop
                 muted={isMuted}
-                onPlay={() => setIsPlaying(true)}
+                onPlay={() => {
+                  setIsPlaying(true);
+                  if (!hasCountedView) {
+                    setHasCountedView(true);
+                    import("firebase/firestore").then(({ doc, increment, updateDoc }) => {
+                      if (post.id) {
+                        const postRef = doc(db, "posts", post.id);
+                        updateDoc(postRef, { views: increment(1) }).catch(console.error);
+                      }
+                    });
+                  }
+                }}
                 onPause={() => setIsPlaying(false)}
+                onTimeUpdate={handleTimeUpdate}
+                onSeeked={handleSeeked}
                 className="w-full h-auto block"
               >
                 <source
@@ -1317,7 +1392,6 @@ const PostCard = ({
                 Your browser does not support the video tag.
               </video>
 
-              {/* Play/Pause Overlay Component */}
               <AnimatePresence>
                 {!isPlaying && (
                   <motion.div
@@ -1730,7 +1804,10 @@ try {
           hash = post.id.charCodeAt(i) + ((hash << 5) - hash);
         }
         const time = post.createdAt?.seconds || 0;
-        return time + (Math.abs(hash + globalSessionSalt) % 259200);
+        const randomBoost = Math.abs(hash + globalSessionSalt) % 259200;
+        // If post is boosted/viral, add a huge number to ensure it appears at the top
+        const viralBonus = post.isBoosted ? 9999999999 : 0;
+        return time + randomBoost + viralBonus;
       };
 
       postsData.sort((a, b) => getSortValue(b) - getSortValue(a));
@@ -1994,7 +2071,9 @@ export const ToolsView = ({
             }
             const time = post.createdAt?.seconds || 0;
             // Add up to 3 days of variance to randomize the position
-            return time + (Math.abs(hash + sessionSalt) % 259200);
+            const randomBoost = Math.abs(hash + sessionSalt) % 259200;
+            const viralBonus = post.isBoosted ? 9999999999 : 0;
+            return time + randomBoost + viralBonus;
           };
 
           postsData.sort((a, b) => getSortValue(b) - getSortValue(a));

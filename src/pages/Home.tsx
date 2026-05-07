@@ -834,97 +834,40 @@ export function Home({
 
   if (locLoading || prayerLoading) {
     return (
-      <div className="bg-slate-50 dark:bg-slate-950 pb-8 font-sans min-h-[100dvh]">
-        {/* Top Progress Bar */}
-        <div className="fixed top-0 inset-x-0 h-1 z-[200] origin-left bg-primary/20">
-            <div className="h-full w-full bg-primary origin-left animate-[youtubeLoad_2s_ease-out_forwards]" />
+      <div className="bg-white dark:bg-slate-950 pb-8 font-sans min-h-[100dvh]">
+        {/* YouTube Style Top Progress Bar */}
+        <div className="fixed top-0 inset-x-0 h-[2px] z-[300] overflow-hidden bg-transparent">
+            <div className="h-full w-full bg-[#FF0000] origin-left animate-[youtubeLoad_1.5s_infinite_ease-in-out]" />
         </div>
-        {/* Skeleton Hero Section */}
-        <div className="relative bg-white dark:bg-slate-900 px-4 pt-safe pb-10 rounded-xl shadow-sm border-b border-slate-100 dark:border-slate-800 overflow-hidden">
-          <div className="flex justify-between items-start mb-3">
-            <div className="space-y-2">
-              <div className="h-4 w-24 shimmer rounded"></div>
-              <div className="h-3 w-32 shimmer rounded"></div>
-              <div className="h-2 w-20 shimmer rounded opacity-50"></div>
+        
+        {/* Top Header Placeholder (App Bar always visible in YT) */}
+        <div className="relative pt-safe pt-4 px-4 pb-2 border-b border-transparent">
+          <div className="flex justify-between items-start mb-6">
+            <div className="space-y-1.5 flex-1">
+              <div className="h-3 w-28 bg-slate-200 dark:bg-slate-800 shimmer rounded-sm"></div>
+              <div className="h-2 w-20 bg-slate-200 dark:bg-slate-800 shimmer rounded-sm opacity-50"></div>
             </div>
             <div className="flex space-x-2">
-              <div className="w-8 h-8 shimmer rounded-full"></div>
+              <div className="w-6 h-6 bg-slate-200 dark:bg-slate-800 shimmer rounded-full"></div>
             </div>
           </div>
 
-          <div className="flex justify-center items-center mt-4 mb-2">
-            <div className="relative w-36 h-36 flex items-center justify-center">
-              <div className="absolute inset-0 shimmer rounded-full opacity-10"></div>
-              <div className="w-28 h-28 shimmer rounded-full"></div>
-            </div>
-          </div>
-
-          {/* Sunrise/Sunset Skeletons */}
-          <div className="absolute left-4 bottom-12 flex flex-col items-center">
-            <div className="w-4 h-4 shimmer rounded-full mb-1"></div>
-            <div className="h-2 w-8 shimmer rounded"></div>
-          </div>
-          <div className="absolute right-4 bottom-12 flex flex-col items-center">
-            <div className="w-4 h-4 shimmer rounded-full mb-1"></div>
-            <div className="h-2 w-8 shimmer rounded"></div>
-          </div>
-        </div>
-
-        {/* Skeleton Fasting Info */}
-        <div className="relative z-20 -mt-6 mx-4">
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-4 border border-slate-50 dark:border-slate-800">
-            <div className="flex justify-between items-center divide-x divide-slate-100 dark:divide-slate-800 mb-4">
-              <div className="flex-1 px-2 space-y-2">
-                <div className="h-2 w-12 shimmer rounded mx-auto"></div>
-                <div className="h-4 w-16 shimmer rounded mx-auto"></div>
-              </div>
-              <div className="flex-1 px-2 space-y-2">
-                <div className="h-2 w-12 shimmer rounded mx-auto"></div>
-                <div className="h-4 w-16 shimmer rounded mx-auto"></div>
-              </div>
-              <div className="flex-1 px-2 space-y-2">
-                <div className="h-2 w-16 shimmer rounded mx-auto"></div>
-                <div className="h-4 w-20 shimmer rounded mx-auto"></div>
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <div className="h-2 w-full shimmer rounded-full"></div>
-            </div>
-          </div>
-        </div>
-
-        {/* Skeleton Prayer Times List */}
-        <div className="mx-4 mt-4">
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-50 dark:border-slate-800 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-50 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-800/20">
-              <div className="h-4 w-24 shimmer rounded"></div>
-            </div>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div
-                key={i}
-                className="flex justify-between items-center py-3 px-3 border-b border-slate-50 dark:border-slate-800/50"
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 shimmer rounded-full"></div>
-                  <div className="h-4 w-20 shimmer rounded"></div>
+          {/* YouTube Video Style Skeletons Below App Bar */}
+          <div className="space-y-6 mt-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="w-full">
+                {/* Big Rect */}
+                <div className="w-full aspect-[16/9] bg-slate-200 dark:bg-slate-800 shimmer rounded-xl mb-3"></div>
+                {/* Circle and Two Lines */}
+                <div className="flex gap-3 px-1">
+                  <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 shimmer shrink-0"></div>
+                  <div className="space-y-2.5 flex-1 pt-1 mt-0.5">
+                    <div className="h-3.5 bg-slate-200 dark:bg-slate-800 shimmer w-[90%] rounded-sm"></div>
+                    <div className="h-3 bg-slate-200 dark:bg-slate-800 shimmer w-[60%] rounded-sm"></div>
+                  </div>
                 </div>
-                <div className="h-4 w-16 shimmer rounded"></div>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* Skeleton Categories */}
-        <div className="mx-4 mt-4">
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 p-4">
-            <div className="grid grid-cols-4 gap-y-4 gap-x-2">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                <div key={i} className="flex flex-col items-center space-y-2">
-                  <div className="w-10 h-10 shimmer rounded-full"></div>
-                  <div className="h-2 w-12 shimmer rounded"></div>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </div>
