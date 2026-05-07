@@ -46,21 +46,21 @@ export function ProfileStatusModal({ isOpen, onClose, userProfile }: any) {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
-                className="fixed inset-0 z-[100] bg-white dark:bg-slate-950 flex flex-col"
+                className="fixed inset-0 z-[400] bg-white dark:bg-slate-950 flex flex-col"
             >
                 {/* Header */}
-                <header className="sticky top-0 z-40 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md px-3 pt-safe pb-2 flex items-center justify-between shrink-0">
+                <header className="sticky top-0 z-[401] bg-white dark:bg-slate-950 px-3 pt-safe pb-2 flex items-center justify-between shrink-0 border-b border-slate-100 dark:border-slate-800 shadow-sm">
                     <div className="flex items-center">
                         <button onClick={() => { window.history.back(); onClose(); }} className="p-2 -ml-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors active:scale-95">
-                            <ArrowLeft className="w-6 h-6 stroke-[2px] text-slate-800 dark:text-slate-200" />
+                            <ArrowLeft className="w-6 h-6 stroke-[2.5px] text-slate-800 dark:text-slate-200" />
                         </button>
-                        <h1 className="text-[20px] font-bold text-slate-900 dark:text-white ml-2">
+                        <h1 className="text-[20px] font-bold text-slate-900 dark:text-white ml-2 tracking-tight">
                             {language === 'bn' ? 'প্রোফাইল স্ট্যাটাস' : 'Profile status'}
                         </h1>
                     </div>
                     <div className="flex items-center gap-2">
                         <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
-                            <Search className="w-6 h-6 stroke-[2px] text-slate-800 dark:text-slate-200" />
+                            <Search className="w-6 h-6 stroke-[2.5px] text-slate-800 dark:text-slate-200" />
                         </button>
                         {auth.currentUser?.photoURL ? (
                             <img src={auth.currentUser.photoURL} alt="Profile" className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-800 object-cover" />

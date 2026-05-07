@@ -2076,12 +2076,12 @@ export const ToolsView = ({
 
   useEffect(() => {
     // Toggle global navigation visibility when modals are open
-    const isAnyModalOpen = isUploadSheetOpen || !!selectedPostForBoost || !!selectedPostForAnalytics || isBoostCenterModalOpen;
+    const isAnyModalOpen = isUploadSheetOpen || !!selectedPostForBoost || !!selectedPostForAnalytics || isBoostCenterModalOpen || isProfileStatusModalOpen;
     const event = new CustomEvent("set-nav-visibility", {
       detail: !isAnyModalOpen,
     });
     window.dispatchEvent(event);
-  }, [isUploadSheetOpen, selectedPostForBoost, selectedPostForAnalytics, isBoostCenterModalOpen]);
+  }, [isUploadSheetOpen, selectedPostForBoost, selectedPostForAnalytics, isBoostCenterModalOpen, isProfileStatusModalOpen]);
 
   const categories = [
     { id: "all", label: { bn: "সব", en: "All" } },
