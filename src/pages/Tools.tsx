@@ -103,9 +103,10 @@ import {
   Pause,
   Rocket,
   BarChart2,
+  Loader2,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { cn, getApiUrl } from "@/lib/utils";
+import { cn, getApiUrl, formatCount } from "@/lib/utils";
 import { db, auth } from "@/lib/firebase";
 import {
   collection,
@@ -161,6 +162,7 @@ import { PercentageCalcTool } from "@/components/tools/PercentageCalcTool";
 import { YTThumbnailTool } from "@/components/tools/YTThumbnailTool";
 import { PostContentOverlay } from "@/components/tools/PostContentOverlay";
 import { ReportModal } from "@/components/tools/ReportModal";
+import { ShortsFeedOverlay, isPostVideo } from "@/components/tools/ShortsFeedOverlay";
 import {
   AreaChart,
   Area,
@@ -435,17 +437,6 @@ const SOCIAL_TOOLS = [
 ];
 
 // --- Components ---
-
-const formatCount = (num: number) => {
-  if (!num) return "0";
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
-  }
-  if (num >= 1000) {
-    return (num / 1000).toFixed(1).replace(/\.0$/, "") + "K";
-  }
-  return num.toString();
-};
 
 const PostSkeleton = () => (
   <div className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 p-4 space-y-4">
@@ -865,16 +856,80 @@ const AnalyticsDashboard = () => {
   );
 };
 
+const QuickPostShort = ({ post, onClick }: { post: any; onClick: () => void }) => {
+  const [hasBeenNearScreen, setHasBeenNearScreen] = useState(false);
+  const [isMediaLoaded, setIsMediaLoaded] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    if (!wrapperRef.current) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        setHasBeenNearScreen(true);
+        observer.disconnect();
+      }
+    }, { rootMargin: "200px 0px" });
+    observer.observe(wrapperRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  let fallbackFileId = post.fileId;
+  if (typeof post.content === "object" && post.content !== null) {
+     if (post.content.fileId) fallbackFileId = post.content.fileId;
+  } else if (typeof post.content === "string" && post.content.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(post.content);
+      if (parsed.fileId) fallbackFileId = parsed.fileId;
+    } catch (e) {}
+  }
+
+  return (
+    <motion.div
+      ref={wrapperRef}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      whileTap={{ scale: 0.95 }}
+      onClick={onClick}
+      className="relative aspect-[9/16] bg-slate-200 dark:bg-slate-800 rounded-2xl overflow-hidden cursor-pointer group shadow-lg border border-slate-200 dark:border-slate-800"
+    >
+      {!isMediaLoaded && fallbackFileId && hasBeenNearScreen && (
+        <div className="absolute inset-0 bg-slate-200 dark:bg-slate-800 animate-pulse z-20" />
+      )}
+      {fallbackFileId && hasBeenNearScreen && (
+        <video
+          src={getApiUrl(`/api/telegram/file/${fallbackFileId}`)}
+          className={`w-full h-full object-cover transition-opacity duration-300 ${isMediaLoaded ? 'opacity-100' : 'opacity-0'}`}
+          preload="metadata"
+          onLoadedData={() => setIsMediaLoaded(true)}
+        />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />
+      <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
+        <div className="flex items-center gap-1 text-white">
+          <Play className="w-3 h-3 fill-current" />
+          <span className="text-[10px] font-bold">{formatCount(post.views || 0)}</span>
+        </div>
+      </div>
+      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
+        <Play className="w-8 h-8 text-white fill-current" />
+      </div>
+    </motion.div>
+  );
+};
+
+
 const PostCard = ({
   post,
   isOverlayOpen,
   onBoostClick,
-  onAnalyticsClick
+  onAnalyticsClick,
+  onVideoClick,
 }: {
   post: any;
   isOverlayOpen?: boolean;
   onBoostClick?: (post: any) => void;
   onAnalyticsClick?: (post: any) => void;
+  onVideoClick?: (post: any) => void;
 }) => {
   const { language } = useLanguage();
   const [isLiked, setIsLiked] = useState(false);
@@ -887,6 +942,7 @@ const PostCard = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [authorAvatar, setAuthorAvatar] = useState("");
   const [showReportModal, setShowReportModal] = useState(false);
+  const [isMediaLoaded, setIsMediaLoaded] = useState(false);
 
   const videoRef = React.useRef<HTMLVideoElement>(null);
 
@@ -945,6 +1001,8 @@ const PostCard = ({
   // Play/Pause video based on intersection and count views
   const [hasCountedView, setHasCountedView] = useState(false);
   const [isIntersecting, setIsIntersecting] = useState(false);
+  const [hasBeenNearScreen, setHasBeenNearScreen] = useState(false);
+  const wrapperRef = React.useRef<HTMLDivElement>(null);
   const [autoPlayEnabled, setAutoPlayEnabled] = useState(() => {
     const saved = localStorage.getItem('islamic_app_settings');
     if (saved) {
@@ -959,16 +1017,19 @@ const PostCard = ({
   });
 
   useEffect(() => {
-    if (!videoRef.current) return;
+    if (!wrapperRef.current) return;
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           setIsIntersecting(entry.isIntersecting);
+          if (entry.isIntersecting) {
+            setHasBeenNearScreen(true);
+          }
         });
       },
-      { threshold: 0.5 },
+      { rootMargin: "400px 0px" },
     );
-    observer.observe(videoRef.current);
+    observer.observe(wrapperRef.current);
     return () => observer.disconnect();
   }, [post.fileId, post.id]);
 
@@ -984,7 +1045,7 @@ const PostCard = ({
     } else {
       videoRef.current.pause();
     }
-  }, [isIntersecting, isOverlayOpen, post.id, autoPlayEnabled, post.authorUid]);
+  }, [isIntersecting, isOverlayOpen, post.id, autoPlayEnabled, post.authorUid, hasBeenNearScreen]);
 
   // --- SMART WATCH TIME TRACKING ---
   const lastTrackedTime = React.useRef(0);
@@ -1261,8 +1322,13 @@ const PostCard = ({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white dark:bg-slate-900 overflow-hidden border-t border-slate-100 dark:border-slate-800"
+      className="bg-white dark:bg-slate-900 overflow-hidden border-t border-slate-100 dark:border-slate-800 relative"
     >
+      {fallbackFileId && !isMediaLoaded && hasBeenNearScreen && (
+        <div className="absolute inset-0 z-20 bg-white dark:bg-slate-900 w-full h-full">
+          <PostSkeleton />
+        </div>
+      )}
       {/* Post Header */}
       <div className="p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -1417,44 +1483,60 @@ const PostCard = ({
 
       {/* Media Area */}
       {fallbackFileId && (
-        <div className="bg-white dark:bg-slate-900 border-y border-slate-50 dark:border-slate-800 relative group flex flex-col overflow-hidden">
+        <div 
+          ref={wrapperRef}
+          className="bg-white dark:bg-slate-900 border-y border-slate-50 dark:border-slate-800 relative group flex flex-col overflow-hidden"
+        >
           {fallbackType === "video" ? (
             <div
-              className="relative w-full cursor-pointer"
-              onClick={togglePlay}
+              className="relative w-full cursor-pointer bg-black flex items-center justify-center min-h-[200px]"
+              onClick={() => {
+                if (onVideoClick) {
+                  onVideoClick(post);
+                } else {
+                  togglePlay();
+                }
+              }}
             >
-              <video
-                ref={videoRef}
-                preload="metadata"
-                playsInline
-                loop
-                muted={isMuted}
-                onPlay={() => {
-                  setIsPlaying(true);
-                  if (!hasCountedView) {
-                    setHasCountedView(true);
-                    import("firebase/firestore").then(({ doc, increment, updateDoc }) => {
-                      if (post.id) {
-                        const postRef = doc(db, "posts", post.id);
-                        updateDoc(postRef, { views: increment(1) }).catch(console.error);
-                      }
-                    });
-                  }
-                }}
-                onPause={() => setIsPlaying(false)}
-                onTimeUpdate={handleTimeUpdate}
-                onSeeked={handleSeeked}
-                className="w-full h-auto block"
-              >
-                <source
+              {!isMediaLoaded && hasBeenNearScreen && (
+                <div className="absolute inset-0 bg-slate-200 dark:bg-slate-800 animate-pulse z-10 flex flex-col items-center justify-center">
+                    <Video className="w-10 h-10 text-slate-400 opacity-50" />
+                </div>
+              )}
+              {hasBeenNearScreen ? (
+                <video
+                  ref={videoRef}
+                  preload="metadata"
+                  playsInline
+                  loop
+                  muted={isMuted}
                   src={getApiUrl(`/api/telegram/file/${fallbackFileId}`)}
-                  type="video/mp4"
+                  onLoadedData={() => setIsMediaLoaded(true)}
+                  onPlay={() => {
+                    setIsPlaying(true);
+                    if (!hasCountedView) {
+                      setHasCountedView(true);
+                      import("firebase/firestore").then(({ doc, increment, updateDoc }) => {
+                        if (post.id) {
+                          const postRef = doc(db, "posts", post.id);
+                          updateDoc(postRef, { views: increment(1) }).catch(console.error);
+                        }
+                      });
+                    }
+                  }}
+                  onPause={() => setIsPlaying(false)}
+                  onTimeUpdate={handleTimeUpdate}
+                  onSeeked={handleSeeked}
+                  className="w-full h-auto block max-h-[80vh] object-contain bg-black"
                 />
-                Your browser does not support the video tag.
-              </video>
+              ) : (
+                <div className="flex flex-col border border-slate-200 dark:border-slate-700 items-center justify-center w-full aspect-video bg-slate-200 dark:bg-slate-800">
+                   <Video className="w-10 h-10 text-slate-400 mb-2 animate-pulse" />
+                </div>
+              )}
 
               <AnimatePresence>
-                {!isPlaying && (
+                {!isPlaying && hasBeenNearScreen && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -1482,12 +1564,16 @@ const PostCard = ({
               </button>
             </div>
           ) : (
-            <div className="w-full h-full">
+            <div className="w-full h-full relative min-h-[200px]">
+              {!isMediaLoaded && (
+                <div className="absolute inset-0 bg-slate-200 dark:bg-slate-800 animate-pulse z-10" />
+              )}
               <img
                 src={getApiUrl(`/api/telegram/file/${fallbackFileId}`)}
                 alt="Post media"
-                className="w-full h-auto object-contain"
+                className={`w-full h-auto object-contain transition-opacity duration-300 ${isMediaLoaded ? 'opacity-100' : 'opacity-0'}`}
                 loading="lazy"
+                onLoad={() => setIsMediaLoaded(true)}
               />
             </div>
           )}
@@ -1644,10 +1730,14 @@ const PostCard = ({
 
 const ProfileView = ({
   onBoostClick,
-  onAnalyticsClick
+  onAnalyticsClick,
+  onVideoClick,
+  isOverlayOpen,
 }: {
   onBoostClick?: (post: any) => void;
   onAnalyticsClick?: (post: any) => void;
+  onVideoClick?: (post: any) => void;
+  isOverlayOpen?: boolean;
 }) => {
   const { language } = useLanguage();
   const [stats, setStats] = useState({
@@ -1848,6 +1938,8 @@ const ProfileView = ({
                   post={post} 
                   onBoostClick={(p) => onBoostClick?.(p)}
                   onAnalyticsClick={(p) => onAnalyticsClick?.(p)}
+                  onVideoClick={onVideoClick}
+                  isOverlayOpen={isOverlayOpen}
                 />
               </div>
             ))
@@ -1868,6 +1960,7 @@ const ProfileView = ({
 };
 
 let globalPreloadedPosts: any[] = [];
+let globalLastVisiblePost: any = null;
 let globalIsPreloadedPostsLoading = true;
 const globalPreloadListeners: Set<() => void> = new Set();
 const globalSessionSalt = Math.floor(Math.random() * 1000000);
@@ -1885,9 +1978,16 @@ try {
   onSnapshot(
     q,
     (snapshot) => {
-      const postsData = snapshot.docs
-        .map((doc) => ({ id: doc.id, ...doc.data() }))
-        .filter((p: any) => p.status === "approved" || !p.status);
+      const approvedDocs = snapshot.docs.filter((doc) => {
+        const p = doc.data() as any;
+        return p.status === "approved" || !p.status;
+      });
+
+      if (approvedDocs.length > 0) {
+        globalLastVisiblePost = approvedDocs[approvedDocs.length - 1];
+      }
+
+      const postsData = approvedDocs.map((doc) => ({ id: doc.id, ...(doc.data() as Record<string, any>) }));
 
       const normalPosts: any[] = [];
       const boostedPosts: any[] = [];
@@ -1942,6 +2042,29 @@ try {
   console.error("Failed to initialize global feed preloader", error);
 }
 
+const LoadMoreTrigger = ({ onLoadMore, hasMore, isLoadingMore }: { onLoadMore: () => void, hasMore: boolean, isLoadingMore: boolean }) => {
+  const triggerRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!triggerRef.current || !hasMore || isLoadingMore) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+         onLoadMore();
+      }
+    }, { rootMargin: "400px" });
+    observer.observe(triggerRef.current);
+    return () => observer.disconnect();
+  }, [onLoadMore, hasMore, isLoadingMore]);
+
+  if (!hasMore) return null;
+
+  return (
+    <div ref={triggerRef} className="py-8 flex justify-center items-center">
+      {isLoadingMore ? <Loader2 className="w-6 h-6 animate-spin text-slate-400" /> : <div className="h-2" />}
+    </div>
+  );
+};
+
 export const ToolsView = ({
   onNavigate,
 }: {
@@ -1958,12 +2081,18 @@ export const ToolsView = ({
     "video" | "photo" | null
   >(null);
   const [posts, setPosts] = useState<any[]>(globalPreloadedPosts);
+  const [lastVisible, setLastVisible] = useState<any>(globalLastVisiblePost);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [isPostsLoading, setIsPostsLoading] = useState(
     globalIsPreloadedPostsLoading,
   );
   const [isScrolled, setIsScrolled] = useState(false);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [selectedShortPost, setSelectedShortPost] = useState<any>(null);
+  const [isShortsFeedOpen, setIsShortsFeedOpen] = useState(false);
+  const shortsContainerRef = useRef<HTMLDivElement>(null);
   const [isProfileStatusModalOpen, setIsProfileStatusModalOpen] =
     useState(false);
   const [isHelpSupportOpen, setIsHelpSupportOpen] = useState(false);
@@ -2088,7 +2217,7 @@ export const ToolsView = ({
     { id: "turkey", label: { bn: "তুরস্ক", en: "Turkey" } },
     { id: "news", label: { bn: "খবর", en: "News" } },
     { id: "islamic", label: { bn: "ইসলামিক", en: "Islamic" } },
-    { id: "shorts", label: { bn: "শর্টস", en: "Shorts" } },
+    { id: "shorts", label: { bn: "স্পিড", en: "Speed" } },
     { id: "movies", label: { bn: "মুভি", en: "Movies" } },
     { id: "mix", label: { bn: "মিক্স", en: "Mix" } },
   ];
@@ -2160,10 +2289,19 @@ export const ToolsView = ({
   useEffect(() => {
     if (selectedCategory === "all") {
       setPosts(globalPreloadedPosts);
+      setLastVisible(globalLastVisiblePost);
+      setHasMore(true);
       setIsPostsLoading(globalIsPreloadedPostsLoading);
 
       const listener = () => {
-        setPosts(globalPreloadedPosts);
+        setPosts((prev) => {
+           // We only want to auto-update if we haven't loaded more pages locally
+           if (prev.length <= 25) { 
+             setLastVisible(globalLastVisiblePost);
+             return globalPreloadedPosts;
+           }
+           return prev; // keep local append state
+        });
         setIsPostsLoading(globalIsPreloadedPostsLoading);
       };
       globalPreloadListeners.add(listener);
@@ -2173,6 +2311,8 @@ export const ToolsView = ({
       };
     } else {
       setIsPostsLoading(true);
+      setHasMore(true);
+      setLastVisible(null);
       const q = query(
         collection(db, "posts"),
         where("category", "==", selectedCategory),
@@ -2183,9 +2323,16 @@ export const ToolsView = ({
       const unsubscribe = onSnapshot(
         q,
         (snapshot) => {
-          const postsData = snapshot.docs
-            .map((doc) => ({ id: doc.id, ...doc.data() }))
-            .filter((p: any) => p.status === "approved" || !p.status); // Fallback for older posts without status
+          const approvedDocs = snapshot.docs.filter((doc) => {
+            const p = doc.data() as any;
+            return p.status === "approved" || !p.status;
+          });
+          
+          if (approvedDocs.length > 0) {
+            setLastVisible(approvedDocs[approvedDocs.length - 1]);
+          }
+
+          const postsData = approvedDocs.map((doc) => ({ id: doc.id, ...(doc.data() as Record<string, any>) }));
 
           const normalPosts: any[] = [];
           const boostedPosts: any[] = [];
@@ -2241,9 +2388,102 @@ export const ToolsView = ({
     }
   }, [selectedCategory, sessionSalt]);
 
+  const loadMorePosts = async () => {
+    if (isLoadingMore || !hasMore || !lastVisible) return;
+    setIsLoadingMore(true);
+
+    try {
+      const { collection, getDocs, limit, orderBy, query, startAfter, where } = await import("firebase/firestore");
+      let q;
+      if (selectedCategory === "all") {
+        q = query(
+          collection(db, "posts"),
+          orderBy("createdAt", "desc"),
+          startAfter(lastVisible),
+          limit(20)
+        );
+      } else {
+        q = query(
+          collection(db, "posts"),
+          where("category", "==", selectedCategory),
+          orderBy("createdAt", "desc"),
+          startAfter(lastVisible),
+          limit(20)
+        );
+      }
+
+      const snapshot = await getDocs(q);
+      const approvedDocs = snapshot.docs.filter((doc) => {
+        const p = doc.data() as any;
+        return p.status === "approved" || !p.status;
+      });
+
+      if (approvedDocs.length < 20) {
+        setHasMore(false);
+      }
+      
+      if (approvedDocs.length > 0) {
+        setLastVisible(approvedDocs[approvedDocs.length - 1]);
+        const postsData = approvedDocs.map((doc) => ({ id: doc.id, ...(doc.data() as Record<string, any>) }));
+
+        const normalPosts: any[] = [];
+        const boostedPosts: any[] = [];
+
+        postsData.forEach((p: any) => {
+          if (p.isBoosted || (p.boostInfo && p.boostInfo.status === "approved")) {
+            boostedPosts.push(p);
+          } else {
+            normalPosts.push(p);
+          }
+        });
+
+        // Randomize
+        const getSortValue = (post: any) => {
+          let hash = 0;
+          for (let i = 0; i < post.id.length; i++) {
+            hash = post.id.charCodeAt(i) + ((hash << 5) - hash);
+          }
+          const time = post.createdAt?.seconds || 0;
+          const randomBoost = Math.abs(hash + sessionSalt) % 259200;
+          return time + randomBoost;
+        };
+
+        normalPosts.sort((a, b) => getSortValue(b) - getSortValue(a));
+        boostedPosts.sort((a, b) => getSortValue(b) - getSortValue(a));
+
+        const mergedPosts: any[] = [];
+        let normalIndex = 0;
+        let boostedIndex = 0;
+
+        for (let i = 0; i < postsData.length; i++) {
+          if (i % 4 === 0 && boostedIndex < boostedPosts.length) {
+            mergedPosts.push(boostedPosts[boostedIndex++]);
+          } else if (normalIndex < normalPosts.length) {
+            mergedPosts.push(normalPosts[normalIndex++]);
+          } else if (boostedIndex < boostedPosts.length) {
+            mergedPosts.push(boostedPosts[boostedIndex++]);
+          }
+        }
+
+        setPosts((prev) => {
+           // Basic deduplication to avoid duplicating posts due to real-time sync mixing with batch sync
+           const existingIds = new Set(prev.map(p => p.id));
+           const newUnique = mergedPosts.filter(p => !existingIds.has(p.id));
+           return [...prev, ...newUnique];
+        });
+      } else {
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error("Error loading more posts:", error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
   // Handle visibility of App Navigation
   useEffect(() => {
-    if (isPostingOpen || activeToolId || isSidebarOpen) {
+    if (isPostingOpen || activeToolId || isSidebarOpen || isShortsFeedOpen) {
       window.dispatchEvent(new CustomEvent("hide-nav", { detail: true }));
     } else {
       window.dispatchEvent(new CustomEvent("hide-nav", { detail: false }));
@@ -2252,7 +2492,7 @@ export const ToolsView = ({
     return () => {
       window.dispatchEvent(new CustomEvent("hide-nav", { detail: false }));
     };
-  }, [isPostingOpen, activeToolId, isSidebarOpen]);
+  }, [isPostingOpen, activeToolId, isSidebarOpen, isShortsFeedOpen]);
 
   // Handle hardware back button
   useEffect(() => {
@@ -2269,6 +2509,8 @@ export const ToolsView = ({
         setIsProfileStatusModalOpen(false);
       } else if (isSidebarOpen) {
         setIsSidebarOpen(false);
+      } else if (isShortsFeedOpen) {
+        setIsShortsFeedOpen(false);
       }
     };
 
@@ -2331,7 +2573,7 @@ export const ToolsView = ({
       <header
         className={cn(
           "w-full bg-white dark:bg-slate-900 transition-all z-[140] fixed top-0 pt-safe duration-300",
-          !isHeaderVisible && "-translate-y-full",
+          (!isHeaderVisible || activeToolId || isPostingOpen || !!selectedPostForBoost || !!selectedPostForAnalytics || isBoostCenterModalOpen || isShortsFeedOpen) && "-translate-y-full",
           activeToolId
             ? "inset-x-0 pb-3 shadow-sm border-b border-slate-100 dark:border-slate-800 z-[170] px-6"
             : "border-none",
@@ -2496,7 +2738,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[145] pt-28 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[145] bg-slate-50 dark:bg-slate-950"
           >
             <YTThumbnailTool onBack={handleCloseTool} />
           </motion.div>
@@ -2507,7 +2749,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <TagsGenTool onBack={handleCloseTool} />
           </motion.div>
@@ -2518,7 +2760,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <TitleGenTool onBack={handleCloseTool} />
           </motion.div>
@@ -2529,7 +2771,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <EarnCalcTool onBack={handleCloseTool} />
           </motion.div>
@@ -2540,7 +2782,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <WordCountTool onBack={handleCloseTool} />
           </motion.div>
@@ -2551,7 +2793,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <SEOTesterTool onBack={handleCloseTool} />
           </motion.div>
@@ -2562,7 +2804,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <ChannelAuditTool onBack={handleCloseTool} />
           </motion.div>
@@ -2573,7 +2815,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <KeywordResTool onBack={handleCloseTool} />
           </motion.div>
@@ -2584,7 +2826,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <AgeCalcTool onBack={handleCloseTool} />
           </motion.div>
@@ -2595,7 +2837,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <BMICalcTool onBack={handleCloseTool} />
           </motion.div>
@@ -2606,7 +2848,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <PassGenTool onBack={handleCloseTool} />
           </motion.div>
@@ -2617,7 +2859,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <StopwatchTool onBack={handleCloseTool} />
           </motion.div>
@@ -2628,7 +2870,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <QRMakerTool onBack={handleCloseTool} />
           </motion.div>
@@ -2639,7 +2881,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <JSONFormatTool onBack={handleCloseTool} />
           </motion.div>
@@ -2650,7 +2892,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <UnitConvTool onBack={handleCloseTool} />
           </motion.div>
@@ -2661,7 +2903,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <ExpenseTrackTool onBack={handleCloseTool} />
           </motion.div>
@@ -2672,7 +2914,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <Base64EncodeTool onBack={handleCloseTool} />
           </motion.div>
@@ -2683,7 +2925,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <TipCalcTool onBack={handleCloseTool} />
           </motion.div>
@@ -2694,7 +2936,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <PomodoroTool onBack={handleCloseTool} />
           </motion.div>
@@ -2705,7 +2947,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <TodoListTool onBack={handleCloseTool} />
           </motion.div>
@@ -2716,7 +2958,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <DateCalcTool onBack={handleCloseTool} />
           </motion.div>
@@ -2727,7 +2969,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <UrlEncodeTool onBack={handleCloseTool} />
           </motion.div>
@@ -2738,7 +2980,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <PassCheckerTool onBack={handleCloseTool} />
           </motion.div>
@@ -2749,7 +2991,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <RegexTestTool onBack={handleCloseTool} />
           </motion.div>
@@ -2760,7 +3002,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <MDEditorTool onBack={handleCloseTool} />
           </motion.div>
@@ -2771,7 +3013,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <RandomNumTool onBack={handleCloseTool} />
           </motion.div>
@@ -2782,7 +3024,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <TextCaseTool onBack={handleCloseTool} />
           </motion.div>
@@ -2793,7 +3035,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <UUIDMakerTool onBack={handleCloseTool} />
           </motion.div>
@@ -2804,7 +3046,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <CodeFormatTool onBack={handleCloseTool} />
           </motion.div>
@@ -2815,7 +3057,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <DeviceInfoTool onBack={handleCloseTool} />
           </motion.div>
@@ -2826,7 +3068,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <SalaryCalcTool onBack={handleCloseTool} />
           </motion.div>
@@ -2837,7 +3079,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <TextReverserTool onBack={handleCloseTool} />
           </motion.div>
@@ -2848,7 +3090,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <WordScramblerTool onBack={handleCloseTool} />
           </motion.div>
@@ -2859,7 +3101,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <LoremGenTool onBack={handleCloseTool} />
           </motion.div>
@@ -2870,7 +3112,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950"
           >
             <DiscountCalcTool onBack={handleCloseTool} />
           </motion.div>
@@ -2881,7 +3123,7 @@ export const ToolsView = ({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[145] pt-24 bg-slate-50 dark:bg-slate-950"
+            className="fixed inset-0 z-[145] bg-slate-50 dark:bg-slate-950"
           >
             <PercentageCalcTool onBack={handleCloseTool} />
           </motion.div>
@@ -2902,6 +3144,24 @@ export const ToolsView = ({
                     <ProfileView 
                       onBoostClick={(p) => setSelectedPostForBoost(p)}
                       onAnalyticsClick={(p) => setSelectedPostForAnalytics(p)}
+                      isOverlayOpen={
+                        isShortsFeedOpen ||
+                        isUploadSheetOpen ||
+                        isPostingOpen ||
+                        isSidebarOpen ||
+                        isProfileStatusModalOpen ||
+                        isHelpSupportOpen ||
+                        activeToolId !== null ||
+                        !!selectedPostForBoost ||
+                         !!selectedPostForAnalytics
+                      }
+                      onVideoClick={(p) => {
+                        if (isPostVideo(p)) {
+                          setSelectedShortPost(p);
+                          window.history.pushState({ view: "shorts" }, "");
+                          setIsShortsFeedOpen(true);
+                        }
+                      }}
                     />
                   ) : activeTab === "search" && !activeToolId ? (
                     <MuslimBrowser
@@ -3010,29 +3270,57 @@ export const ToolsView = ({
                               <PostSkeleton />
                             </div>
                           ) : posts.length > 0 ? (
-                            posts.map((post) => (
-                              <div
-                                key={post.id}
-                                className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 overflow-hidden"
-                              >
-                                <PostCard
-                                  post={post}
-                                  onBoostClick={(p) => setSelectedPostForBoost(p)}
-                                  onAnalyticsClick={(p) => setSelectedPostForAnalytics(p)}
-                                  isOverlayOpen={
-                                    isUploadSheetOpen ||
-                                    isPostingOpen ||
-                                    isSidebarOpen ||
-                                    isProfileStatusModalOpen ||
-                                    isHelpSupportOpen ||
-                                    activeToolId !== null ||
-                                    selectedPostForBoost !== null ||
-                                    selectedPostForAnalytics !== null ||
-                                    isBoostCenterModalOpen
-                                  }
-                                />
+                            selectedCategory === "shorts" ? (
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 bg-slate-50 dark:bg-slate-950 min-h-[60vh] pb-24">
+                                {posts
+                                  .filter((p: any) => isPostVideo(p))
+                                  .map((post) => (
+                                    <QuickPostShort
+                                      key={post.id}
+                                      post={post}
+                                      onClick={() => {
+                                        setSelectedShortPost(post);
+                                        window.history.pushState({ view: "shorts" }, "");
+                                        setIsShortsFeedOpen(true);
+                                      }}
+                                    />
+                                  ))}
                               </div>
-                            ))
+                            ) : (
+                              posts.map((post) => (
+                                <div
+                                  key={post.id}
+                                  className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 overflow-hidden"
+                                >
+                                  <PostCard
+                                    post={post}
+                                    onBoostClick={(p) => setSelectedPostForBoost(p)}
+                                    onAnalyticsClick={(p) => setSelectedPostForAnalytics(p)}
+                                    onVideoClick={(p) => {
+                                      // Check if it's a video before overriding click behavior
+                                      if (isPostVideo(p)) {
+                                        setSelectedShortPost(p);
+                                        window.history.pushState({ view: "shorts" }, "");
+                                        setIsShortsFeedOpen(true);
+                                      }
+                                    }}
+                                    isOverlayOpen={
+                                      isShortsFeedOpen ||
+                                      isUploadSheetOpen ||
+                                      isPostingOpen ||
+                                      isSidebarOpen ||
+                                      isProfileStatusModalOpen ||
+                                      isHelpSupportOpen ||
+                                      activeToolId !== null ||
+                                      selectedPostForBoost !== null ||
+                                      selectedPostForAnalytics !== null ||
+                                      isBoostCenterModalOpen ||
+                                      isShortsFeedOpen
+                                    }
+                                  />
+                                </div>
+                              ))
+                            )
                           ) : (
                             <motion.div
                               initial={{ opacity: 0 }}
@@ -3055,6 +3343,16 @@ export const ToolsView = ({
                             </motion.div>
                           )}
                         </AnimatePresence>
+                        
+                        {/* Pagination Trigger */}
+                        {posts.length > 0 && (
+                           <LoadMoreTrigger 
+                              onLoadMore={loadMorePosts} 
+                              hasMore={hasMore} 
+                              isLoadingMore={isLoadingMore} 
+                           />
+                        )}
+                        
                       </div>
                     </>
                   )}
@@ -3380,6 +3678,28 @@ export const ToolsView = ({
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Shorts/Speed Full Feed Overlay */}
+      <AnimatePresence>
+        {isShortsFeedOpen && (
+          <ShortsFeedOverlay
+            posts={posts.filter((p: any) => isPostVideo(p))}
+            initialPost={selectedShortPost}
+            onClose={() => setIsShortsFeedOpen(false)}
+            isOverlayOpen={
+              isUploadSheetOpen ||
+              isPostingOpen ||
+              isSidebarOpen ||
+              isProfileStatusModalOpen ||
+              isHelpSupportOpen ||
+              activeToolId !== null ||
+              selectedPostForBoost !== null ||
+              selectedPostForAnalytics !== null ||
+              isBoostCenterModalOpen
+            }
+          />
         )}
       </AnimatePresence>
 
