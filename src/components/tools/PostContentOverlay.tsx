@@ -99,6 +99,17 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setPreviewUrl(null);
+    }
+  }, [file]);
   
   const photoInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -212,6 +223,66 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({
             fileId: fileId
         });
 
+        // "Save Album" functionality
+        if (saveToAlbumEnabled && file) {
+          try {
+            if (fileType === "photo") {
+              const imageBitmap = await createImageBitmap(file);
+              const canvas = document.createElement("canvas");
+              const ctx = canvas.getContext("2d");
+              if (ctx) {
+                canvas.width = imageBitmap.width;
+                canvas.height = imageBitmap.height;
+                ctx.drawImage(imageBitmap, 0, 0);
+                
+                // Add "Muslim Sathi" watermark
+                const fontSize = Math.max(30, Math.floor(canvas.width * 0.04));
+                ctx.font = `bold ${fontSize}px Inter, sans-serif`;
+                ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+                ctx.textAlign = "left";
+                ctx.textBaseline = "bottom";
+                
+                // Shadow for visibility
+                ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
+                ctx.shadowBlur = 8;
+                ctx.shadowOffsetX = 2;
+                ctx.shadowOffsetY = 2;
+
+                const padding = fontSize;
+                ctx.fillText("@Muslim Sathi", padding, canvas.height - padding);
+
+                canvas.toBlob((blob) => {
+                  if (blob) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `MuslimSathi_${Date.now()}.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => {
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    }, 100);
+                  }
+                }, "image/png", 1.0);
+              }
+            } else if (fileType === "video") {
+              const url = URL.createObjectURL(file);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `MuslimSathi_${Date.now()}.mp4`;
+              document.body.appendChild(a);
+              a.click();
+              setTimeout(() => {
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+              }, 100);
+            }
+          } catch (e) {
+            console.error("Failed to save to album:", e);
+          }
+        }
+
         setStatus("success");
         setTitle("");
         setFile(null);
@@ -242,7 +313,7 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({
             {/* Full Screen Video Preview */}
             <div className="flex-1 relative flex items-center justify-center overflow-hidden pt-safe">
                 <video 
-                    src={URL.createObjectURL(file)} 
+                    src={previewUrl || ""} 
                     className="w-full h-full object-contain pointer-events-none"
                     playsInline
                     autoPlay
@@ -400,13 +471,13 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({
                     <>
                         {fileType === "photo" ? (
                             <img 
-                                src={URL.createObjectURL(file)} 
+                                src={previewUrl || ""} 
                                 alt="Preview" 
                                 className="w-full h-full object-cover"
                             />
                         ) : (
                             <video 
-                                src={URL.createObjectURL(file)}
+                                src={previewUrl || ""}
                                 className="w-full h-full object-cover"
                                 playsInline
                                 muted

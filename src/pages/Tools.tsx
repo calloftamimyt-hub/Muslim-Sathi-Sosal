@@ -104,6 +104,8 @@ import {
   Rocket,
   BarChart2,
   Loader2,
+  Ban,
+  Download,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { cn, getApiUrl, formatCount } from "@/lib/utils";
@@ -931,7 +933,7 @@ const QuickPostShort = ({ post, onClick }: { post: any; onClick: () => void }) =
 };
 
 
-const PostCard = ({
+export const PostCard = ({
   post,
   isOverlayOpen,
   onBoostClick,
@@ -956,6 +958,34 @@ const PostCard = ({
   const [authorAvatar, setAuthorAvatar] = useState("");
   const [showReportModal, setShowReportModal] = useState(false);
   const [isMediaLoaded, setIsMediaLoaded] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [showOtherMenu, setShowOtherMenu] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem('muslim_sathi_saved_posts') || '[]');
+    setIsSaved(saved.some((p: any) => p.id === post.id));
+    const blocked = JSON.parse(localStorage.getItem('muslim_sathi_blocked_users') || '[]');
+    setIsBlocked(blocked.includes(post.authorUid));
+  }, [post.id, post.authorUid]);
+
+  const handleSavePost = () => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('muslim_sathi_saved_posts') || '[]');
+      if (isSaved) {
+         const filtered = saved.filter((p: any) => p.id !== post.id);
+         localStorage.setItem('muslim_sathi_saved_posts', JSON.stringify(filtered));
+         setIsSaved(false);
+      } else {
+         saved.push(post);
+         localStorage.setItem('muslim_sathi_saved_posts', JSON.stringify(saved));
+         setIsSaved(true);
+      }
+    } catch(e) {
+      console.error(e);
+    }
+  };
 
   const videoRef = React.useRef<HTMLVideoElement>(null);
 
@@ -1319,6 +1349,96 @@ const PostCard = ({
 
   const canDelete = auth.currentUser && auth.currentUser.uid === post.authorUid;
 
+  const handleDownload = async (withLogo: boolean) => {
+    if (!fallbackFileId) return;
+    setIsDownloading(true);
+    setShowOtherMenu(false);
+    try {
+      const url = getApiUrl(`/api/telegram/file/${fallbackFileId}`);
+      if (fallbackType === 'photo' && withLogo) {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = url;
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+        });
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+          
+          const fontSize = Math.max(30, Math.floor(canvas.width * 0.04));
+          ctx.font = `bold ${fontSize}px Inter, sans-serif`;
+          ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+          ctx.textAlign = "left";
+          ctx.textBaseline = "bottom";
+          
+          ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
+          ctx.shadowBlur = 8;
+          ctx.shadowOffsetX = 2;
+          ctx.shadowOffsetY = 2;
+
+          const padding = fontSize;
+          ctx.fillText("@Muslim Sathi", padding, canvas.height - padding);
+
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const u = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = u;
+              a.download = `MuslimSathi_${Date.now()}.png`;
+              document.body.appendChild(a);
+              a.click();
+              setTimeout(() => {
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(u);
+              }, 100);
+            }
+          }, "image/png", 1.0);
+        }
+      } else {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const u = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = u;
+        a.download = `MuslimSathi_${Date.now()}${fallbackType === 'video' ? '.mp4' : '.png'}`;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(u);
+        }, 100);
+      }
+    } catch(e) {
+      console.error(e);
+      alert(language === 'bn' ? "ডাউনলোড করতে সমস্যা হয়েছে" : "Download failed");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleBlockUser = () => {
+    try {
+      const blocked = JSON.parse(localStorage.getItem('muslim_sathi_blocked_users') || '[]');
+      if (!blocked.includes(post.authorUid)) {
+         blocked.push(post.authorUid);
+         localStorage.setItem('muslim_sathi_blocked_users', JSON.stringify(blocked));
+         setIsBlocked(true);
+      }
+      setShowOtherMenu(false);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  if (isBlocked) {
+    return null;
+  }
+
   let avatarSrc = authorAvatar
     ? authorAvatar
     : auth.currentUser?.uid === post.authorUid && auth.currentUser?.photoURL
@@ -1413,47 +1533,99 @@ const PostCard = ({
           </div>
         </div>
         <div className="flex items-center gap-1 relative">
-          {canDelete && (
-            <>
-              <button
-                onClick={() => setShowMenu(!showMenu)}
-                className="p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-colors"
-              >
-                <MoreVertical className="w-5 h-5" />
-              </button>
-              <AnimatePresence>
-                {showMenu && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="absolute right-0 top-10 mt-2 w-36 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden z-20"
-                  >
-                    <button
-                      onClick={() => {
-                        setShowMenu(false);
-                        setIsEditing(true);
-                        setEditContent(post.content);
-                      }}
-                      className="w-full px-4 py-2.5 text-left text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-2"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                      {language === "bn" ? "এডিট" : "Edit"}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowMenu(false);
-                        setIsDeletingModalOpen(true);
-                      }}
-                      className="w-full px-4 py-2.5 text-left text-sm font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 flex items-center gap-2"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      {language === "bn" ? "ডিলিট" : "Delete"}
-                    </button>
-                  </motion.div>
+          {!canDelete && (
+             <button
+                onClick={handleSavePost}
+                className={cn(
+                  "p-2 rounded-full transition-colors",
+                  isSaved ? "text-yellow-500" : "text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
                 )}
-              </AnimatePresence>
-            </>
+             >
+                <Bookmark className="w-5 h-5" fill={isSaved ? "currentColor" : "none"} />
+             </button>
+          )}
+
+          <button
+            onClick={() => canDelete ? setShowMenu(!showMenu) : setShowOtherMenu(!showOtherMenu)}
+            className="p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-colors"
+          >
+            <MoreVertical className="w-5 h-5" />
+          </button>
+          
+          {canDelete && (
+            <AnimatePresence>
+              {showMenu && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="absolute right-0 top-10 mt-2 w-36 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden z-[100]"
+                >
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      setIsEditing(true);
+                      setEditContent(post.content);
+                    }}
+                    className="w-full px-4 py-2.5 text-left text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-2"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    {language === "bn" ? "এডিট" : "Edit"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      setIsDeletingModalOpen(true);
+                    }}
+                    className="w-full px-4 py-2.5 text-left text-sm font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 flex items-center gap-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    {language === "bn" ? "ডিলিট" : "Delete"}
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          )}
+
+          {!canDelete && (
+            <AnimatePresence>
+              {showOtherMenu && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="absolute right-0 top-10 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden z-[100]"
+                >
+                  <button
+                    onClick={handleBlockUser}
+                    className="w-full px-4 py-2.5 text-left text-sm font-medium text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 flex items-center gap-2"
+                  >
+                    <Ban className="w-4 h-4" />
+                    {language === "bn" ? "ব্লক ইউজার" : "Block User"}
+                  </button>
+                  {fallbackFileId && (
+                    <>
+                      <button
+                        onClick={() => handleDownload(true)}
+                        disabled={isDownloading}
+                        className="w-full px-4 py-2.5 text-left text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-2 disabled:opacity-50"
+                      >
+                        {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                        {language === "bn" ? "ডাউনলোড" : "Download"}
+                      </button>
+                      <button
+                        onClick={() => handleDownload(false)}
+                        disabled={isDownloading}
+                        className="w-full px-4 py-2.5 text-left text-sm font-medium text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 flex items-center gap-2 disabled:opacity-50"
+                      >
+                        {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                        {language === "bn" ? "ডাউনলোড এইচডি" : "Download HD"}
+                      </button>
+                    </>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           )}
         </div>
       </div>
@@ -2078,6 +2250,51 @@ const LoadMoreTrigger = ({ onLoadMore, hasMore, isLoadingMore }: { onLoadMore: (
   );
 };
 
+const SavedPostsOverlay = ({ posts, onClose, onVideoClick }: { posts: any[], onClose: () => void, onVideoClick?: (post: any) => void }) => {
+  const { language } = useLanguage();
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: "100%" }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: "100%" }}
+      transition={{ type: "spring", damping: 25, stiffness: 300 }}
+      className="fixed inset-0 z-[250] bg-white dark:bg-slate-950 flex flex-col pt-safe overflow-hidden"
+    >
+      <header className="sticky top-0 z-[60] bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-100 dark:border-slate-800">
+        <div className="flex items-center px-4 h-14">
+          <button
+            onClick={onClose}
+            className="p-2 -ml-2 mr-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="font-bold text-lg text-slate-900 dark:text-white">
+            {language === 'bn' ? 'সেভ পোস্ট' : 'Saved Posts'}
+          </h1>
+        </div>
+      </header>
+      <div className="flex-1 overflow-y-auto pb-safe">
+        {posts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center p-8 text-slate-500 h-full">
+            <Bookmark className="w-12 h-12 mb-4 opacity-20" />
+            <p>{language === 'bn' ? 'কোনো সেভ করা পোস্ট নেই' : 'No saved posts found'}</p>
+          </div>
+        ) : (
+          <div className="flex flex-col">
+            {posts.map((post) => (
+              <PostCard
+                key={`saved-${post.id}`}
+                post={post}
+                onVideoClick={onVideoClick}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+};
+
 export const ToolsView = ({
   onNavigate,
 }: {
@@ -2087,6 +2304,20 @@ export const ToolsView = ({
   const [activeTab, setActiveTab] = useState<
     "feed" | "analytics" | "tools" | "profile" | "search"
   >("feed");
+  const [showSavedPosts, setShowSavedPosts] = useState(false);
+  const [savedPosts, setSavedPosts] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (showSavedPosts) {
+      try {
+        const posts = JSON.parse(localStorage.getItem('muslim_sathi_saved_posts') || '[]');
+        setSavedPosts(posts);
+      } catch(e) {
+        console.error("Error loading saved posts", e);
+      }
+    }
+  }, [showSavedPosts]);
+
   const [activeToolId, setActiveToolId] = useState<string | null>(null);
   const [isPostingOpen, setIsPostingOpen] = useState(false);
   const [pendingPostFile, setPendingPostFile] = useState<File | null>(null);
@@ -2597,7 +2828,7 @@ export const ToolsView = ({
             {/* Top Row: Brand and Menu */}
             <div className="flex items-center justify-between pl-4 pr-6 h-[52px]">
               <h1 className="text-[26px] font-black text-blue-600 dark:text-blue-500 tracking-tighter">
-                MuslimFeed
+                muslim feed
               </h1>
 
               <div className="flex items-center gap-1">
@@ -3629,7 +3860,8 @@ export const ToolsView = ({
 
                 <button
                   onClick={() => {
-                    // handleCloseSidebar();
+                    handleCloseSidebar();
+                    setTimeout(() => setShowSavedPosts(true), 50);
                   }}
                   className="w-full px-3 py-3 flex items-center gap-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left active:scale-[0.98]"
                 >
@@ -3637,7 +3869,7 @@ export const ToolsView = ({
                     <Bookmark className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                   </div>
                   <span className="font-semibold text-[15px] text-slate-700 dark:text-slate-200 flex-1">
-                    {language === "bn" ? "কামিং সুন..." : "Coming Soon..."}
+                    {language === "bn" ? "সেভ পোস্ট" : "Save post"}
                   </span>
                 </button>
 
@@ -3772,6 +4004,19 @@ export const ToolsView = ({
             onClose={() => setIsBoostCenterModalOpen(false)}
             onOpenAnalytics={(post) => setSelectedPostForAnalytics(post)}
             onOpenBoost={(post) => setSelectedPostForBoost(post)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showSavedPosts && (
+          <SavedPostsOverlay
+            posts={savedPosts}
+            onClose={() => setShowSavedPosts(false)}
+            onVideoClick={(post) => {
+              setSelectedShortPost(post);
+              setIsShortsFeedOpen(true);
+            }}
           />
         )}
       </AnimatePresence>

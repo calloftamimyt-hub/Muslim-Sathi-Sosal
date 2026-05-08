@@ -55,6 +55,7 @@ import { LanguageSelectionView } from './features/LanguageSelectionView';
 import { getFriendlyErrorMessage } from '@/lib/errorUtils';
 import { checkAndRegisterDevice } from '../lib/device';
 import { updateProfile } from 'firebase/auth';
+import { PostCard } from './Tools';
 
 interface CropModalProps {
   image: string;
@@ -122,12 +123,57 @@ function CropModal({ image, onClose, onCrop }: CropModalProps) {
   );
 }
 
+function SavedPostsView({ onBack, posts, title }: { onBack: () => void, posts: any[], title: string }) {
+  return (
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 pb-safe">
+      <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-100 dark:border-slate-800">
+        <div className="flex items-center px-4 h-14">
+          <button onClick={onBack} className="p-2 -ml-2 text-slate-600 dark:text-slate-400">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="ml-2 font-bold text-slate-800 dark:text-slate-100">
+            {title}
+          </h1>
+        </div>
+      </header>
+      <div className="flex-1 overflow-y-auto">
+        {posts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-slate-500">
+            <Bookmark className="w-12 h-12 mb-4 opacity-20" />
+            <p>No saved posts found</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+             {posts.map((post) => (
+                <PostCard key={post.id} post={post} />
+             ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) {
   const [user, setUser] = useState<any>(null);
   const [showEditProfilePage, setShowEditProfilePage] = useState(false);
   const [showFavoriteDuas, setShowFavoriteDuas] = useState(false);
   const [showFavoriteAyats, setShowFavoriteAyats] = useState(false);
   const [showFavoriteHadiths, setShowFavoriteHadiths] = useState(false);
+  const [showFavoritePosts, setShowFavoritePosts] = useState(false);
+  const [favoritePosts, setFavoritePosts] = useState<any[]>([]);
+  
+  useEffect(() => {
+    if (showFavoritePosts) {
+      try {
+        const posts = JSON.parse(localStorage.getItem('muslim_sathi_saved_posts') || '[]');
+        setFavoritePosts(posts);
+      } catch(e) {
+        console.error("Error loading saved posts", e);
+      }
+    }
+  }, [showFavoritePosts]);
+
   const { favorites: favoriteDuas, count: favoriteDuaCount } = useFavorites<Dua>('favorite-duas');
   const { favorites: favoriteAyats, count: favoriteAyatCount } = useFavorites<any>('bookmarked-ayats');
   const { favorites: favoriteHadiths, count: favoriteHadithCount } = useFavorites<any>('favorite-hadiths');
@@ -1403,6 +1449,13 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
             </div>
             <div className="divide-y divide-slate-50 dark:divide-slate-800">
               <FavoriteItem 
+                icon={<BookOpen className="text-blue-500" />} 
+                title={language === 'bn' ? 'সেভ করা পোস্ট' : 'Saved Posts'} 
+                count={favoritePosts.length} 
+                suffix={t.items} 
+                onClick={() => setShowFavoritePosts(true)}
+              />
+              <FavoriteItem 
                 icon={<Heart className="text-rose-500" />} 
                 title={t.savedDua} 
                 count={favoriteDuaCount} 
@@ -1563,6 +1616,21 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
 
           {/* Favorite Views */}
           <AnimatePresence>
+            {showFavoritePosts && (
+              <motion.div 
+                key="posts"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="fixed inset-0 z-[150] bg-slate-50 dark:bg-slate-950 pb-20 overflow-y-auto"
+              >
+                <SavedPostsView 
+                  onBack={() => setShowFavoritePosts(false)} 
+                  posts={favoritePosts}
+                  title={language === 'bn' ? 'সেভ করা পোস্ট' : 'Saved Posts'}
+                />
+              </motion.div>
+            )}
             {showFavoriteAyats && (
               <motion.div 
                 key="ayats"
