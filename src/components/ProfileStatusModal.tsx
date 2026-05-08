@@ -78,17 +78,29 @@ export function ProfileStatusModal({ isOpen, onClose, userProfile, onOpenSupport
                 <div className="flex-1 overflow-y-auto w-full pb-24 bg-white dark:bg-slate-950 font-sans">
                     
                     <div className="px-4 pt-4 pb-6 mt-2">
-                        <div className="relative inline-block mb-4">
-                            <img src={photoUrl} className="w-[60px] h-[60px] rounded-full border border-slate-200 dark:border-slate-800 object-cover" alt="Profile" />
-                            {isReported ? (
-                                <div className="absolute bottom-0 right-0 w-[20px] h-[20px] bg-red-500 rounded-full border-2 border-white dark:border-slate-950 flex items-center justify-center">
-                                    <AlertTriangle className="w-4 h-4 text-white" />
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="relative inline-block">
+                                <img src={photoUrl} className="w-[60px] h-[60px] rounded-full border border-slate-200 dark:border-slate-800 object-cover" alt="Profile" />
+                                {isReported && isVerified ? (
+                                    <div className="absolute bottom-0 right-0 w-[20px] h-[20px] bg-red-500 rounded-full border-2 border-white dark:border-slate-950 flex items-center justify-center">
+                                        <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                                    </div>
+                                ) : isReported ? (
+                                    <div className="absolute bottom-0 right-0 w-[20px] h-[20px] bg-red-500 rounded-full border-2 border-white dark:border-slate-950 flex items-center justify-center">
+                                        <AlertTriangle className="w-3 h-3 text-white" />
+                                    </div>
+                                ) : isVerified ? (
+                                    <div className="absolute bottom-0 right-0 w-[20px] h-[20px] bg-blue-500 rounded-full border-2 border-white dark:border-slate-950 flex items-center justify-center">
+                                        <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                                    </div>
+                                ) : null}
+                            </div>
+                            {isReported && (
+                                <div>
+                                    <h3 className="font-bold text-red-600 dark:text-red-500 text-base leading-tight">Profile Issue</h3>
+                                    <p className="text-xs font-semibold text-red-500/90 dark:text-red-400/90">{userProfile?.profileIssue || "Spam or Harmful Content"} ({reportsCount} Reports)</p>
                                 </div>
-                            ) : isVerified ? (
-                                <div className="absolute bottom-0 right-0 w-[20px] h-[20px] bg-blue-500 rounded-full border-2 border-white dark:border-slate-950 flex items-center justify-center">
-                                    <CheckCircle2 className="w-4 h-4 text-white" />
-                                </div>
-                            ) : null}
+                            )}
                         </div>
                         <h1 className="text-[22px] font-bold text-slate-900 dark:text-white mb-2 leading-tight tracking-tight">
                             {language === 'bn' ? `স্বাগতম, ${firstName}!` : `Welcome, ${firstName}!`}
