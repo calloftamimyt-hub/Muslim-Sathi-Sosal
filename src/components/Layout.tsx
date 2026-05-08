@@ -16,6 +16,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { auth } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { useLanguage } from "../contexts/LanguageContext";
+import { OfflineImage } from "./OfflineImage";
 
 interface LayoutProps {
   children: ReactNode;
@@ -157,7 +158,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
                             : "border-slate-300 dark:border-slate-700",
                         )}
                       >
-                        <img
+                        <OfflineImage
                           src={
                             (user.photoURL?.startsWith("/")
                               ? getApiUrl(user.photoURL)
@@ -234,7 +235,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
                             : "border-slate-300 dark:border-slate-700",
                         )}
                       >
-                        <img
+                        <OfflineImage
                           src={
                             (user.photoURL?.startsWith("/")
                               ? getApiUrl(user.photoURL)

@@ -5,7 +5,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import { showInterstitialAd, showRewardedInterstitialAd } from '@/lib/admob';
 import { db, auth } from '@/lib/firebase';
-import { cn } from '@/lib/utils';
+import { cn, getApiUrl } from '@/lib/utils';
+import axios from 'axios';
 import { earningService } from '@/services/earningService';
 import { format } from 'date-fns';
 import { bn, enUS } from 'date-fns/locale';
@@ -174,32 +175,28 @@ export const DepositView: React.FC<DepositViewProps> = ({ onBack }) => {
             const botToken = settings?.telegramBotToken || '8577168806:AAEvPksc7qHSYmr0wzE7DwHQeglzOUZZn5U';
             const chatId = settings?.telegramChatId || '-1002647379129';
 
-            // 2. Upload to Telegram
+            // 2. Upload to Telegram using backend proxy (fixes WebView CORS issues)
             const formData = new FormData();
             formData.append('chat_id', chatId);
-            formData.append('photo', screenshot as File);
+            formData.append('file', screenshot as File);
+            formData.append('type', 'photo');
             
             const caption = `🚨 <b>New Deposit Request</b>\n\n👤 User: <code>${user.uid}</code>\n📧 Email: ${user.email}\n💰 Amount: <b>${amount} Tk</b>\n📞 Sender: <code>${senderNumber}</code>\n🆔 TrxID: <code>${transactionId}</code>\n🏦 Method: ${selectedMethod.name}\n\n📌 <i>Please review from Admin Panel.</i>`;
             formData.append('caption', caption);
+            // The backend endpoint already handles HTML parsing if configured or basic text. 
+            // In server.ts the endpoint doesn't send parse_mode: 'HTML' explicitly for /upload, but it parses text ok.
+            // Let's add parse_mode parameter just in case we update server.ts to use it:
             formData.append('parse_mode', 'HTML');
 
-            const tgResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
-              method: 'POST',
-              body: formData
+            const tgResponse = await axios.post(getApiUrl('/api/telegram/upload'), formData, {
+              headers: { 'Content-Type': 'multipart/form-data' }
             });
 
-            if (!tgResponse.ok) throw new Error('Telegram API failure');
+            if (!tgResponse.data.success) throw new Error('Telegram API failure via proxy');
 
-            const tgData = await tgResponse.json();
             let uploadedFileUrl = '';
-            if (tgData.ok && tgData.result.photo) {
-              const photoArray = tgData.result.photo;
-              const fileId = photoArray[photoArray.length - 1].file_id;
-              const fileRes = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`);
-              const fileData = await fileRes.json();
-              if (fileData.ok) {
-                 uploadedFileUrl = `https://api.telegram.org/file/bot${botToken}/${fileData.result.file_path}`;
-              }
+            if (tgResponse.data.fileUrl) {
+              uploadedFileUrl = getApiUrl(tgResponse.data.fileUrl);
             }
 
             const depositData = {
@@ -252,7 +249,7 @@ export const DepositView: React.FC<DepositViewProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[60] bg-slate-50 dark:bg-slate-950 flex flex-col">
+    <div className="fixed inset-0 z-[600] bg-slate-50 dark:bg-slate-950 flex flex-col">
       <header className="bg-white dark:bg-slate-900 px-4 pt-safe pb-4 flex items-center gap-4 border-b border-slate-200 dark:border-slate-800">
         <button 
           onClick={onBack}
@@ -500,7 +497,7 @@ export const DepositView: React.FC<DepositViewProps> = ({ onBack }) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="fixed inset-0 z-[70] bg-slate-50 dark:bg-slate-950 flex flex-col"
+            className="fixed inset-0 z-[610] bg-slate-50 dark:bg-slate-950 flex flex-col"
           >
             <header className="bg-white dark:bg-slate-900 px-4 pt-safe pb-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
               <h1 className="text-lg font-black">{language === 'bn' ? 'ডিপোজিট হিস্টরি' : 'Deposit History'}</h1>
@@ -611,7 +608,7 @@ export const DepositView: React.FC<DepositViewProps> = ({ onBack }) => {
             {/* Delete Modal */}
             <AnimatePresence>
               {isDeleteModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[700] flex items-center justify-center p-4">
                   <motion.div 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -650,7 +647,7 @@ export const DepositView: React.FC<DepositViewProps> = ({ onBack }) => {
       {/* Success Modal */}
       <AnimatePresence>
         {success && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[700] flex items-center justify-center p-4">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

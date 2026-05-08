@@ -4,6 +4,7 @@ import { ArrowLeft, ShieldCheck, CheckCircle2, AlertTriangle, Calendar, Star, In
 import { useLanguage } from '@/contexts/LanguageContext';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { auth } from '@/lib/firebase';
+import { OfflineImage } from './OfflineImage';
 
 const data = [
   { name: 'Sat', score: 300 },
@@ -65,7 +66,7 @@ export function ProfileStatusModal({ isOpen, onClose, userProfile, onOpenSupport
                             <Search className="w-6 h-6 stroke-[2.5px] text-slate-800 dark:text-slate-200" />
                         </button>
                         {auth.currentUser?.photoURL ? (
-                            <img src={auth.currentUser.photoURL} alt="Profile" className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-800 object-cover" />
+                            <OfflineImage src={auth.currentUser.photoURL} alt="Profile" className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-800 object-cover" />
                         ) : (
                             <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center">
                                 <User className="w-4 h-4 text-slate-500" />
@@ -80,7 +81,7 @@ export function ProfileStatusModal({ isOpen, onClose, userProfile, onOpenSupport
                     <div className="px-4 pt-4 pb-6 mt-2">
                         <div className="flex items-center gap-4 mb-4">
                             <div className="relative inline-block">
-                                <img src={photoUrl} className="w-[60px] h-[60px] rounded-full border border-slate-200 dark:border-slate-800 object-cover" alt="Profile" />
+                                <OfflineImage src={photoUrl} className="w-[60px] h-[60px] rounded-full border border-slate-200 dark:border-slate-800 object-cover" alt="Profile" />
                                 {isReported && isVerified ? (
                                     <div className="absolute bottom-0 right-0 w-[20px] h-[20px] bg-red-500 rounded-full border-2 border-white dark:border-slate-950 flex items-center justify-center">
                                         <CheckCircle2 className="w-3.5 h-3.5 text-white" />

@@ -4,7 +4,7 @@ import {
   Calendar, Award, Flame, BookOpen, Heart, MessageSquare, ShoppingBag,
   Lock, Trash2, Globe, Edit3, CheckCircle2, Star, Bookmark, BookmarkCheck, Clock,
   Trophy, Zap, Hash, CircleDot, Sparkles, LogIn, X, MapPin, Search, Loader2,
-  ArrowLeft, Send, Droplets, Bed, HeartHandshake, Camera, AlertTriangle
+  ArrowLeft, Send, Droplets, Bed, HeartHandshake, Camera, AlertTriangle, Activity
 } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import { getCroppedImg } from '@/lib/imageUtils';
@@ -18,6 +18,7 @@ import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, sendP
 import { doc, getDoc, setDoc, collection, query, where, getCountFromServer, addDoc, serverTimestamp, updateDoc, arrayUnion, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { getToken, onMessage } from 'firebase/messaging';
 import { Capacitor } from '@capacitor/core';
+import { OfflineImage } from "@/components/OfflineImage";
 import { PushNotifications } from '@capacitor/push-notifications';
 import { App as CapApp } from '@capacitor/app';
 import { useLocation } from '@/hooks/useLocation';
@@ -197,6 +198,7 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showTrackersPage, setShowTrackersPage] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const { latitude, longitude, country, city: userLocation, loading: locLoading } = useLocation(language);
   const [showLocationModal, setShowLocationModal] = useState(false);
@@ -291,7 +293,7 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
       showEditProfilePage, showFavoriteDuas, showFavoriteAyats, 
       showFavoriteHadiths, showLanguageModal, showEditProfileModal, 
       showChangePasswordModal, showDeleteModal, 
-      showLocationModal, showReminderModal
+      showLocationModal, showReminderModal, showTrackersPage
     ];
     
     const anyModalOpen = modals.some(m => m);
@@ -319,7 +321,7 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
     showEditProfilePage, showFavoriteDuas, showFavoriteAyats, 
     showFavoriteHadiths, showLanguageModal, showEditProfileModal, 
     showChangePasswordModal, showDeleteModal, 
-    showLocationModal, showReminderModal
+    showLocationModal, showReminderModal, showTrackersPage
   ]);
 
   useEffect(() => {
@@ -1155,7 +1157,7 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
               ) : !user ? (
                 <User className="w-10 h-10 text-slate-400" />
               ) : user.photoURL ? (
-                <img 
+                <OfflineImage 
                   src={user.photoURL.startsWith('/api') ? getApiUrl(user.photoURL) : user.photoURL} 
                   alt="Profile" 
                   className="w-full h-full object-cover"
@@ -1223,7 +1225,7 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
         </div>
       </div>
 
-      <div className="px-4 py-6 space-y-3 max-w-2xl mx-auto">
+      <div className="px-4 py-4 max-w-2xl mx-auto">
           {selectedImage && (
             <CropModal
               image={selectedImage}
@@ -1232,298 +1234,84 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
             />
           )}
           {errorMsg && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
               <strong className="font-bold">Error: </strong>
               <span className="block sm:inline">{errorMsg}</span>
             </div>
           )}
-          {/* ইবাদত স্ট্যাটাস (Main Highlight) */}
-          <section className="space-y-2">
-            <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 px-2 uppercase tracking-wider">{t.statusToday}</h3>
-            <div className="grid grid-cols-1 gap-2">
-              <StatusCard 
-                icon={<Clock className="w-5 h-5 text-primary" />}
-                title={t.prayerToday}
-                value={`${completedToday}/5`}
-                progress={(completedToday / 5) * 100}
-                color="bg-primary"
-                label={completedToday === 5 ? t.allPrayersDone : t.prayersLeft(5 - completedToday)}
-              />
-              <StatusCard 
-                icon={<BookOpen className="w-5 h-5 text-blue-500" />}
-                title={t.quranReading}
-                value={`${todayData.quran || 0} ${globalT('pages' as any) || 'pages'}`}
-                progress={Math.min(100, ((todayData.quran || 0) / 10) * 100)}
-                color="bg-blue-500"
-                label={todayData.quran >= 10 ? t.targetReached : t.targetQuran}
-              />
-              <StatusCard 
-                icon={<Zap className="w-5 h-5 text-amber-500" />}
-                title={t.zikrTasbih}
-                value={`${todayData.zikr || 0} ${globalT('times' as any) || 'times'}`}
-                progress={Math.min(100, ((todayData.zikr || 0) / 1000) * 100)}
-                color="bg-amber-500"
-                label={t.targetZikr}
-              />
-            </div>
-          </section>
 
-          {/* Daily Habits */}
-          <section className="space-y-2">
-            <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 px-2 uppercase tracking-wider">{t.dailyHabits}</h3>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
-                    <Droplets className="w-4 h-4 text-blue-500" />
-                  </div>
-                  <span className="font-bold text-slate-700 dark:text-slate-300 text-xs">{t.water}</span>
-                </div>
-                <span className="text-sm font-black text-slate-900 dark:text-white">{todayData.water || 0} <span className="text-[10px] font-normal text-slate-500">{t.glasses}</span></span>
-              </div>
-              <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg flex items-center justify-center">
-                    <Bed className="w-4 h-4 text-indigo-500" />
-                  </div>
-                  <span className="font-bold text-slate-700 dark:text-slate-300 text-xs">{t.sleep}</span>
-                </div>
-                <span className="text-sm font-black text-slate-900 dark:text-white">{todayData.sleep || 0} <span className="text-[10px] font-normal text-slate-500">{t.hours}</span></span>
-              </div>
-              <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-rose-50 dark:bg-rose-900/20 rounded-lg flex items-center justify-center">
-                    <HeartHandshake className="w-4 h-4 text-rose-500" />
-                  </div>
-                  <span className="font-bold text-slate-700 dark:text-slate-300 text-xs">{t.sadaqah}</span>
-                </div>
-                <span className="text-sm font-black text-slate-900 dark:text-white">{todayData.sadaqah ? t.yes : t.no}</span>
-              </div>
-              <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-primary-light/20 dark:bg-primary-dark/20 rounded-lg flex items-center justify-center">
-                    <CheckCircle2 className="w-4 h-4 text-primary" />
-                  </div>
-                  <span className="font-bold text-slate-700 dark:text-slate-300 text-xs">{t.fasting}</span>
-                </div>
-                <span className="text-sm font-black text-slate-900 dark:text-white">{todayData.fasting ? t.yes : t.no}</span>
-              </div>
-            </div>
-          </section>
-
-          {/* নামাজ ট্র্যাকার (History) */}
-          <section className="bg-white dark:bg-slate-900 rounded-lg p-5 border border-slate-100 dark:border-slate-800">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-slate-800 dark:text-slate-200">{t.prayerTracker}</h3>
-              <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
-                {(['today', 'week', 'month'] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={cn(
-                      "px-2.5 py-1 text-[10px] font-bold rounded-md transition-all",
-                      activeTab === tab 
-                        ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400" 
-                        : "text-slate-500"
-                    )}
-                  >
-                    {tab === 'today' ? t.today : tab === 'week' ? t.days7 : t.days30}
-                  </button>
-                ))}
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-3 gap-3">
-              <div className="p-3.5 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-lg border border-indigo-100/50 dark:border-indigo-900/20">
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">{t.completed}</p>
-                <p className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
-                  {stats.completed}
-                </p>
-              </div>
-              <div className="p-3.5 bg-rose-50/50 dark:bg-rose-900/10 rounded-lg border border-rose-100/50 dark:border-rose-900/20">
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">{t.missed}</p>
-                <p className="text-xl font-bold text-rose-600 dark:text-rose-400">
-                  {stats.missed}
-                </p>
-              </div>
-              <div className="p-3.5 bg-amber-50/50 dark:bg-amber-900/10 rounded-lg border border-amber-100/50 dark:border-amber-900/20">
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">{t.qaza}</p>
-                <p className="text-xl font-bold text-amber-600 dark:text-amber-400">
-                  {stats.totalQaza}
-                </p>
-              </div>
-            </div>
-          </section>
-
-          {/* মাসিক রিপোর্ট (Monthly Report) */}
-          <section className="bg-white dark:bg-slate-900 rounded-lg p-5 border border-slate-100 dark:border-slate-800">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-slate-800 dark:text-slate-200">{t.monthlyReport}</h3>
-            </div>
-
-            <div className="mb-4">
-              <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 mb-1">
-                <span>{globalT('current-month-progress' as any) || 'Current Month Progress'}</span>
-                <span>{Math.round((stats.completed / (stats.daysCount * 5)) * 100)}%</span>
-              </div>
-              <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-indigo-500 rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min(100, (stats.completed / (stats.daysCount * 5)) * 100)}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3">
-               <div className="p-3.5 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-lg border border-indigo-100/50 dark:border-indigo-900/20">
-                 <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">{t.prayer}</p>
-                 <p className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
-                   {currentMonthStats.completed}
-                 </p>
-                 <p className="text-[8px] text-slate-400 mt-1">{(t as any).thisMonth}</p>
-               </div>
-               <div className="p-3.5 bg-blue-50/50 dark:bg-blue-900/10 rounded-lg border border-blue-100/50 dark:border-blue-900/20">
-                 <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">{t.quran}</p>
-                 <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                   {currentMonthStats.totalQuran}
-                 </p>
-                 <p className="text-[8px] text-slate-400 mt-1">{(t as any).thisMonth}</p>
-               </div>
-               <div className="p-3.5 bg-amber-50/50 dark:bg-amber-900/10 rounded-lg border border-amber-100/50 dark:border-amber-900/20">
-                 <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">{t.zikr}</p>
-                 <p className="text-xl font-bold text-amber-600 dark:text-amber-400">
-                   {currentMonthStats.totalZikr}
-                 </p>
-                 <p className="text-[8px] text-slate-400 mt-1">{(t as any).thisMonth}</p>
-               </div>
-            </div>
-          </section>
-
-          {/* কুরআন ও যিকির ট্র্যাকার */}
-          <section className="grid grid-cols-2 gap-3">
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-lg border border-slate-100 dark:border-slate-800">
-              <div className="w-9 h-9 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-center mb-2">
-                <BookOpen className="w-4 h-4 text-blue-600" />
-              </div>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">{t.totalReading}</p>
-              <p className="text-base font-bold text-slate-800 dark:text-slate-200">{overallStats.totalQuran} {globalT('pages' as any) || 'pages'}</p>
-              <p className="text-[9px] text-slate-400 mt-0.5">{t.avg}: {Math.round(overallStats.totalQuran / Math.max(1, overallStats.daysCount))} {t.pagesDay}</p>
-            </div>
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-lg border border-slate-100 dark:border-slate-800">
-              <div className="w-9 h-9 bg-amber-50 dark:bg-amber-900/20 rounded-lg flex items-center justify-center mb-2">
-                <Hash className="w-4 h-4 text-amber-600" />
-              </div>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">{t.totalTasbih}</p>
-              <p className="text-base font-bold text-slate-800 dark:text-slate-200">{overallStats.totalZikr} {globalT('times' as any) || 'times'}</p>
-              <p className="text-[9px] text-slate-400 mt-0.5">{t.avg}: {Math.round(overallStats.totalZikr / Math.max(1, overallStats.daysCount))} {t.timesDay}</p>
-            </div>
-          </section>
-
-          {/* অর্জন (Achievements / Badges) */}
-          <section className="space-y-2">
-            <div className="flex items-center justify-between px-2">
-              <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t.achievements}</h3>
-              <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">{earnedBadges.length}/{BADGE_DEFINITIONS.length} {t.earned}</span>
-            </div>
-            <div className="flex space-x-4 overflow-x-auto pb-2 scrollbar-hide px-2">
-              {BADGE_DEFINITIONS.map((badge) => {
-                const isEarned = earnedBadges.includes(badge.id);
-                return (
-                  <Badge 
-                    key={badge.id}
-                    icon={badge.icon} 
-                    title={globalT(badge.titleKey as any)} 
-                    isLocked={!isEarned}
-                    type={badge.type}
-                    description={globalT(badge.descKey as any)}
+        <div className="space-y-4">
+              <section className="bg-white dark:bg-slate-900 rounded-lg overflow-hidden border border-slate-100 dark:border-slate-800">
+                <div className="divide-y divide-slate-50 dark:divide-slate-800">
+                  <MenuItem 
+                    icon={<User className="text-amber-500" />} 
+                    title={t.editProfile} 
+                    onClick={() => {
+                      if (!user) {
+                        onNavigate?.('auth');
+                      } else {
+                        setShowEditProfilePage(true);
+                      }
+                    }}
                   />
-                );
-              })}
-            </div>
-          </section>
+                  <MenuItem 
+                    icon={<Activity className="text-emerald-500" />} 
+                    title={language === 'bn' ? 'ট্র্যাকার' : 'Tracker'} 
+                    onClick={() => setShowTrackersPage(true)}
+                  />
+                  <FavoriteItem 
+                    icon={<Bookmark className="text-amber-500" />} 
+                    title={language === 'bn' ? 'সেভ করা পোস্ট' : 'Saved Posts'} 
+                    count={favoritePosts.length} 
+                    suffix={t.items} 
+                    onClick={() => setShowFavoritePosts(true)}
+                  />
+                  <FavoriteItem 
+                    icon={<Heart className="text-rose-500" />} 
+                    title={t.savedDua} 
+                    count={favoriteDuaCount} 
+                    suffix={t.items} 
+                    onClick={() => setShowFavoriteDuas(true)}
+                  />
+                  <FavoriteItem 
+                    icon={<BookOpen className="text-indigo-500" />} 
+                    title={t.bookmarkedAyat} 
+                    count={favoriteAyatCount} 
+                    suffix={t.items} 
+                    onClick={() => setShowFavoriteAyats(true)}
+                  />
+                  <FavoriteItem 
+                    icon={<Star className="text-blue-500" />} 
+                    title={t.favoriteHadith} 
+                    count={favoriteHadithCount} 
+                    suffix={t.items} 
+                    onClick={() => setShowFavoriteHadiths(true)}
+                  />
+                </div>
+              </section>
 
-          {/* Saved / Favorite */}
-          <section className="bg-white dark:bg-slate-900 rounded-lg overflow-hidden border border-slate-100 dark:border-slate-800">
-            <div className="p-3.5 border-b border-slate-50 dark:border-slate-800">
-              <h3 className="font-bold text-slate-800 dark:text-slate-200">{t.favorites}</h3>
-            </div>
-            <div className="divide-y divide-slate-50 dark:divide-slate-800">
-              <FavoriteItem 
-                icon={<BookOpen className="text-blue-500" />} 
-                title={language === 'bn' ? 'সেভ করা পোস্ট' : 'Saved Posts'} 
-                count={favoritePosts.length} 
-                suffix={t.items} 
-                onClick={() => setShowFavoritePosts(true)}
-              />
-              <FavoriteItem 
-                icon={<Heart className="text-rose-500" />} 
-                title={t.savedDua} 
-                count={favoriteDuaCount} 
-                suffix={t.items} 
-                onClick={() => setShowFavoriteDuas(true)}
-              />
-              <FavoriteItem 
-                icon={<Bookmark className="text-indigo-500" />} 
-                title={t.bookmarkedAyat} 
-                count={favoriteAyatCount} 
-                suffix={t.items} 
-                onClick={() => setShowFavoriteAyats(true)}
-              />
-              <FavoriteItem 
-                icon={<Star className="text-amber-500" />} 
-                title={t.favoriteHadith} 
-                count={favoriteHadithCount} 
-                suffix={t.items} 
-                onClick={() => setShowFavoriteHadiths(true)}
-              />
-            </div>
-          </section>
-
-          {/* রিমাইন্ডার স্ট্যাটাস */}
-          <section className="bg-white dark:bg-slate-900 rounded-lg p-5 border border-slate-100 dark:border-slate-800">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-slate-800 dark:text-slate-200">{t.reminderStatus}</h3>
-              <button 
-                onClick={() => setShowReminderModal(true)}
-                className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider"
-              >
-                {globalT('manage' as any)}
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(reminders).map(([label, active]) => (
-                <ReminderBadge 
-                  key={label} 
-                  label={label} 
-                  active={active} 
-                  onClick={() => toggleReminder(label)}
-                />
-              ))}
-            </div>
-          </section>
-
-        {/* Quick Settings */}
+              {/* Quick Settings */}
           <section className="bg-white dark:bg-slate-900 rounded-lg overflow-hidden border border-slate-100 dark:border-slate-800">
             <div className="p-3.5 border-b border-slate-50 dark:border-slate-800">
               <h3 className="font-bold text-slate-800 dark:text-slate-200">{language === 'bn' ? 'সেটিংস' : 'Settings'}</h3>
             </div>
             <div className="divide-y divide-slate-50 dark:divide-slate-800">
               <MenuItem 
-                icon={<User className="text-blue-500" />} 
-                title={t.editProfile} 
-                onClick={() => {
-                  if (!user) {
-                    onNavigate?.('auth');
-                  } else {
-                    setShowEditProfilePage(true);
-                  }
-                }}
-              />
-              <MenuItem 
                 icon={<Settings className="text-primary" />} 
-                title={language === 'bn' ? 'অ্যাপ সেটিংস (App Settings)' : 'App Settings'} 
+                title={language === 'bn' ? 'অ্যাপ সেটিংস' : 'App Settings'} 
                 onClick={() => onNavigate?.('settings')}
               />
+            </div>
+          </section>
+
+          {/* Future Placeholders */}
+          <section className="grid grid-cols-1 gap-3 mt-6">
+            <div className="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 opacity-70">
+              <div className="w-9 h-9 bg-white dark:bg-slate-800 rounded-lg flex items-center justify-center mb-2">
+                <ShoppingBag className="w-4 h-4 text-slate-400" />
+              </div>
+              <p className="text-sm font-bold text-slate-600 dark:text-slate-400">{t.myShop}</p>
+              <p className="text-[9px] text-indigo-600 dark:text-indigo-400 font-bold mt-0.5">{t.comingSoon}</p>
             </div>
           </section>
 
@@ -1540,8 +1328,21 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
             </div>
           )}
 
-          {/* Edit Profile Modal */}
-          <AnimatePresence>
+          {/* Account Control */}
+          {user && (
+            <section className="bg-white dark:bg-slate-900 rounded-lg overflow-hidden border border-slate-100 dark:border-slate-800">
+              <div className="divide-y divide-slate-50 dark:divide-slate-800">
+                <MenuItem icon={<Lock className="text-slate-500" />} title={t.changePassword} onClick={handleChangePassword} />
+                <MenuItem icon={<LogOut className="text-rose-500" />} title={t.logout} onClick={handleLogout} />
+                <MenuItem icon={<Trash2 className="text-slate-400" />} title={t.deleteAccount} isDanger onClick={handleDeleteAccount} />
+              </div>
+            </section>
+          )}
+
+        </div>
+
+        {/* Edit Profile Modal */}
+        <AnimatePresence>
             {showEditProfileModal && (
               <motion.div 
                 initial={{ opacity: 0 }}
@@ -1602,17 +1403,6 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
             currentLat={latitude}
             currentLon={longitude}
           />
-
-          {/* Future Placeholders */}
-          <section className="grid grid-cols-1 gap-3">
-            <div className="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 opacity-70">
-              <div className="w-9 h-9 bg-white dark:bg-slate-800 rounded-lg flex items-center justify-center mb-2">
-                <ShoppingBag className="w-4 h-4 text-slate-400" />
-              </div>
-              <p className="text-sm font-bold text-slate-600 dark:text-slate-400">{t.myShop}</p>
-              <p className="text-[9px] text-indigo-600 dark:text-indigo-400 font-bold mt-0.5">{t.comingSoon}</p>
-            </div>
-          </section>
 
           {/* Favorite Views */}
           <AnimatePresence>
@@ -1759,17 +1549,6 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
             )}
           </AnimatePresence>
 
-          {/* Account Control */}
-          {user && (
-            <section className="bg-white dark:bg-slate-900 rounded-lg overflow-hidden border border-slate-100 dark:border-slate-800">
-              <div className="divide-y divide-slate-50 dark:divide-slate-800">
-                <MenuItem icon={<Lock className="text-slate-500" />} title={t.changePassword} onClick={handleChangePassword} />
-                <MenuItem icon={<LogOut className="text-rose-500" />} title={t.logout} onClick={handleLogout} />
-                <MenuItem icon={<Trash2 className="text-slate-400" />} title={t.deleteAccount} isDanger onClick={handleDeleteAccount} />
-              </div>
-            </section>
-          )}
-
           {/* Language Selection Full Screen Page */}
           <AnimatePresence>
             {showLanguageModal && (
@@ -1791,6 +1570,262 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
                   </h2>
                 </div>
                 <LanguageSelectionView />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Trackers Full Screen Page */}
+          <AnimatePresence>
+            {showTrackersPage && (
+              <motion.div 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="fixed inset-0 z-[150] bg-slate-50 dark:bg-slate-950 pb-20 overflow-y-auto"
+              >
+                <div className="sticky top-0 z-10 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 px-4 py-3 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <button 
+                      onClick={() => setShowTrackersPage(false)}
+                      className="p-2 -ml-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                    >
+                      <ArrowLeft className="w-5 h-5 text-slate-700 dark:text-slate-300" />
+                    </button>
+                    <h2 className="font-bold text-slate-800 dark:text-white text-lg">
+                      {language === 'bn' ? 'ট্র্যাকার হিস্টরি' : 'Tracker History'}
+                    </h2>
+                  </div>
+                </div>
+                <div className="px-4 py-6 space-y-6">
+                  {/* ইবাদত স্ট্যাটাস (Main Highlight) */}
+                  <section className="space-y-2">
+                    <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 px-2 uppercase tracking-wider">{t.statusToday}</h3>
+                    <div className="grid grid-cols-1 gap-2">
+                      <StatusCard 
+                        icon={<Clock className="w-5 h-5 text-primary" />}
+                        title={t.prayerToday}
+                        value={`${completedToday}/5`}
+                        progress={(completedToday / 5) * 100}
+                        color="bg-primary"
+                        label={completedToday === 5 ? t.allPrayersDone : t.prayersLeft(5 - completedToday)}
+                      />
+                      <StatusCard 
+                        icon={<BookOpen className="w-5 h-5 text-blue-500" />}
+                        title={t.quranReading}
+                        value={`${todayData.quran || 0} ${globalT('pages' as any) || 'pages'}`}
+                        progress={Math.min(100, ((todayData.quran || 0) / 10) * 100)}
+                        color="bg-blue-500"
+                        label={todayData.quran >= 10 ? t.targetReached : t.targetQuran}
+                      />
+                      <StatusCard 
+                        icon={<Zap className="w-5 h-5 text-amber-500" />}
+                        title={t.zikrTasbih}
+                        value={`${todayData.zikr || 0} ${globalT('times' as any) || 'times'}`}
+                        progress={Math.min(100, ((todayData.zikr || 0) / 1000) * 100)}
+                        color="bg-amber-500"
+                        label={t.targetZikr}
+                      />
+                    </div>
+                  </section>
+
+                  {/* Daily Habits */}
+                  <section className="space-y-2">
+                    <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 px-2 uppercase tracking-wider">{t.dailyHabits}</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-100 dark:border-slate-800 flex items-center justify-between shadow-sm">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-8 h-8 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
+                            <Droplets className="w-4 h-4 text-blue-500" />
+                          </div>
+                          <span className="font-bold text-slate-700 dark:text-slate-300 text-xs">{t.water}</span>
+                        </div>
+                        <span className="text-sm font-black text-slate-900 dark:text-white">{todayData.water || 0} <span className="text-[10px] font-normal text-slate-500">{t.glasses}</span></span>
+                      </div>
+                      <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-100 dark:border-slate-800 flex items-center justify-between shadow-sm">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-8 h-8 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg flex items-center justify-center">
+                            <Bed className="w-4 h-4 text-indigo-500" />
+                          </div>
+                          <span className="font-bold text-slate-700 dark:text-slate-300 text-xs">{t.sleep}</span>
+                        </div>
+                        <span className="text-sm font-black text-slate-900 dark:text-white">{todayData.sleep || 0} <span className="text-[10px] font-normal text-slate-500">{t.hours}</span></span>
+                      </div>
+                      <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-100 dark:border-slate-800 flex items-center justify-between shadow-sm">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-8 h-8 bg-rose-50 dark:bg-rose-900/20 rounded-lg flex items-center justify-center">
+                            <HeartHandshake className="w-4 h-4 text-rose-500" />
+                          </div>
+                          <span className="font-bold text-slate-700 dark:text-slate-300 text-xs">{t.sadaqah}</span>
+                        </div>
+                        <span className="text-sm font-black text-slate-900 dark:text-white">{todayData.sadaqah ? t.yes : t.no}</span>
+                      </div>
+                      <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-100 dark:border-slate-800 flex items-center justify-between shadow-sm">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-8 h-8 bg-primary-light/20 dark:bg-primary-dark/20 rounded-lg flex items-center justify-center">
+                            <CheckCircle2 className="w-4 h-4 text-primary" />
+                          </div>
+                          <span className="font-bold text-slate-700 dark:text-slate-300 text-xs">{t.fasting}</span>
+                        </div>
+                        <span className="text-sm font-black text-slate-900 dark:text-white">{todayData.fasting ? t.yes : t.no}</span>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* নামাজ ট্র্যাকার (History) */}
+                  <section className="bg-white dark:bg-slate-900 rounded-lg p-5 border border-slate-100 dark:border-slate-800 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-bold text-slate-800 dark:text-slate-200">{t.prayerTracker}</h3>
+                      <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                        {(['today', 'week', 'month'] as const).map((tab) => (
+                          <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={cn(
+                              "px-2.5 py-1 text-[10px] font-bold rounded-md transition-all",
+                              activeTab === tab 
+                                ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400" 
+                                : "text-slate-500 -hover"
+                            )}
+                          >
+                            {tab === 'today' ? t.today : tab === 'week' ? t.days7 : t.days30}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="p-3.5 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-lg border border-indigo-100/50 dark:border-indigo-900/20">
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">{t.completed}</p>
+                        <p className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
+                          {stats.completed}
+                        </p>
+                      </div>
+                      <div className="p-3.5 bg-rose-50/50 dark:bg-rose-900/10 rounded-lg border border-rose-100/50 dark:border-rose-900/20">
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">{t.missed}</p>
+                        <p className="text-xl font-bold text-rose-600 dark:text-rose-400">
+                          {stats.missed}
+                        </p>
+                      </div>
+                      <div className="p-3.5 bg-amber-50/50 dark:bg-amber-900/10 rounded-lg border border-amber-100/50 dark:border-amber-900/20">
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">{t.qaza}</p>
+                        <p className="text-xl font-bold text-amber-600 dark:text-amber-400">
+                          {stats.totalQaza}
+                        </p>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* মাসিক রিপোর্ট (Monthly Report) */}
+                  <section className="bg-white dark:bg-slate-900 rounded-lg p-5 border border-slate-100 dark:border-slate-800 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-bold text-slate-800 dark:text-slate-200">{t.monthlyReport}</h3>
+                    </div>
+
+                    <div className="mb-4">
+                      <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 mb-1">
+                        <span>{globalT('current-month-progress' as any) || 'Current Month Progress'}</span>
+                        <span>{Math.round((stats.completed / (stats.daysCount * 5)) * 100)}%</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+                          style={{ width: `${Math.min(100, (stats.completed / (stats.daysCount * 5)) * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3">
+                       <div className="p-3.5 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-lg border border-indigo-100/50 dark:border-indigo-900/20">
+                         <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">{t.prayer}</p>
+                         <p className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
+                           {currentMonthStats.completed}
+                         </p>
+                         <p className="text-[8px] text-slate-400 mt-1">{(t as any).thisMonth}</p>
+                       </div>
+                       <div className="p-3.5 bg-blue-50/50 dark:bg-blue-900/10 rounded-lg border border-blue-100/50 dark:border-blue-900/20">
+                         <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">{t.quran}</p>
+                         <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                           {currentMonthStats.totalQuran}
+                         </p>
+                         <p className="text-[8px] text-slate-400 mt-1">{(t as any).thisMonth}</p>
+                       </div>
+                       <div className="p-3.5 bg-amber-50/50 dark:bg-amber-900/10 rounded-lg border border-amber-100/50 dark:border-amber-900/20">
+                         <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">{t.zikr}</p>
+                         <p className="text-xl font-bold text-amber-600 dark:text-amber-400">
+                           {currentMonthStats.totalZikr}
+                         </p>
+                         <p className="text-[8px] text-slate-400 mt-1">{(t as any).thisMonth}</p>
+                       </div>
+                    </div>
+                  </section>
+
+                  {/* কুরআন ও যিকির ট্র্যাকার */}
+                  <section className="grid grid-cols-2 gap-3">
+                    <div className="bg-white dark:bg-slate-900 p-4 rounded-lg border border-slate-100 dark:border-slate-800 shadow-sm">
+                      <div className="w-9 h-9 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-center mb-2">
+                        <BookOpen className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">{t.totalReading}</p>
+                      <p className="text-base font-bold text-slate-800 dark:text-slate-200">{overallStats.totalQuran} {globalT('pages' as any) || 'pages'}</p>
+                      <p className="text-[9px] text-slate-400 mt-0.5">{t.avg}: {Math.round(overallStats.totalQuran / Math.max(1, overallStats.daysCount))} {t.pagesDay}</p>
+                    </div>
+                    <div className="bg-white dark:bg-slate-900 p-4 rounded-lg border border-slate-100 dark:border-slate-800 shadow-sm">
+                      <div className="w-9 h-9 bg-amber-50 dark:bg-amber-900/20 rounded-lg flex items-center justify-center mb-2">
+                        <Hash className="w-4 h-4 text-amber-600" />
+                      </div>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">{t.totalTasbih}</p>
+                      <p className="text-base font-bold text-slate-800 dark:text-slate-200">{overallStats.totalZikr} {globalT('times' as any) || 'times'}</p>
+                      <p className="text-[9px] text-slate-400 mt-0.5">{t.avg}: {Math.round(overallStats.totalZikr / Math.max(1, overallStats.daysCount))} {t.timesDay}</p>
+                    </div>
+                  </section>
+
+                  {/* অর্জন (Achievements / Badges) */}
+                  <section className="space-y-2">
+                    <div className="flex items-center justify-between px-2">
+                      <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t.achievements}</h3>
+                      <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">{earnedBadges.length}/{BADGE_DEFINITIONS.length} {t.earned}</span>
+                    </div>
+                    <div className="flex space-x-4 overflow-x-auto pb-2 scrollbar-hide px-2">
+                      {BADGE_DEFINITIONS.map((badge) => {
+                        const isEarned = earnedBadges.includes(badge.id);
+                        return (
+                          <Badge 
+                            key={badge.id}
+                            icon={badge.icon} 
+                            title={globalT(badge.titleKey as any)} 
+                            isLocked={!isEarned}
+                            type={badge.type}
+                            description={globalT(badge.descKey as any)}
+                          />
+                        );
+                      })}
+                    </div>
+                  </section>
+
+                  {/* রিমাইন্ডার স্ট্যাটাস */}
+                  <section className="bg-white dark:bg-slate-900 rounded-lg p-5 border border-slate-100 dark:border-slate-800 shadow-sm">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-bold text-slate-800 dark:text-slate-200">{t.reminderStatus}</h3>
+                      <button 
+                        onClick={() => setShowReminderModal(true)}
+                        className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider"
+                      >
+                        {globalT('manage' as any)}
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(reminders).map(([label, active]) => (
+                        <ReminderBadge 
+                          key={label} 
+                          label={label} 
+                          active={active} 
+                          onClick={() => toggleReminder(label)}
+                        />
+                      ))}
+                    </div>
+                  </section>
+
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

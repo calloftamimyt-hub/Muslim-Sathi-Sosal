@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import { OfflineImage } from "@/components/OfflineImage";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Film,
@@ -151,7 +152,7 @@ import { ProfileStatusModal } from "@/components/ProfileStatusModal";
 import { VideoAnalyticsOverlay } from "@/components/tools/VideoAnalyticsOverlay";
 import { VideoBoostOverlay } from "@/components/tools/VideoBoostOverlay";
 import { BoostCenterModal } from "@/components/tools/BoostCenterModal";
-import { DepositModal } from "@/components/DepositModal";
+import { DepositView } from "@/pages/features/DepositView";
 import { UUIDMakerTool } from "@/components/tools/UUIDMakerTool";
 import { CodeFormatTool } from "@/components/tools/CodeFormatTool";
 import { DeviceInfoTool } from "@/components/tools/DeviceInfoTool";
@@ -498,12 +499,12 @@ const AnalyticsDashboard = () => {
     lastPostDate: 0,
   });
   const [chartData, setChartData] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (!auth.currentUser) return;
 
-    setIsLoading(true);
+    // Remove automatic setIsLoading(true) to avoid skeletons
     const q = query(
       collection(db, "posts"),
       where("authorUid", "==", auth.currentUser.uid),
@@ -1932,7 +1933,7 @@ const ProfileView = ({
     following: 0,
   });
   const [posts, setPosts] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [currentUserAvatar, setCurrentUserAvatar] = useState<string | null>(
     null,
   );
@@ -1940,7 +1941,8 @@ const ProfileView = ({
   useEffect(() => {
     if (!auth.currentUser) return;
 
-    setIsLoading(true);
+    // Disabled explicitly to prevent skeleton
+    setIsLoading(false);
 
     // Fetch User Data for avatar
     const fetchUserDoc = async () => {
@@ -2050,7 +2052,7 @@ const ProfileView = ({
             <div className="w-24 h-24 rounded-full p-1 bg-gradient-to-tr from-blue-500 to-indigo-600 mb-4 shadow-lg active:scale-95 transition-transform">
               <div className="w-full h-full rounded-full bg-white dark:bg-slate-900 p-1">
                 {currentUserAvatar || auth.currentUser?.photoURL ? (
-                  <img
+                  <OfflineImage
                     src={currentUserAvatar || auth.currentUser?.photoURL || ""}
                     alt="Avatar"
                     referrerPolicy="no-referrer"
@@ -2328,9 +2330,7 @@ export const ToolsView = ({
   const [lastVisible, setLastVisible] = useState<any>(globalLastVisiblePost);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [isPostsLoading, setIsPostsLoading] = useState(
-    globalIsPreloadedPostsLoading,
-  );
+  const [isPostsLoading, setIsPostsLoading] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -2503,13 +2503,7 @@ export const ToolsView = ({
 
   // Fake loading for Tools tab
   useEffect(() => {
-    if (activeTab === "tools") {
-      setIsToolsTabLoading(true);
-      const timer = setTimeout(() => {
-        setIsToolsTabLoading(false);
-      }, 600);
-      return () => clearTimeout(timer);
-    }
+    // Removed loading simulation to show immediately
   }, [activeTab]);
 
   useEffect(() => {
@@ -2954,27 +2948,6 @@ export const ToolsView = ({
       </header>
 
       <AnimatePresence mode="wait">
-        {(isPostsLoading || isToolsTabLoading) && (
-          <motion.div
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0, scaleX: 1, transition: { duration: 0.2 } }}
-            className="fixed top-0 inset-x-0 h-1 z-[200] origin-left bg-blue-100"
-          >
-            <motion.div
-              className="h-full bg-blue-600"
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: [0, 0.3, 0.6, 0.85] }}
-              transition={{
-                duration: 2,
-                times: [0, 0.3, 0.6, 1],
-                ease: "easeOut",
-              }}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence mode="wait">
         {activeToolId === "yt-thumbnail" ? (
           <motion.div
             key="yt-tool-view"
@@ -3415,38 +3388,28 @@ export const ToolsView = ({
                   ) : activeTab === "tools" && !activeToolId ? (
                     <div className="flex-1 p-4 pb-32">
                       <div className="grid grid-cols-4 gap-x-2 gap-y-4">
-                        {isToolsTabLoading
-                          ? [...Array(8)].map((_, i) => (
-                              <div
-                                key={i}
-                                className="flex flex-col items-center gap-1.5"
-                              >
-                                <div className="w-11 h-11 rounded-full shimmer bg-slate-200 dark:bg-slate-800" />
-                                <div className="w-12 h-2 rounded shimmer bg-slate-200 dark:bg-slate-800" />
-                              </div>
-                            ))
-                          : SOCIAL_TOOLS.map((tool) => (
-                              <button
-                                key={tool.id}
-                                onClick={() => handleOpenTool(tool.id)}
-                                className="relative flex flex-col items-center gap-1.5 group"
-                              >
-                                <div
-                                  className={cn(
-                                    "w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm",
-                                    tool.bg,
-                                    "group-hover:scale-110 active:scale-95",
-                                  )}
-                                >
-                                  <tool.icon className="w-5 h-5 text-white" />
-                                </div>
-                                <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 text-center leading-tight truncate w-full px-0.5">
-                                  {language === "bn"
-                                    ? tool.title.bn
-                                    : tool.title.en}
-                                </span>
-                              </button>
-                            ))}
+                        {SOCIAL_TOOLS.map((tool) => (
+                           <button
+                             key={tool.id}
+                             onClick={() => handleOpenTool(tool.id)}
+                             className="relative flex flex-col items-center gap-1.5 group"
+                           >
+                             <div
+                               className={cn(
+                                 "w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm",
+                                 tool.bg,
+                                 "group-hover:scale-110 active:scale-95",
+                               )}
+                             >
+                               <tool.icon className="w-5 h-5 text-white" />
+                             </div>
+                             <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 text-center leading-tight truncate w-full px-0.5">
+                               {language === "bn"
+                                 ? tool.title.bn
+                                 : tool.title.en}
+                             </span>
+                           </button>
+                         ))}
                       </div>
                     </div>
                   ) : (
@@ -3507,13 +3470,7 @@ export const ToolsView = ({
                       {/* Posts Feed Section */}
                       <div className="pb-0 flex flex-col border-t border-slate-100 dark:border-slate-800">
                         <AnimatePresence initial={false}>
-                          {isPostsLoading ? (
-                            <div className="space-y-0">
-                              <PostSkeleton />
-                              <PostSkeleton />
-                              <PostSkeleton />
-                            </div>
-                          ) : posts.length > 0 ? (
+                          {posts.length > 0 ? (
                             selectedCategory === "shorts" ? (
                               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 bg-slate-50 dark:bg-slate-950 min-h-[60vh] pb-24">
                                 {posts
@@ -3990,9 +3947,8 @@ export const ToolsView = ({
       
       <AnimatePresence>
         {isDepositModalOpen && (
-           <DepositModal 
-              isOpen={isDepositModalOpen}
-              onClose={() => setIsDepositModalOpen(false)}
+           <DepositView 
+              onBack={() => setIsDepositModalOpen(false)}
            />
         )}
       </AnimatePresence>

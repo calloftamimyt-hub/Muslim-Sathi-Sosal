@@ -315,7 +315,7 @@ async function startServer() {
   app.post("/api/telegram/upload", upload.single("file"), async (req, res) => {
     console.log("Received Telegram Upload Request");
     try {
-      const { type, postId, appUrl, title, authorName } = req.body;
+      const { type, postId, appUrl, title, authorName, caption, chat_id } = req.body;
       const file = (req as any).file;
       
       if (!file) {
@@ -324,8 +324,11 @@ async function startServer() {
       }
 
       const formData = new FormData();
-      formData.append("chat_id", ADMIN_CHAT_ID);
-      formData.append("caption", `New ${type} Post Request:\n\nUser: ${authorName}\nText: ${title}`);
+      formData.append("chat_id", chat_id || ADMIN_CHAT_ID);
+      
+      const defaultCaption = `New ${type} Post Request:\n\nUser: ${authorName}\nText: ${title}`;
+      formData.append("caption", caption || defaultCaption);
+      
       formData.append(type === "video" ? "video" : "photo", fs.createReadStream(file.path), {
         filename: file.originalname || (type === "video" ? "video.mp4" : "photo.jpg"),
         contentType: file.mimetype || (type === "video" ? "video/mp4" : "image/jpeg")
@@ -361,7 +364,7 @@ async function startServer() {
       // Update with Inline Keyboard pointing to App URLs ONLY if it's a post (has postId)
       if (postId) {
         await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/editMessageReplyMarkup`, {
-          chat_id: ADMIN_CHAT_ID,
+          chat_id: chat_id || ADMIN_CHAT_ID,
           message_id: messageId,
           reply_markup: {
             inline_keyboard: [[

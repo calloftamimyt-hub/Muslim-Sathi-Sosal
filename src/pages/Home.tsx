@@ -396,14 +396,13 @@ export function Home({
       return [];
     }
   });
-  const [scholarsLoading, setScholarsLoading] = useState(true);
+  const [scholarsLoading, setScholarsLoading] = useState(false);
 
   useEffect(() => {
     // Better listener for scholars with direct server fetch if needed
     const scholarsRef = collection(db, "scholars");
     const q = query(scholarsRef, orderBy("createdAt", "desc"), limit(10));
 
-    setScholarsLoading(true);
     const unsub = onSnapshot(
       q,
       { includeMetadataChanges: true },
@@ -417,7 +416,6 @@ export function Home({
           setScholars(data);
           localStorage.setItem('cached_scholars', JSON.stringify(data));
         }
-        setScholarsLoading(false);
 
         // If we got data from cache and it's empty, but we're online, wait for server
         if (data.length === 0 && snapshot.metadata.fromCache) {
@@ -426,7 +424,6 @@ export function Home({
       },
       (error) => {
         console.error("Error fetching scholars:", error);
-        setScholarsLoading(false);
       },
     );
 

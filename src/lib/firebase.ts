@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { initializeFirestore, getDocFromServer, doc } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, getDocFromServer, doc } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getMessaging, isSupported } from 'firebase/messaging';
 import { Capacitor } from '@capacitor/core';
@@ -19,6 +19,7 @@ const databaseId = (firebaseConfig as any).firestoreDatabaseId;
 // Use initializeFirestore instead of getFirestore to pass settings
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: Capacitor.isNativePlatform(),
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
   ...(databaseId && databaseId !== '(default)' ? { databaseId } : {})
 });
 

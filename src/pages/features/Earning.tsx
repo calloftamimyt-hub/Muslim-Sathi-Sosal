@@ -217,6 +217,19 @@ function IslamicScene() {
 
 export function EarningView({ onBack }: EarningViewProps) {
   const { t, language } = useLanguage();
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeSubView, setActiveSubView] = useState<string | null>(null);
@@ -1521,9 +1534,34 @@ export function EarningView({ onBack }: EarningViewProps) {
         )}
       </AnimatePresence>
 
-      {/* Login Banner Overlay (Bottom) */}
+      {/* Login / Offline Banner Overlay (Bottom) */}
       <AnimatePresence>
-        {!currentUser && (
+        {!isOnline ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom))] left-0 right-0 z-[100] md:pl-20 lg:pl-64 pointer-events-none"
+          >
+            <div className="bg-red-50 dark:bg-slate-900 border-t border-red-100 dark:border-red-900/30 flex items-center justify-between gap-2 px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.15)] pointer-events-auto w-full">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 bg-red-100 dark:bg-red-500/20 rounded-lg flex items-center justify-center shrink-0">
+                  <ShieldAlert className="w-4 h-4 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <h3 className="text-red-700 dark:text-red-400 font-bold text-xs">
+                    {language === "bn" ? "অফলাইন মোড" : "Offline Mode"}
+                  </h3>
+                  <p className="text-red-600/80 dark:text-red-400/80 text-[10px] leading-tight mt-0.5">
+                    {language === "bn"
+                      ? "কাজ করতে ইন্টারনেট কানেকশন চালু করুন"
+                      : "Turn on internet connection to work"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        ) : !currentUser ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1571,7 +1609,7 @@ export function EarningView({ onBack }: EarningViewProps) {
               </div>
             </div>
           </motion.div>
-        )}
+        ) : null}
       </AnimatePresence>
     </div>
   );
