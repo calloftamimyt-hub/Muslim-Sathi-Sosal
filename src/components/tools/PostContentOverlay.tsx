@@ -11,7 +11,7 @@ import {
   Loader2,
   ArrowLeft,
   MapPin,
-  Captions,
+  Download,
   ChevronRight,
   ChevronDown,
   Navigation,
@@ -42,7 +42,8 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({
   const [category, setCategory] = useState("turkey");
   const [isPosting, setIsPosting] = useState(false);
   const [location, setLocation] = useState("");
-  const [subtitlesEnabled, setSubtitlesEnabled] = useState(false);
+  const [saveToAlbumEnabled, setSaveToAlbumEnabled] = useState(false);
+  const [allowOffline, setAllowOffline] = useState(false);
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   
   // Hashtag State
@@ -153,7 +154,7 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({
       formData.append("type", fileType);
       formData.append("category", category);
       formData.append("location", location);
-      formData.append("subtitles", String(subtitlesEnabled));
+      formData.append("saveToAlbum", String(saveToAlbumEnabled));
       // You could append trimStart and trimEnd here if the backend supports cutting
       // formData.append("trimStart", String(trimStart));
       // formData.append("trimEnd", String(trimEnd));
@@ -177,7 +178,8 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({
           type: fileType,
           category: category,
           location: location,
-          subtitlesEnabled: subtitlesEnabled,
+          saveToAlbumEnabled: saveToAlbumEnabled,
+          allowOffline: allowOffline,
           fileId: "",
           authorName: user?.displayName || user?.email || (language === 'bn' ? 'ইউজার' : 'User'),
           authorUid: user?.uid || "guest-uid",
@@ -452,26 +454,56 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({
                 {!location && <Navigation className="w-4 h-4 text-gray-400" />}
             </div>
             
-            {/* Subtitles Toggle */}
+            {/* Save Album Toggle */}
             <div className="px-4 py-4 flex items-center justify-between border-b border-gray-50 dark:border-gray-900/50">
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
-                        <Captions className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                        <Download className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                     </div>
                     <span className="text-[15px] font-medium text-gray-900 dark:text-white">
-                        {language === 'bn' ? 'সাবটাইটেল দেখান' : 'Generate Subtitles'}
+                        {language === 'bn' ? 'সেভ অ্যালবাম' : 'Save Album (with Muslim Sathi Logo)'}
                     </span>
                 </div>
                 <button 
-                    onClick={() => setSubtitlesEnabled(!subtitlesEnabled)}
+                    onClick={() => setSaveToAlbumEnabled(!saveToAlbumEnabled)}
                     className={cn(
                         "w-12 h-6.5 rounded-full p-1 transition-colors relative",
-                        subtitlesEnabled ? "bg-rose-500" : "bg-gray-200 dark:bg-gray-700"
+                        saveToAlbumEnabled ? "bg-rose-500" : "bg-gray-200 dark:bg-gray-700"
                     )}
                 >
                     <motion.div 
                         initial={false}
-                        animate={{ x: subtitlesEnabled ? 22 : 0 }}
+                        animate={{ x: saveToAlbumEnabled ? 22 : 0 }}
+                        className="w-5 h-5 bg-white rounded-full shadow-sm"
+                    />
+                </button>
+            </div>
+
+            {/* Offline Mode Toggle */}
+            <div className="px-4 py-4 flex items-center justify-between border-b border-gray-50 dark:border-gray-900/50">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
+                        <Film className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                    </div>
+                    <div>
+                        <span className="text-[15px] font-medium text-gray-900 dark:text-white block">
+                            {language === 'bn' ? 'অফলাইন মোড' : 'Offline Mode'}
+                        </span>
+                        <span className="text-xs text-gray-500 font-normal">
+                            {language === 'bn' ? 'ইউজাররা অফলাইনে দেখতে পারবে' : 'Users can view this offline'}
+                        </span>
+                    </div>
+                </div>
+                <button 
+                    onClick={() => setAllowOffline(!allowOffline)}
+                    className={cn(
+                        "w-12 h-6.5 rounded-full p-1 transition-colors relative",
+                        allowOffline ? "bg-rose-500" : "bg-gray-200 dark:bg-gray-700"
+                    )}
+                >
+                    <motion.div 
+                        initial={false}
+                        animate={{ x: allowOffline ? 22 : 0 }}
                         className="w-5 h-5 bg-white rounded-full shadow-sm"
                     />
                 </button>

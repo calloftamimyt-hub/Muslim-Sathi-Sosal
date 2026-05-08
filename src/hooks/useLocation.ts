@@ -19,7 +19,7 @@ export function useLocation(language: string = 'bn') {
   const [location, setLocation] = useState<LocationState>(() => {
     const saved = localStorage.getItem('userLocation');
     const savedLang = localStorage.getItem('userLocationLang');
-    if (saved && savedLang === language) {
+    if (saved) {
       return { ...JSON.parse(saved), loading: false };
     }
     return {

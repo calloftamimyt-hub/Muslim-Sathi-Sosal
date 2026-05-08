@@ -13,6 +13,28 @@ export const isPostVideo = (p: any): boolean => {
   return hasVideoType || isJSONVideo;
 };
 
+// --- Offline Caching Helper ---
+const cacheVideoForOffline = async (videoUrl: string, maxVideos = 100) => {
+  try {
+    if (!("caches" in window)) return;
+    const cache = await caches.open("offline-videos");
+    const keys = await cache.keys();
+    
+    // Check if we already have it
+    const match = await cache.match(videoUrl);
+    if (match) return;
+
+    // Cache if under the limit
+    if (keys.length < maxVideos) {
+      // Fetch and add to cache
+      await cache.add(videoUrl);
+    }
+  } catch (err) {
+    // Ignore fetch errors during offline caching
+    console.debug("Offline video caching skipped or failed", err);
+  }
+};
+
 export const ShortsFeedOverlay = ({ 
   posts, 
   initialPost, 
@@ -274,6 +296,13 @@ export const ShortVideoPlayer = ({ post, isOverlayOpen }: { post: any; isOverlay
 
   let finalFileId = post.fileId;
   if (typeof post.content === "object" && post.content?.fileId) finalFileId = post.content.fileId;
+
+  // Trigger offline caching if post allows it
+  useEffect(() => {
+    if (post.allowOffline && finalFileId) {
+       cacheVideoForOffline(getApiUrl(`/api/telegram/file/${finalFileId}`));
+    }
+  }, [post.allowOffline, finalFileId]);
 
   return (
     <div ref={wrapperRef} className="h-full w-full snap-start snap-always relative flex flex-col items-center justify-center bg-black overflow-hidden">

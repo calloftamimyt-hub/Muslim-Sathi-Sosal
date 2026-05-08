@@ -176,6 +176,19 @@ import { MuslimBrowser } from "@/components/MuslimBrowser";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { HelpSupportModal } from "@/components/tools/HelpSupportModal";
 
+export const isPostActivelyBoosted = (post: any) => {
+  if (post.boostInfo?.status === "approved" || post.boostInfo?.isActive) {
+    const boostedAt = post.boostInfo.boostedAt?.toMillis ? post.boostInfo.boostedAt.toMillis() : (post.createdAt?.seconds ? post.createdAt.seconds * 1000 : Date.now());
+    const targetViews = post.boostInfo.targetViews || 1500;
+    const daysMs = (post.boostInfo.days || 1) * 24 * 60 * 60 * 1000;
+    const isTimeUp = (Date.now() - boostedAt) > daysMs;
+    const isCompleted = isTimeUp || (post.views || 0) >= targetViews;
+    const currentIsActive = post.boostInfo?.isActive ?? true;
+    return currentIsActive && !isCompleted;
+  }
+  return false;
+};
+
 const SOCIAL_TOOLS = [
   {
     id: "yt-thumbnail",
@@ -1375,7 +1388,7 @@ const PostCard = ({
             </div>
             <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mt-0.5">
               <span>
-                {post.boostInfo?.isActive ? (
+                {(isPostActivelyBoosted(post) || (post.isBoosted && !post.boostInfo)) ? (
                   <span className="text-violet-600 dark:text-violet-400">
                     {language === "bn" ? "প্রমোটেড" : "Sponsored"}
                   </span>
@@ -1993,7 +2006,7 @@ try {
       const boostedPosts: any[] = [];
 
       postsData.forEach((p: any) => {
-        if (p.isBoosted || (p.boostInfo && p.boostInfo.status === "approved")) {
+        if (isPostActivelyBoosted(p) || (p.isBoosted && !p.boostInfo)) {
           boostedPosts.push(p);
         } else {
           normalPosts.push(p);
@@ -2338,7 +2351,7 @@ export const ToolsView = ({
           const boostedPosts: any[] = [];
 
           postsData.forEach((p: any) => {
-            if (p.isBoosted || (p.boostInfo && p.boostInfo.status === "approved")) {
+            if (isPostActivelyBoosted(p) || (p.isBoosted && !p.boostInfo)) {
               boostedPosts.push(p);
             } else {
               normalPosts.push(p);
@@ -2430,7 +2443,7 @@ export const ToolsView = ({
         const boostedPosts: any[] = [];
 
         postsData.forEach((p: any) => {
-          if (p.isBoosted || (p.boostInfo && p.boostInfo.status === "approved")) {
+          if (isPostActivelyBoosted(p) || (p.isBoosted && !p.boostInfo)) {
             boostedPosts.push(p);
           } else {
             normalPosts.push(p);

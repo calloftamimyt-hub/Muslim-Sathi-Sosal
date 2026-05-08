@@ -35,6 +35,31 @@ export const BoostCenterModal = ({
         const snapshot = await getDocs(q);
         const allPosts = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         const posts = allPosts.filter((p: any) => p.isBoosted || p.boostInfo?.status);
+        
+        // Auto-fill missing views for completed campaigns
+        for (const post of posts) {
+          if (post.boostInfo && post.boostInfo.status !== 'pending' && !post.boostInfo.autoFilled) {
+            const boostedAt = post.boostInfo.boostedAt?.toMillis ? post.boostInfo.boostedAt.toMillis() : (post.createdAt?.seconds ? post.createdAt.seconds * 1000 : Date.now());
+            const targetViews = post.boostInfo.targetViews || 1500;
+            const daysMs = (post.boostInfo.days || 1) * 24 * 60 * 60 * 1000;
+            const isTimeUp = (Date.now() - boostedAt) > daysMs;
+            
+            if (isTimeUp && (post.views || 0) < targetViews) {
+              try {
+                const postRef = doc(db, "posts", post.id);
+                await updateDoc(postRef, {
+                  views: targetViews,
+                  "boostInfo.autoFilled": true
+                });
+                post.views = targetViews;
+                post.boostInfo.autoFilled = true;
+              } catch (e) {
+                console.error("Failed to auto-fill views", e);
+              }
+            }
+          }
+        }
+        
         // Sort by boost start time down here since we couldn't create a composite index
         posts.sort((a: any, b: any) => {
            const timeA = a.boostInfo?.boostedAt?.seconds || a.createdAt?.seconds || 0;
