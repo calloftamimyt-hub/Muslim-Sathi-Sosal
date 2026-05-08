@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Heart, Share2, Flag, Plus, ArrowLeft } from "lucide-react";
+import { Heart, Share2, Flag, Plus, ArrowLeft, Check } from "lucide-react";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { auth, db } from "@/lib/firebase";
@@ -95,6 +95,7 @@ export const ShortVideoPlayer = ({ post, isOverlayOpen }: { post: any; isOverlay
   const [showReportModal, setShowReportModal] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [isMediaLoaded, setIsMediaLoaded] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
 
   useEffect(() => {
     if (!wrapperRef.current) return;
@@ -124,6 +125,17 @@ export const ShortVideoPlayer = ({ post, isOverlayOpen }: { post: any; isOverlay
         const followersQuery = query(collection(db, "follows"), where("following_id", "==", post.authorUid));
         const followersSnapshot = await getCountFromServer(followersQuery);
         if (isMounted) setFollowerCount(followersSnapshot.data().count);
+        
+        if (auth.currentUser && auth.currentUser.uid !== post.authorUid) {
+          const { getDocs } = await import("firebase/firestore");
+          const followingQuery = query(
+            collection(db, "follows"),
+            where("follower_id", "==", auth.currentUser.uid),
+            where("following_id", "==", post.authorUid)
+          );
+          const isFollowingSnapshot = await getDocs(followingQuery);
+          if (isMounted) setIsFollowing(!isFollowingSnapshot.empty);
+        }
       } catch (e) {}
     };
     fetchAuthorData();
@@ -197,6 +209,41 @@ export const ShortVideoPlayer = ({ post, isOverlayOpen }: { post: any; isOverlay
     } catch (e) {
       setIsLiked(!newIsLiked);
       setLikes(l => newIsLiked ? Math.max(0, l - 1) : l + 1);
+    }
+  };
+
+  const handleToggleFollow = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!auth.currentUser) {
+      alert(language === "bn" ? "ফলো করতে লগইন করুন" : "Please login to follow");
+      return;
+    }
+    if (auth.currentUser.uid === post.authorUid) return;
+
+    const newIsFollowing = !isFollowing;
+    setIsFollowing(newIsFollowing);
+    setFollowerCount((prev) => newIsFollowing ? prev + 1 : Math.max(0, prev - 1));
+
+    try {
+      const { collection, query, where, getDocs, addDoc, deleteDoc, serverTimestamp } = await import("firebase/firestore");
+      const followsRef = collection(db, "follows");
+
+      if (!newIsFollowing) {
+        const q = query(followsRef, where("follower_id", "==", auth.currentUser.uid), where("following_id", "==", post.authorUid));
+        const snap = await getDocs(q);
+        snap.forEach(async (docSnap) => {
+          await deleteDoc(docSnap.ref);
+        });
+      } else {
+        await addDoc(followsRef, {
+          follower_id: auth.currentUser.uid,
+          following_id: post.authorUid,
+          created_at: serverTimestamp(),
+        });
+      }
+    } catch (err) {
+      setIsFollowing(!newIsFollowing);
+      setFollowerCount((prev) => newIsFollowing ? Math.max(0, prev - 1) : prev + 1);
     }
   };
 
@@ -311,9 +358,16 @@ export const ShortVideoPlayer = ({ post, isOverlayOpen }: { post: any; isOverlay
                   {post.authorName?.charAt(0)}
                 </div>
              )}
-             <button className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-blue-600 rounded-full p-0.5 text-white border-2 border-black">
-                <Plus className="w-3 h-3" />
-             </button>
+              {auth.currentUser?.uid !== post.authorUid && (
+                <button 
+                  onClick={handleToggleFollow}
+                  className={`absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full p-0.5 text-white border-2 border-black transition-colors ${
+                    isFollowing ? 'bg-slate-600' : 'bg-blue-600'
+                  }`}
+                >
+                   {isFollowing ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                </button>
+              )}
           </div>
           <div>
             <div className="flex items-center gap-1.5">

@@ -3709,6 +3709,10 @@ export const ToolsView = ({
           if (isProfileStatusModalOpen) window.history.back();
         }}
         userProfile={sidebarUser || auth.currentUser}
+        onOpenSupport={() => {
+          setIsProfileStatusModalOpen(false);
+          setIsHelpSupportOpen(true);
+        }}
       />
 
       <HelpSupportModal

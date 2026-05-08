@@ -211,6 +211,52 @@ async function startServer() {
     }
   });
 
+  // Telegram Support Ticket Endpoint
+  app.post("/api/telegram/support", async (req, res) => {
+    try {
+      const { uid, name, email, message, issue, fileUrl } = req.body;
+      
+      const text = `🛠️ *New Support Appeal* 🛠️\n\n` +
+                   `👱‍♂️ *User:* ${name || 'Unknown'} (UID: \`${uid}\`)\n` +
+                   `📧 *Email:* ${email || 'N/A'}\n` +
+                   `⚠️ *Account Issue:* ${issue || 'Unknown'}\n\n` +
+                   `💬 *Message:*\n${message}\n\n` +
+                   (fileUrl ? `📎 *Has Attachment:* Yes (See photo)` : `📎 *Has Attachment:* No`) +
+                   `\n\n*Admin Dashboard Update Needed:* Go to your Firebase Console or Admin Dashboard to update \`reportsCount\` back to \`0\` or manually change the \`isVerified\` status for this UID.`;
+
+      const ADMIN_CHAT_ID = "-1002347608247"; // using same admin group as report
+
+      if (fileUrl) {
+        // Find if fileUrl is proxy
+        const fileIdMatch = fileUrl.match(/file\/([A-Za-z0-9_-]+)/);
+        let actualFileId = fileIdMatch ? fileIdMatch[1] : null;
+
+        if (actualFileId) {
+          try {
+             await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+               chat_id: ADMIN_CHAT_ID,
+               photo: actualFileId,
+               caption: text,
+               parse_mode: 'Markdown'
+             });
+             return res.status(200).json({ success: true });
+          } catch(e) {}
+        }
+      }
+
+      await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        chat_id: ADMIN_CHAT_ID,
+        text,
+        parse_mode: 'Markdown'
+      });
+
+      res.status(200).json({ success: true });
+    } catch (error: any) {
+      console.error("Telegram support ticket error:", error.response?.data || error.message);
+      res.status(500).json({ error: "Failed to send support ticket to Telegram" });
+    }
+  });
+
   // Telegram API Message Update Endpoint (Called by Admin via frontend URL)
   app.post("/api/telegram/update-message", async (req, res) => {
     try {

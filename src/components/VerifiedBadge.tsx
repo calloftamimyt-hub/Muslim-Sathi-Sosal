@@ -7,14 +7,25 @@ interface VerifiedBadgeProps {
   isOwner?: boolean;
   className?: string;
   size?: number;
+  isReported?: boolean;
 }
 
 export const VerifiedBadge: React.FC<VerifiedBadgeProps> = ({ 
   isVerified, 
   isOwner, 
   className,
-  size = 16
+  size = 16,
+  isReported = false,
 }) => {
+  if (isReported) {
+    return (
+      <BadgeCheck 
+        size={size}
+        className={cn("text-[#ef4444] fill-[#ef4444]/10", className)} 
+      />
+    );
+  }
+
   if (isVerified) {
     return (
       <BadgeCheck 

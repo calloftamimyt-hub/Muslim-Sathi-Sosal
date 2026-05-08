@@ -15,13 +15,15 @@ const data = [
   { name: 'Fri', score: 950 },
 ];
 
-export function ProfileStatusModal({ isOpen, onClose, userProfile }: any) {
+export function ProfileStatusModal({ isOpen, onClose, userProfile, onOpenSupport }: any) {
     const { language } = useLanguage();
     
     const firstName = userProfile?.name?.split(' ')[0] || auth.currentUser?.displayName?.split(' ')[0] || 'User';
     const fullName = userProfile?.name || auth.currentUser?.displayName || 'User';
     const photoUrl = userProfile?.photoURL || auth.currentUser?.photoURL || 'https://api.dicebear.com/7.x/avataaars/svg?seed=user';
     const isVerified = userProfile?.isVerified || userProfile?.blueBadge || false;
+    const reportsCount = userProfile?.reportsCount || 0;
+    const isReported = reportsCount >= 5;
 
     const joinedDateStr = userProfile?.createdAt 
         ? (typeof userProfile.createdAt.toDate === 'function' ? userProfile.createdAt.toDate().toLocaleDateString() : new Date(userProfile.createdAt).toLocaleDateString())
@@ -78,11 +80,15 @@ export function ProfileStatusModal({ isOpen, onClose, userProfile }: any) {
                     <div className="px-4 pt-4 pb-6 mt-2">
                         <div className="relative inline-block mb-4">
                             <img src={photoUrl} className="w-[60px] h-[60px] rounded-full border border-slate-200 dark:border-slate-800 object-cover" alt="Profile" />
-                            {isVerified && (
+                            {isReported ? (
+                                <div className="absolute bottom-0 right-0 w-[20px] h-[20px] bg-red-500 rounded-full border-2 border-white dark:border-slate-950 flex items-center justify-center">
+                                    <AlertTriangle className="w-4 h-4 text-white" />
+                                </div>
+                            ) : isVerified ? (
                                 <div className="absolute bottom-0 right-0 w-[20px] h-[20px] bg-blue-500 rounded-full border-2 border-white dark:border-slate-950 flex items-center justify-center">
                                     <CheckCircle2 className="w-4 h-4 text-white" />
                                 </div>
-                            )}
+                            ) : null}
                         </div>
                         <h1 className="text-[22px] font-bold text-slate-900 dark:text-white mb-2 leading-tight tracking-tight">
                             {language === 'bn' ? `স্বাগতম, ${firstName}!` : `Welcome, ${firstName}!`}
@@ -202,6 +208,16 @@ export function ProfileStatusModal({ isOpen, onClose, userProfile }: any) {
                              />
                          </div>
                      </div>
+
+                    <div className="px-4 py-4 mb-4">
+                        <button 
+                            onClick={onOpenSupport}
+                            className="w-full py-3 bg-red-50 dark:bg-slate-900 border border-red-200 dark:border-slate-800 rounded-xl text-red-600 dark:text-red-400 font-semibold flex items-center justify-center gap-2 hover:bg-red-100 dark:hover:bg-slate-800 transition-colors active:scale-95"
+                        >
+                            <ShieldAlert className="w-4 h-4" />
+                            Help & Support (Appeal Issue)
+                        </button>
+                    </div>
 
                 </div>
             </motion.div>

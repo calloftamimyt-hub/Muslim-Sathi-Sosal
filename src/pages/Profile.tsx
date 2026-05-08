@@ -4,7 +4,7 @@ import {
   Calendar, Award, Flame, BookOpen, Heart, MessageSquare, ShoppingBag,
   Lock, Trash2, Globe, Edit3, CheckCircle2, Star, Bookmark, BookmarkCheck, Clock,
   Trophy, Zap, Hash, CircleDot, Sparkles, LogIn, X, MapPin, Search, Loader2,
-  ArrowLeft, Send, Droplets, Bed, HeartHandshake, Camera
+  ArrowLeft, Send, Droplets, Bed, HeartHandshake, Camera, AlertTriangle
 } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import { getCroppedImg } from '@/lib/imageUtils';
@@ -155,7 +155,14 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
   const { latitude, longitude, country, city: userLocation, loading: locLoading } = useLocation(language);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [isVerified, setIsVerified] = useState<boolean | undefined>(undefined);
+  const [reportsCount, setReportsCount] = useState(0);
+  const [profileIssue, setProfileIssue] = useState("");
   
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [supportMessage, setSupportMessage] = useState("");
+  const [supportFile, setSupportFile] = useState<File | null>(null);
+  const [isSubmittingSupport, setIsSubmittingSupport] = useState(false);
+
   // Profile Photo Upload State
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -168,11 +175,13 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
       return;
     }
     
-    // Listen to users collection as the master record for verification (controllable via admin panel)
     const unsub = onSnapshot(doc(db, 'users', user.uid), async (userSnap) => {
       if (userSnap.exists()) {
-        const verified = userSnap.data()?.isVerified || false;
+        const data = userSnap.data();
+        const verified = data?.isVerified || false;
         setIsVerified(verified);
+        setReportsCount(data?.reportsCount || 0);
+        setProfileIssue(data?.profileIssue || "Spam or Harmful Content");
         
         // If the admin un-verified the user (verified is false), 
         // we must sync this down to the account_verifications document
@@ -1152,10 +1161,16 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
               </>
             ) : (
               <>
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white mb-1 flex items-center justify-center gap-1.5">
+                <h1 className="text-xl font-bold text-slate-900 dark:text-white mb-1 flex items-center justify-center gap-1.5 flex-wrap">
                   {user.displayName || t.user}
-                  <VerifiedBadge isVerified={isVerified} isOwner={true} size={20} />
+                  <VerifiedBadge isVerified={isVerified} isOwner={true} size={20} isReported={reportsCount >= 5} />
                 </h1>
+                {reportsCount >= 5 && (
+                  <div className="mt-1 flex items-center justify-center gap-1 text-red-500 font-bold bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded-full w-max mx-auto border border-red-100 dark:border-red-900/30">
+                    <AlertTriangle className="w-4 h-4" />
+                    <span className="text-xs">{profileIssue}</span>
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -1458,6 +1473,19 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
               />
             </div>
           </section>
+
+          {/* Help & Support Button (Added below Quick Settings) */}
+          {reportsCount >= 5 && (
+            <div className="pt-2">
+              <button 
+                onClick={() => setShowSupportModal(true)}
+                className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 font-bold py-3.5 px-4 rounded-xl border border-red-200 dark:border-red-900/50 transition-colors flex items-center justify-center gap-2 shadow-sm"
+              >
+                <HelpCircle className="w-5 h-5" />
+                Help & Support (Appeal Issue)
+              </button>
+            </div>
+          )}
 
           {/* Edit Profile Modal */}
           <AnimatePresence>
@@ -1848,6 +1876,105 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
                   </div>
                 </motion.div>
               </div>
+            )}
+          </AnimatePresence>
+          {/* Support Modal */}
+          <AnimatePresence>
+            {showSupportModal && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[1100] bg-white dark:bg-slate-900 flex flex-col"
+              >
+                <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                    <HelpCircle className="w-5 h-5 text-red-500" />
+                    Help & Support
+                  </h3>
+                  <button onClick={() => setShowSupportModal(false)} className="p-2 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700">
+                    <X className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                  </button>
+                </div>
+                
+                <div className="p-6 flex-1 overflow-y-auto space-y-6">
+                  <div className="bg-red-50 dark:bg-red-900/10 p-4 rounded-xl border border-red-100 dark:border-red-900/30">
+                    <h4 className="font-bold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
+                      <AlertTriangle className="w-5 h-5" />
+                      Account Restricted
+                    </h4>
+                    <p className="text-sm text-red-600 dark:text-red-300">
+                      Your account has been restricted due to: <span className="font-bold">{profileIssue}</span>.
+                      If you believe this is a mistake, you can appeal by sending us a message and a screenshot below.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Message (Reason for appeal)</label>
+                    <textarea 
+                      value={supportMessage}
+                      onChange={(e) => setSupportMessage(e.target.value)}
+                      placeholder="Describe your issue..."
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 min-h-[150px] outline-none focus:border-primary dark:focus:border-primary-dark transition-all text-slate-800 dark:text-slate-200 resize-none font-medium text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Screenshot (Optional)</label>
+                    <input 
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setSupportFile(e.target.files?.[0] || null)}
+                      className="w-full text-sm font-medium text-slate-500 file:mr-4 file:py-3 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary-dark cursor-pointer border border-slate-200 dark:border-slate-700 p-1 rounded-xl bg-slate-50 dark:bg-slate-800 dark:text-slate-400"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+                  <button 
+                    disabled={isSubmittingSupport || !supportMessage.trim()}
+                    onClick={async () => {
+                      setIsSubmittingSupport(true);
+                      try {
+                        let attachedFileUrl = "";
+                        if (supportFile) {
+                          const formData = new FormData();
+                          formData.append('file', supportFile);
+                          formData.append('type', 'photo');
+                          const uploadRes = await axios.post(getApiUrl('/api/telegram/upload'), formData, {
+                            headers: { 'Content-Type': 'multipart/form-data' }
+                          });
+                          if (uploadRes.data.fileUrl) {
+                            attachedFileUrl = getApiUrl(uploadRes.data.fileUrl);
+                          }
+                        }
+                        
+                        await axios.post(getApiUrl('/api/telegram/support'), {
+                          uid: user?.uid,
+                          name: user?.displayName,
+                          email: user?.email,
+                          message: supportMessage,
+                          issue: profileIssue,
+                          fileUrl: attachedFileUrl,
+                        });
+                        alert("Appeal submitted successfully! Admin will review it shortly.");
+                        setShowSupportModal(false);
+                      } catch (err) {
+                        alert("Failed to submit appeal. Try again.");
+                      } finally {
+                        setIsSubmittingSupport(false);
+                      }
+                    }}
+                    className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.98]"
+                  >
+                    {isSubmittingSupport ? (
+                      <><Loader2 className="w-5 h-5 animate-spin" /> Submitting...</>
+                    ) : (
+                      <><Send className="w-5 h-5" /> Submit Appeal</>
+                    )}
+                  </button>
+                </div>
+              </motion.div>
             )}
           </AnimatePresence>
         </div>
