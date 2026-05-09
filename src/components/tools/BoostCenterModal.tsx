@@ -33,7 +33,7 @@ export const BoostCenterModal = ({
           where("authorUid", "==", auth.currentUser.uid)
         );
         const snapshot = await getDocs(q);
-        const allPosts = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        const allPosts = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as any));
         const posts = allPosts.filter((p: any) => p.isBoosted || p.boostInfo?.status);
         
         // Auto-fill missing views for completed campaigns

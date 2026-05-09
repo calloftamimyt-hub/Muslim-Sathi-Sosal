@@ -242,7 +242,7 @@ export const Social = () => {
   const activeQuiz = activeQuizId ? QUESTION_BANK.find(q => q.id === activeQuizId) : null;
 
   const handleShare = async (quiz: any) => {
-    const text = `Can you answer this Islamic Quiz?\n\n"${quiz.q}"\n\nPlay and earn points on Muslim Sathi!`;
+    const text = `Can you answer this Islamic Quiz?\n\n"${quiz.q}"\n\nPlay and earn points on Halal Circle!`;
     try {
       await Share.share({
         title: 'Islamic Quiz',
@@ -482,7 +482,7 @@ export const Social = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1">
-                          <h3 className="font-bold text-slate-900 dark:text-white text-[14px] truncate">Muslim Sathi</h3>
+                          <h3 className="font-bold text-slate-900 dark:text-white text-[14px] truncate">Halal Circle</h3>
                           <BadgeCheck className="w-[16px] h-[16px] text-blue-500 fill-blue-500/20 shrink-0" />
                         </div>
                         <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium tracking-wide">Sponsored • Win Points</p>

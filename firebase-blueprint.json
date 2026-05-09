@@ -154,6 +154,7 @@
         "referralCode": { "type": "string" },
         "referredBy": { "type": "string" },
         "referralCount": { "type": "number" },
+        "strikes": { "type": "number", "description": "Number of community strikes (0 to 3)" },
         "role": { "type": "string", "enum": ["admin", "client"] },
         "updatedAt": { "type": "string", "format": "date-time" }
       }
@@ -326,11 +327,42 @@
       "properties": {
         "userId": { "type": "string" },
         "totalEarned": { "type": "number" },
+        "giftsEarned": { "type": "number" },
         "currentBalance": { "type": "number" },
         "depositBalance": { "type": "number" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "totalEarned", "currentBalance", "updatedAt"]
+    },
+    "Gift": {
+      "title": "Gift",
+      "description": "A gift item that can be purchased and sent",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name_en": { "type": "string" },
+        "name_bn": { "type": "string" },
+        "icon": { "type": "string" },
+        "price": { "type": "number" },
+        "active": { "type": "boolean" }
+      },
+      "required": ["id", "name_en", "name_bn", "icon", "price", "active"]
+    },
+    "InventoryItem": {
+      "title": "InventoryItem",
+      "description": "An item in user's inventory",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name_en": { "type": "string" },
+        "name_bn": { "type": "string" },
+        "icon": { "type": "string" },
+        "price": { "type": "number" },
+        "quantity": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "quantity", "updatedAt"]
     },
     "EarningHistory": {
       "title": "EarningHistory",
@@ -462,6 +494,14 @@
     "/social_videos/{videoId}": {
       "schema": "SocialVideo",
       "description": "Collection of social videos"
+    },
+    "/gifts/{giftId}": {
+      "schema": "Gift",
+      "description": "Store gifts available for purchase"
+    },
+    "/users/{userId}/inventory/{itemId}": {
+      "schema": "InventoryItem",
+      "description": "User gift inventory"
     },
     "/video_likes/{likeId}": {
       "schema": "VideoLike",

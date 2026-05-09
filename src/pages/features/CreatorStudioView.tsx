@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { ArrowLeft, Users, Clock, PlayCircle, Loader2, Award, Upload, BadgeCheck } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
 import { doc, onSnapshot, getDoc } from 'firebase/firestore';
+import { handleFirestoreError, OperationType } from '@/lib/firebase';
 
 export const CreatorStudioView = ({ onBack, onNavigate }: { onBack: () => void, onNavigate: (path: string) => void }) => {
   const [userData, setUserData] = useState<any>(null);
@@ -11,12 +12,19 @@ export const CreatorStudioView = ({ onBack, onNavigate }: { onBack: () => void, 
   useEffect(() => {
     const user = auth.currentUser;
     if (!user) return;
-    const unsub = onSnapshot(doc(db, 'users', user.uid), (snap) => {
-      if (snap.exists()) {
-        setUserData(snap.data());
+    const path = `users/${user.uid}`;
+    const unsub = onSnapshot(doc(db, 'users', user.uid), 
+      (snap) => {
+        if (snap.exists()) {
+          setUserData(snap.data());
+        }
+        setLoading(false);
+      },
+      (error) => {
+        console.error("CreatorStudio Listener Error:", error);
+        handleFirestoreError(error, OperationType.GET, path);
       }
-      setLoading(false);
-    });
+    );
     return () => unsub();
   }, []);
 

@@ -90,6 +90,13 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isValidInventoryItem(data) {
+      return data.keys().hasAll(['giftId', 'quantity', 'updatedAt', 'userId']) &&
+             data.giftId is string && data.giftId.size() <= 128 &&
+             data.quantity is int && data.quantity >= 0 &&
+             data.userId is string && data.userId.size() <= 128;
+    }
+
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
@@ -426,10 +433,37 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    function isValidInventoryItem(data) {
+      return hasRequiredFields(['id', 'quantity', 'updatedAt']) &&
+             data.id is string &&
+             data.quantity is number &&
+             data.updatedAt is timestamp;
+    }
+
+    function isGift(data) {
+      return hasRequiredFields(['id', 'name_en', 'name_bn', 'icon', 'price', 'active']) &&
+             data.price is number && data.price >= 0;
+    }
+
+    match /gifts/{giftId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     match /user_balances/{userId} {
       allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       allow create: if isOwner(userId);
-      allow update: if isOwner(userId) || isAdmin();
+      allow update: if isAuthenticated() && (
+        isOwner(userId) || 
+        isAdmin() ||
+        // Gifting action: allowing others to increment earned values
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalEarned', 'giftsEarned', 'updatedAt']) &&
+          request.resource.data.totalEarned > resource.data.totalEarned &&
+          request.resource.data.giftsEarned > resource.data.get('giftsEarned', 0) &&
+          request.resource.data.userId == resource.data.userId
+        )
+      );
     }
 
     match /global_settings/{settingId} {
@@ -468,8 +502,27 @@ service cloud.firestore {
 
       match /earning_history/{historyId} {
         allow read, list: if isOwner(userId) || isAdmin();
-        allow create: if (isOwner(userId) && isValidEarningHistory(request.resource.data)) || isAdmin();
+        allow create: if isAuthenticated() && (
+          isOwner(userId) || 
+          isAdmin() ||
+          // Allow verified gift transaction history record
+          (
+            request.resource.data.type.matches("Received Gift:.*") &&
+            request.resource.data.userId == userId
+          )
+        );
         allow update, delete: if isAdmin();
+      }
+
+      match /inventory/{itemId} {
+        allow get, list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidInventoryItem(request.resource.data);
+        allow update: if isOwner(userId) && isValidInventoryItem(request.resource.data);
+        allow delete: if isAdmin();
+      }
+
+      match /savedVideos/{videoId} {
+        allow get, list, write: if isOwner(userId) || isAdmin();
       }
     }
 

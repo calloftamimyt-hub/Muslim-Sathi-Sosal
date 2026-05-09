@@ -16,7 +16,16 @@ import {
   ChevronDown,
   Navigation,
   Scissors,
-  Hash
+  Hash,
+  MonitorPlay,
+  Globe,
+  Lock,
+  Users,
+  MessageCircle,
+  Settings,
+  Settings2,
+  Zap,
+  Timer
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { cn, getApiUrl } from "@/lib/utils";
@@ -44,7 +53,13 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({
   const [location, setLocation] = useState("");
   const [saveToAlbumEnabled, setSaveToAlbumEnabled] = useState(false);
   const [allowOffline, setAllowOffline] = useState(false);
+  const [quality, setQuality] = useState<"low" | "high" | "hd">("high");
+  const [privacy, setPrivacy] = useState<"public" | "private" | "friends">("public");
+  const [compressData, setCompressData] = useState(true);
+  const [ephemeralPost, setEphemeralPost] = useState(false);
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const [isQualityOpen, setIsQualityOpen] = useState(false);
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   
   // Hashtag State
   const [isHashtagModalOpen, setIsHashtagModalOpen] = useState(false);
@@ -159,6 +174,18 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({
 
     try {
       const user = auth.currentUser;
+      if (!user) throw new Error("User not authenticated");
+
+      // Check for strikes restriction
+      const { getDoc, doc: firestoreDoc } = await import("firebase/firestore");
+      const userDoc = await getDoc(firestoreDoc(db, "users", user.uid));
+      if (userDoc.exists() && (userDoc.data().strikes >= 3)) {
+          setStatus("error");
+          setError(language === 'bn' ? 'আপনার অ্যাকাউন্টে ৩টি স্ট্রাইক থাকায় আপনি পোস্ট করতে পারবেন না।' : 'You cannot post because your account has 3 community strikes.');
+          setIsPosting(false);
+          return;
+      }
+
       const formData = new FormData();
       formData.append("file", file);
       formData.append("title", title);
@@ -166,6 +193,10 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({
       formData.append("category", category);
       formData.append("location", location);
       formData.append("saveToAlbum", String(saveToAlbumEnabled));
+      formData.append("quality", quality);
+      formData.append("compressData", String(compressData));
+      formData.append("ephemeralPost", String(ephemeralPost));
+      formData.append("privacy", privacy);
       // You could append trimStart and trimEnd here if the backend supports cutting
       // formData.append("trimStart", String(trimStart));
       // formData.append("trimEnd", String(trimEnd));
@@ -191,6 +222,10 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({
           location: location,
           saveToAlbumEnabled: saveToAlbumEnabled,
           allowOffline: allowOffline,
+          quality: quality,
+          compressData: compressData,
+          ephemeralPost: ephemeralPost,
+          privacy: privacy,
           fileId: "",
           authorName: user?.displayName || user?.email || (language === 'bn' ? 'ইউজার' : 'User'),
           authorUid: user?.uid || "guest-uid",
@@ -235,7 +270,7 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({
                 canvas.height = imageBitmap.height;
                 ctx.drawImage(imageBitmap, 0, 0);
                 
-                // Add "Muslim Sathi" watermark
+                // Add "Halal Circle" watermark
                 const fontSize = Math.max(30, Math.floor(canvas.width * 0.04));
                 ctx.font = `bold ${fontSize}px Inter, sans-serif`;
                 ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
@@ -249,14 +284,14 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({
                 ctx.shadowOffsetY = 2;
 
                 const padding = fontSize;
-                ctx.fillText("@Muslim Sathi", padding, canvas.height - padding);
+                ctx.fillText("@Halal Circle", padding, canvas.height - padding);
 
                 canvas.toBlob((blob) => {
                   if (blob) {
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement("a");
                     a.href = url;
-                    a.download = `MuslimSathi_${Date.now()}.png`;
+                    a.download = `HalalCircle_${Date.now()}.png`;
                     document.body.appendChild(a);
                     a.click();
                     setTimeout(() => {
@@ -270,7 +305,7 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({
               const url = URL.createObjectURL(file);
               const a = document.createElement("a");
               a.href = url;
-              a.download = `MuslimSathi_${Date.now()}.mp4`;
+              a.download = `HalalCircle_${Date.now()}.mp4`;
               document.body.appendChild(a);
               a.click();
               setTimeout(() => {
@@ -528,24 +563,24 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({
             {/* Save Album Toggle */}
             <div className="px-4 py-4 flex items-center justify-between border-b border-gray-50 dark:border-gray-900/50">
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
-                        <Download className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                    <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                        <Download className="w-4 h-4 text-slate-900 dark:text-slate-100" />
                     </div>
                     <span className="text-[15px] font-medium text-gray-900 dark:text-white">
-                        {language === 'bn' ? 'সেভ অ্যালবাম' : 'Save Album (with Muslim Sathi Logo)'}
+                        {language === 'bn' ? 'সেভ অ্যালবাম' : 'Save Album (with Halal Circle Logo)'}
                     </span>
                 </div>
                 <button 
                     onClick={() => setSaveToAlbumEnabled(!saveToAlbumEnabled)}
                     className={cn(
                         "w-12 h-6.5 rounded-full p-1 transition-colors relative",
-                        saveToAlbumEnabled ? "bg-rose-500" : "bg-gray-200 dark:bg-gray-700"
+                        saveToAlbumEnabled ? "bg-slate-900 dark:bg-white" : "bg-gray-200 dark:bg-gray-700"
                     )}
                 >
                     <motion.div 
                         initial={false}
                         animate={{ x: saveToAlbumEnabled ? 22 : 0 }}
-                        className="w-5 h-5 bg-white rounded-full shadow-sm"
+                        className={cn("w-5 h-5 rounded-full shadow-sm", saveToAlbumEnabled ? "bg-white dark:bg-slate-900" : "bg-white")}
                     />
                 </button>
             </div>
@@ -553,8 +588,8 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({
             {/* Offline Mode Toggle */}
             <div className="px-4 py-4 flex items-center justify-between border-b border-gray-50 dark:border-gray-900/50">
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
-                        <Film className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                    <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                        <Film className="w-4 h-4 text-slate-900 dark:text-slate-100" />
                     </div>
                     <div>
                         <span className="text-[15px] font-medium text-gray-900 dark:text-white block">
@@ -569,13 +604,75 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({
                     onClick={() => setAllowOffline(!allowOffline)}
                     className={cn(
                         "w-12 h-6.5 rounded-full p-1 transition-colors relative",
-                        allowOffline ? "bg-rose-500" : "bg-gray-200 dark:bg-gray-700"
+                        allowOffline ? "bg-slate-900 dark:bg-white" : "bg-gray-200 dark:bg-gray-700"
                     )}
                 >
                     <motion.div 
                         initial={false}
                         animate={{ x: allowOffline ? 22 : 0 }}
-                        className="w-5 h-5 bg-white rounded-full shadow-sm"
+                        className={cn("w-5 h-5 rounded-full shadow-sm", allowOffline ? "bg-white dark:bg-slate-900" : "bg-white")}
+                    />
+                </button>
+            </div>
+
+            {/* Compress Video Toggle */}
+            {fileType === "video" && (
+                <div className="px-4 py-4 flex items-center justify-between border-b border-gray-50 dark:border-gray-900/50">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                            <Zap className="w-4 h-4 text-slate-900 dark:text-slate-100" />
+                        </div>
+                        <div>
+                            <span className="text-[15px] font-medium text-gray-900 dark:text-white block">
+                                {language === 'bn' ? 'ডাটা সেভার (কম্প্রেস)' : 'Data Saver (Compress)'}
+                            </span>
+                            <span className="text-xs text-gray-500 font-normal">
+                                {language === 'bn' ? 'অল্প ডাটা খরচ করে দ্রুত আপলোড করুন' : 'Saves data and uploads faster'}
+                            </span>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => setCompressData(!compressData)}
+                        className={cn(
+                            "w-12 h-6.5 rounded-full p-1 transition-colors relative",
+                            compressData ? "bg-slate-900 dark:bg-white" : "bg-gray-200 dark:bg-gray-700"
+                        )}
+                    >
+                        <motion.div 
+                            initial={false}
+                            animate={{ x: compressData ? 22 : 0 }}
+                            className={cn("w-5 h-5 rounded-full shadow-sm", compressData ? "bg-white dark:bg-slate-900" : "bg-white")}
+                        />
+                    </button>
+                </div>
+            )}
+
+            {/* Ephemeral Post Toggle */}
+            <div className="px-4 py-4 flex items-center justify-between border-b border-gray-50 dark:border-gray-900/50">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                        <Timer className="w-4 h-4 text-slate-900 dark:text-slate-100" />
+                    </div>
+                    <div>
+                        <span className="text-[15px] font-medium text-gray-900 dark:text-white block">
+                            {language === 'bn' ? '২৪ ঘণ্টা পর ডিলিট' : 'Delete After 24h'}
+                        </span>
+                        <span className="text-xs text-gray-500 font-normal">
+                            {language === 'bn' ? 'এই পোস্ট ২৪ ঘণ্টা পর অটোমেটিক ডিলিট হবে' : 'Automatically delete this post after 24h'}
+                        </span>
+                    </div>
+                </div>
+                <button 
+                    onClick={() => setEphemeralPost(!ephemeralPost)}
+                    className={cn(
+                        "w-12 h-6.5 rounded-full p-1 transition-colors relative",
+                        ephemeralPost ? "bg-slate-900 dark:bg-white" : "bg-gray-200 dark:bg-gray-700"
+                    )}
+                >
+                    <motion.div 
+                        initial={false}
+                        animate={{ x: ephemeralPost ? 22 : 0 }}
+                        className={cn("w-5 h-5 rounded-full shadow-sm", ephemeralPost ? "bg-white dark:bg-slate-900" : "bg-white")}
                     />
                 </button>
             </div>
@@ -587,14 +684,14 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({
                     className="flex items-center justify-between cursor-pointer"
                 >
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
-                            <span className="text-lg font-bold text-gray-600 dark:text-gray-400">#</span>
+                        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                            <Hash className="w-4 h-4 text-slate-900 dark:text-slate-100" />
                         </div>
                         <div>
-                            <div className="text-[15px] font-medium text-gray-900 dark:text-white mb-0.5">
+                            <div className="text-[15px] font-bold text-gray-900 dark:text-white mb-0.5">
                                 {language === 'bn' ? 'ক্যাটাগরি' : 'Category'}
                             </div>
-                            <div className="text-xs text-rose-500 font-bold">
+                            <div className="text-xs text-slate-900 dark:text-slate-400 font-bold uppercase tracking-wider">
                                 {categories.find(c => c.id === category)?.label[language] || 'Select'}
                             </div>
                         </div>
@@ -610,7 +707,7 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({
                             exit={{ height: 0, opacity: 0 }}
                             className="overflow-hidden mt-3"
                         >
-                            <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
                                 {categories.map(cat => (
                                     <button
                                         key={cat.id}
@@ -619,13 +716,139 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({
                                             setIsCategoryOpen(false);
                                         }}
                                         className={cn(
-                                            "px-4 py-2 rounded-lg text-sm font-bold transition-all border",
+                                            "px-4 py-2.5 rounded-sm text-sm font-bold transition-all border",
                                             category === cat.id
-                                                ? "bg-rose-500 border-rose-500 text-white"
-                                                : "bg-white dark:bg-slate-900 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300"
+                                                ? "bg-slate-900 border-slate-900 text-white dark:bg-white dark:border-white dark:text-slate-900 shadow-md"
+                                                : "bg-white dark:bg-slate-900 border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-300"
                                         )}
                                     >
                                         {cat.label[language]}
+                                    </button>
+                                ))}
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+
+            {/* Video Quality Selection */}
+            {fileType === "video" && (
+                <div className="px-4 py-4 border-b border-gray-50 dark:border-gray-900/50">
+                    <div 
+                        onClick={() => setIsQualityOpen(!isQualityOpen)}
+                        className="flex items-center justify-between cursor-pointer"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                                <Settings2 className="w-4 h-4 text-slate-900 dark:text-slate-100" />
+                            </div>
+                            <div>
+                                <div className="text-[15px] font-bold text-gray-900 dark:text-white mb-0.5">
+                                    {language === 'bn' ? 'ভিডিও কোয়ালিটি' : 'Video Quality'}
+                                </div>
+                                <div className="text-xs text-slate-900 dark:text-slate-400 font-bold uppercase tracking-wider">
+                                    {quality === 'low' ? (language === 'bn' ? 'লো' : 'Low') : 
+                                     quality === 'high' ? (language === 'bn' ? 'হাই' : 'High') : 
+                                     (language === 'bn' ? 'এইচডি' : 'HD')}
+                                </div>
+                            </div>
+                        </div>
+                        <ChevronDown className={cn("w-5 h-5 text-gray-400 transition-transform", isQualityOpen && "rotate-180")} />
+                    </div>
+                    
+                    <AnimatePresence>
+                        {isQualityOpen && (
+                            <motion.div 
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="overflow-hidden mt-3"
+                            >
+                                <div className="flex gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                                    {[
+                                        { id: 'low', label: { bn: 'লো', en: 'Low' } },
+                                        { id: 'high', label: { bn: 'হাই', en: 'High' } },
+                                        { id: 'hd', label: { bn: 'এইচডি', en: 'HD' } }
+                                    ].map(q => (
+                                        <button
+                                            key={q.id}
+                                            onClick={() => {
+                                                setQuality(q.id as any);
+                                                setIsQualityOpen(false);
+                                            }}
+                                            className={cn(
+                                                "flex-1 px-4 py-2 rounded-sm text-[13px] font-bold transition-all border",
+                                                quality === q.id
+                                                    ? "bg-slate-900 border-slate-900 text-white dark:bg-white dark:border-white dark:text-slate-900 shadow-md"
+                                                    : "bg-white dark:bg-slate-900 border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-300"
+                                            )}
+                                        >
+                                            {q.label[language]}
+                                        </button>
+                                    ))}
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            )}
+
+            {/* Privacy Settings */}
+            <div className="px-4 py-4 border-b border-gray-50 dark:border-gray-900/50">
+                <div 
+                    onClick={() => setIsPrivacyOpen(!isPrivacyOpen)}
+                    className="flex items-center justify-between cursor-pointer"
+                >
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                            {privacy === 'public' ? <Globe className="w-4 h-4 text-slate-900 dark:text-slate-100" /> : <Lock className="w-4 h-4 text-slate-900 dark:text-slate-100" />}
+                        </div>
+                        <div>
+                            <div className="text-[15px] font-bold text-gray-900 dark:text-white mb-0.5">
+                                {language === 'bn' ? 'প্রাইভেসি' : 'Who can see this'}
+                            </div>
+                            <div className="text-xs text-slate-900 dark:text-slate-400 font-bold uppercase tracking-wider">
+                                {privacy === 'public' ? (language === 'bn' ? 'পাবলিক' : 'Public') : 
+                                 privacy === 'friends' ? (language === 'bn' ? 'ফ্রেন্ডস' : 'Friends') : 
+                                 (language === 'bn' ? 'প্রাইভেট' : 'Private')}
+                            </div>
+                        </div>
+                    </div>
+                    <ChevronDown className={cn("w-5 h-5 text-gray-400 transition-transform", isPrivacyOpen && "rotate-180")} />
+                </div>
+                
+                <AnimatePresence>
+                    {isPrivacyOpen && (
+                        <motion.div 
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden mt-3"
+                        >
+                            <div className="flex flex-col gap-1 pt-2 border-t border-gray-100 dark:border-gray-800">
+                                {[
+                                    { id: 'public', label: { bn: 'পাবলিক (সবাই দেখতে পাবে)', en: 'Public (Everyone can see)' }, icon: Globe },
+                                    { id: 'friends', label: { bn: 'ফ্রেন্ডস (শুধুমাত্র আপনার বন্ধুরাই)', en: 'Friends (Only your friends)' }, icon: Users },
+                                    { id: 'private', label: { bn: 'প্রাইভেট (শুধুমাত্র আপনি)', en: 'Private (Only you)' }, icon: Lock }
+                                ].map(p => (
+                                    <button
+                                        key={p.id}
+                                        onClick={() => {
+                                            setPrivacy(p.id as any);
+                                            setIsPrivacyOpen(false);
+                                        }}
+                                        className={cn(
+                                            "flex items-center justify-between w-full p-4 rounded-sm text-[14px] font-bold transition-all border-2 mb-1",
+                                            privacy === p.id
+                                                ? "bg-slate-50 dark:bg-slate-800/50 border-slate-900 dark:border-slate-100 text-slate-900 dark:text-slate-100"
+                                                : "bg-white dark:bg-slate-900 border-transparent text-gray-700 dark:text-gray-300"
+                                        )}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <p.icon className="w-5 h-5" />
+                                            {p.label[language]}
+                                        </div>
+                                        {privacy === p.id && <CheckCircle2 className="w-5 h-5" />}
                                     </button>
                                 ))}
                             </div>
@@ -638,21 +861,24 @@ export const PostContentOverlay: React.FC<PostContentOverlayProps> = ({
       </div>
 
       {/* Footer / Post Button Area */}
-      <div className="p-4 bg-white dark:bg-slate-950 border-t border-gray-100 dark:border-gray-900 pb-safe">
+      <div className="p-4 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border-t border-gray-100 dark:border-gray-900 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
             <button 
                 onClick={handlePost}
                 disabled={!file || !title || isPosting}
                 className={cn(
-                    "w-full h-12 rounded-sm font-bold text-[15px] transition-all flex items-center justify-center gap-2",
+                    "w-full h-14 rounded-2xl font-black text-[17px] transition-all flex items-center justify-center gap-3 tracking-wide",
                     file && title && !isPosting 
-                        ? "bg-rose-500 text-white active:bg-rose-600" 
-                        : "bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
+                        ? "bg-rose-500 text-white active:scale-[0.98] shadow-2xl shadow-rose-500/30" 
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
                 )}
             >
                 {isPosting ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="w-6 h-6 animate-spin" />
                 ) : (
-                    language === 'bn' ? 'পোস্ট করুন' : 'Post'
+                    <>
+                        <Send className="w-5 h-5" />
+                        {language === 'bn' ? 'পোস্ট করুন' : 'Post Now'}
+                    </>
                 )}
             </button>
         </div>

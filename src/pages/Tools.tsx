@@ -18,7 +18,6 @@ import {
   Book,
   PlaySquare,
   Image as ImageIcon,
-  Image,
   Download,
   Hash,
   Type,
@@ -99,6 +98,7 @@ import {
   Bookmark,
   HelpCircle,
   AlertCircle,
+  AlertTriangle,
   Rss,
   VolumeX,
   Pause,
@@ -106,7 +106,7 @@ import {
   BarChart2,
   Loader2,
   Ban,
-  Download,
+  Store,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { cn, getApiUrl, formatCount } from "@/lib/utils";
@@ -165,6 +165,8 @@ import { PercentageCalcTool } from "@/components/tools/PercentageCalcTool";
 import { YTThumbnailTool } from "@/components/tools/YTThumbnailTool";
 import { PostContentOverlay } from "@/components/tools/PostContentOverlay";
 import { ReportModal } from "@/components/tools/ReportModal";
+import { MonetizationModal } from "@/components/tools/MonetizationModal";
+import { ShopModal } from "@/components/tools/ShopModal";
 import { ShortsFeedOverlay, isPostVideo } from "@/components/tools/ShortsFeedOverlay";
 import {
   AreaChart,
@@ -178,6 +180,7 @@ import {
 import { MuslimBrowser } from "@/components/MuslimBrowser";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { HelpSupportModal } from "@/components/tools/HelpSupportModal";
+import { useOfflineMedia, cacheMediaForOffline } from "@/hooks/useOfflineMedia";
 
 export const isPostActivelyBoosted = (post: any) => {
   if (post.boostInfo?.status === "approved" || post.boostInfo?.isActive) {
@@ -875,6 +878,7 @@ const AnalyticsDashboard = () => {
 const QuickPostShort = ({ post, onClick }: { post: any; onClick: () => void }) => {
   const [hasBeenNearScreen, setHasBeenNearScreen] = useState(false);
   const [isMediaLoaded, setIsMediaLoaded] = useState(false);
+  const [isMediaError, setIsMediaError] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
@@ -899,6 +903,14 @@ const QuickPostShort = ({ post, onClick }: { post: any; onClick: () => void }) =
     } catch (e) {}
   }
 
+  const videoSrc = useOfflineMedia(fallbackFileId, "video");
+
+  useEffect(() => {
+    if (post.allowOffline && fallbackFileId) {
+      cacheMediaForOffline(fallbackFileId, "video");
+    }
+  }, [post.allowOffline, fallbackFileId]);
+
   return (
     <motion.div
       ref={wrapperRef}
@@ -908,15 +920,21 @@ const QuickPostShort = ({ post, onClick }: { post: any; onClick: () => void }) =
       onClick={onClick}
       className="relative aspect-[9/16] bg-slate-200 dark:bg-slate-800 rounded-2xl overflow-hidden cursor-pointer group shadow-lg border border-slate-200 dark:border-slate-800"
     >
-      {!isMediaLoaded && fallbackFileId && hasBeenNearScreen && (
+      {!isMediaLoaded && !isMediaError && fallbackFileId && hasBeenNearScreen && (
         <div className="absolute inset-0 bg-slate-200 dark:bg-slate-800 animate-pulse z-20" />
+      )}
+      {isMediaError && (
+        <div className="absolute inset-0 bg-slate-200 dark:bg-slate-800 z-20 flex items-center justify-center">
+          <AlertTriangle className="w-8 h-8 text-slate-400 opacity-50" />
+        </div>
       )}
       {fallbackFileId && hasBeenNearScreen && (
         <video
-          src={getApiUrl(`/api/telegram/file/${fallbackFileId}`)}
+          src={videoSrc}
           className={`w-full h-full object-cover transition-opacity duration-300 ${isMediaLoaded ? 'opacity-100' : 'opacity-0'}`}
           preload="metadata"
           onLoadedData={() => setIsMediaLoaded(true)}
+          onError={() => setIsMediaError(true)}
         />
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />
@@ -959,6 +977,7 @@ export const PostCard = ({
   const [authorAvatar, setAuthorAvatar] = useState("");
   const [showReportModal, setShowReportModal] = useState(false);
   const [isMediaLoaded, setIsMediaLoaded] = useState(false);
+  const [isMediaError, setIsMediaError] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [showOtherMenu, setShowOtherMenu] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
@@ -1196,6 +1215,14 @@ export const PostCard = ({
     }
   }
 
+  const mediaSrc = useOfflineMedia(fallbackFileId, fallbackType as "video" | "photo");
+
+  useEffect(() => {
+    if (post.allowOffline && fallbackFileId) {
+      cacheMediaForOffline(fallbackFileId, fallbackType as "video" | "photo");
+    }
+  }, [post.allowOffline, fallbackFileId, fallbackType]);
+
   const handleLike = async () => {
     if (!auth.currentUser || !post.id) {
       if (!auth.currentUser)
@@ -1383,14 +1410,14 @@ export const PostCard = ({
           ctx.shadowOffsetY = 2;
 
           const padding = fontSize;
-          ctx.fillText("@Muslim Sathi", padding, canvas.height - padding);
+          ctx.fillText("@Halal Circle", padding, canvas.height - padding);
 
           canvas.toBlob((blob) => {
             if (blob) {
               const u = URL.createObjectURL(blob);
               const a = document.createElement("a");
               a.href = u;
-              a.download = `MuslimSathi_${Date.now()}.png`;
+              a.download = `HalalCircle_${Date.now()}.png`;
               document.body.appendChild(a);
               a.click();
               setTimeout(() => {
@@ -1406,7 +1433,7 @@ export const PostCard = ({
         const u = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = u;
-        a.download = `MuslimSathi_${Date.now()}${fallbackType === 'video' ? '.mp4' : '.png'}`;
+        a.download = `HalalCircle_${Date.now()}${fallbackType === 'video' ? '.mp4' : '.png'}`;
         document.body.appendChild(a);
         a.click();
         setTimeout(() => {
@@ -1684,9 +1711,15 @@ export const PostCard = ({
                 }
               }}
             >
-              {!isMediaLoaded && hasBeenNearScreen && (
+              {!isMediaLoaded && !isMediaError && hasBeenNearScreen && (
                 <div className="absolute inset-0 bg-slate-200 dark:bg-slate-800 animate-pulse z-10 flex flex-col items-center justify-center">
                     <Video className="w-10 h-10 text-slate-400 opacity-50" />
+                </div>
+              )}
+              {isMediaError && (
+                <div className="absolute inset-0 bg-slate-200 dark:bg-slate-800 z-10 flex flex-col items-center justify-center pointer-events-none">
+                    <AlertTriangle className="w-10 h-10 text-slate-400 opacity-50 mb-2" />
+                    <span className="text-xs text-slate-500 font-medium">{language === 'bn' ? 'লোড হতে সমস্যা হয়েছে' : 'Failed to load media'}</span>
                 </div>
               )}
               {hasBeenNearScreen ? (
@@ -1696,8 +1729,9 @@ export const PostCard = ({
                   playsInline
                   loop
                   muted={isMuted}
-                  src={getApiUrl(`/api/telegram/file/${fallbackFileId}`)}
+                  src={mediaSrc}
                   onLoadedData={() => setIsMediaLoaded(true)}
+                  onError={() => setIsMediaError(true)}
                   onPlay={() => {
                     setIsPlaying(true);
                     if (!hasCountedView) {
@@ -1751,15 +1785,22 @@ export const PostCard = ({
             </div>
           ) : (
             <div className="w-full h-full relative min-h-[200px]">
-              {!isMediaLoaded && (
+              {!isMediaLoaded && !isMediaError && (
                 <div className="absolute inset-0 bg-slate-200 dark:bg-slate-800 animate-pulse z-10" />
               )}
+              {isMediaError && (
+                <div className="absolute inset-0 bg-slate-200 dark:bg-slate-800 z-10 flex flex-col items-center justify-center pointer-events-none">
+                    <AlertTriangle className="w-10 h-10 text-slate-400 opacity-50 mb-2" />
+                    <span className="text-xs text-slate-500 font-medium">{language === 'bn' ? 'ছবি লোড হতে সমস্যা হয়েছে' : 'Failed to load photo'}</span>
+                </div>
+              )}
               <img
-                src={getApiUrl(`/api/telegram/file/${fallbackFileId}`)}
+                src={mediaSrc}
                 alt="Post media"
                 className={`w-full h-auto object-contain transition-opacity duration-300 ${isMediaLoaded ? 'opacity-100' : 'opacity-0'}`}
                 loading="lazy"
                 onLoad={() => setIsMediaLoaded(true)}
+                onError={() => setIsMediaError(true)}
               />
             </div>
           )}
@@ -2340,6 +2381,8 @@ export const ToolsView = ({
   const [isProfileStatusModalOpen, setIsProfileStatusModalOpen] =
     useState(false);
   const [isHelpSupportOpen, setIsHelpSupportOpen] = useState(false);
+  const [isMonetizationOpen, setIsMonetizationOpen] = useState(false);
+  const [isShopOpen, setIsShopOpen] = useState(false);
   
   // Analytics and Boost States
   const [selectedPostForBoost, setSelectedPostForBoost] = useState<any>(null);
@@ -2449,12 +2492,12 @@ export const ToolsView = ({
 
   useEffect(() => {
     // Toggle global navigation visibility when modals are open
-    const isAnyModalOpen = isUploadSheetOpen || !!selectedPostForBoost || !!selectedPostForAnalytics || isBoostCenterModalOpen || isProfileStatusModalOpen;
+    const isAnyModalOpen = isUploadSheetOpen || !!selectedPostForBoost || !!selectedPostForAnalytics || isBoostCenterModalOpen || isProfileStatusModalOpen || isMonetizationOpen || isShopOpen;
     const event = new CustomEvent("set-nav-visibility", {
       detail: !isAnyModalOpen,
     });
     window.dispatchEvent(event);
-  }, [isUploadSheetOpen, selectedPostForBoost, selectedPostForAnalytics, isBoostCenterModalOpen, isProfileStatusModalOpen]);
+  }, [isUploadSheetOpen, selectedPostForBoost, selectedPostForAnalytics, isBoostCenterModalOpen, isProfileStatusModalOpen, isMonetizationOpen, isShopOpen]);
 
   const categories = [
     { id: "all", label: { bn: "সব", en: "All" } },
@@ -2745,6 +2788,10 @@ export const ToolsView = ({
         setIsHelpSupportOpen(false);
       } else if (isProfileStatusModalOpen) {
         setIsProfileStatusModalOpen(false);
+      } else if (isMonetizationOpen) {
+        setIsMonetizationOpen(false);
+      } else if (isShopOpen) {
+        setIsShopOpen(false);
       } else if (isSidebarOpen) {
         setIsSidebarOpen(false);
       } else if (isShortsFeedOpen) {
@@ -2761,6 +2808,8 @@ export const ToolsView = ({
     isUploadSheetOpen,
     isProfileStatusModalOpen,
     isHelpSupportOpen,
+    isMonetizationOpen,
+    isShopOpen
   ]);
 
   const handleOpenSidebar = () => {
@@ -2822,7 +2871,7 @@ export const ToolsView = ({
             {/* Top Row: Brand and Menu */}
             <div className="flex items-center justify-between pl-4 pr-6 h-[52px]">
               <h1 className="text-[26px] font-black text-blue-600 dark:text-blue-500 tracking-tighter">
-                muslim feed
+                Halal Circle
               </h1>
 
               <div className="flex items-center gap-1">
@@ -3606,7 +3655,7 @@ export const ToolsView = ({
                   onClick={handlePhotoClick}
                   className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                 >
-                  <Image className="w-4 h-4 text-black dark:text-white" />
+                  <ImageIcon className="w-4 h-4 text-black dark:text-white" />
                   <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">
                     {language === "bn" ? "ফটো" : "Photo"}
                   </span>
@@ -3756,17 +3805,36 @@ export const ToolsView = ({
                 <button
                   onClick={() => {
                     handleCloseSidebar();
+                    setTimeout(() => {
+                      window.history.pushState({ view: "monetization" }, "");
+                      setIsMonetizationOpen(true);
+                    }, 50);
                   }}
                   className="w-full px-3 py-3 flex items-center gap-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left active:scale-[0.98]"
                 >
                   <div className="w-9 h-9 rounded-full bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center relative">
                     <Coins className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center">
-                      <Lock className="w-3 h-3 text-slate-400" />
-                    </div>
                   </div>
                   <span className="font-semibold text-[15px] text-slate-700 dark:text-slate-200 flex-1">
                     {language === "bn" ? "মনিটাইজেশন" : "Monetization"}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    handleCloseSidebar();
+                    setTimeout(() => {
+                      window.history.pushState({ view: "shop" }, "");
+                      setIsShopOpen(true);
+                    }, 50);
+                  }}
+                  className="w-full px-3 py-3 flex items-center gap-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left active:scale-[0.98]"
+                >
+                  <div className="w-9 h-9 rounded-full bg-pink-50 dark:bg-pink-500/10 flex items-center justify-center relative">
+                    <Store className="w-5 h-5 text-pink-600 dark:text-pink-400" />
+                  </div>
+                  <span className="font-semibold text-[15px] text-slate-700 dark:text-slate-200 flex-1">
+                    {language === "bn" ? "শপ" : "Shop"}
                   </span>
                 </button>
 
@@ -3899,7 +3967,9 @@ export const ToolsView = ({
               activeToolId !== null ||
               selectedPostForBoost !== null ||
               selectedPostForAnalytics !== null ||
-              isBoostCenterModalOpen
+              isBoostCenterModalOpen ||
+              isMonetizationOpen ||
+              isShopOpen
             }
           />
         )}
@@ -3963,6 +4033,20 @@ export const ToolsView = ({
           />
         )}
       </AnimatePresence>
+
+      <MonetizationModal 
+        isOpen={isMonetizationOpen}
+        onClose={() => {
+            if (isMonetizationOpen) window.history.back();
+        }}
+      />
+
+      <ShopModal 
+        isOpen={isShopOpen}
+        onClose={() => {
+            if (isShopOpen) window.history.back();
+        }}
+      />
 
       <AnimatePresence>
         {showSavedPosts && (

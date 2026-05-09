@@ -121,7 +121,7 @@ export function LegalPageView({ type, onBack }: LegalPageViewProps) {
           {/* Welcome Message */}
           <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 mb-2">
             <h2 className={cn("text-xl font-black mb-2", content.color)}>
-              {language === 'bn' ? 'মুসলিম সাথী আর্নিং নীতিমালা' : 'Muslim Sathi Earning Policy'}
+              {language === 'bn' ? 'Halal Circle আর্নিং নীতিমালা' : 'Halal Circle Earning Policy'}
             </h2>
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
               {language === 'bn' 

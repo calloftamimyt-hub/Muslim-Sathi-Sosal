@@ -5,6 +5,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { auth } from '@/lib/firebase';
 import { OfflineImage } from './OfflineImage';
+import { cn } from '@/lib/utils';
 
 const data = [
   { name: 'Sat', score: 300 },
@@ -24,23 +25,22 @@ export function ProfileStatusModal({ isOpen, onClose, userProfile, onOpenSupport
     const photoUrl = userProfile?.photoURL || auth.currentUser?.photoURL || 'https://api.dicebear.com/7.x/avataaars/svg?seed=user';
     const isVerified = userProfile?.isVerified || userProfile?.blueBadge || false;
     const reportsCount = userProfile?.reportsCount || 0;
+    const strikes = userProfile?.strikes || 0;
     const isReported = reportsCount >= 5;
+
+    // Strike logic
+    const strikeStatus = strikes === 0 
+        ? { text: language === 'bn' ? '০ স্ট্রাইক (অ্যাক্টিভ)' : '0 Strikes (Active)', color: 'text-emerald-500' }
+        : strikes === 1
+        ? { text: language === 'bn' ? '১ স্ট্রাইক (সতর্কবার্তা)' : '1 Strike (Warning)', color: 'text-amber-500' }
+        : strikes === 2
+        ? { text: language === 'bn' ? '২ স্ট্রাইক (ঝুঁকিপূর্ণ)' : '2 Strikes (At Risk)', color: 'text-orange-500' }
+        : { text: language === 'bn' ? '৩ স্ট্রাইক (রেস্ট্রিক্টেড)' : '3 Strikes (Restricted)', color: 'text-red-600' };
 
     const joinedDateStr = userProfile?.createdAt 
         ? (typeof userProfile.createdAt.toDate === 'function' ? userProfile.createdAt.toDate().toLocaleDateString() : new Date(userProfile.createdAt).toLocaleDateString())
         : 'Active';
 
-    useEffect(() => {
-        if (isOpen) {
-            window.history.pushState({ modal: 'profile-status' }, '');
-            const handlePopState = (e: PopStateEvent) => {
-                 onClose();
-            };
-            window.addEventListener('popstate', handlePopState);
-            return () => window.removeEventListener('popstate', handlePopState);
-        }
-    }, [isOpen, onClose]);
-    
     if (!isOpen) return null;
 
     return (
@@ -106,10 +106,14 @@ export function ProfileStatusModal({ isOpen, onClose, userProfile, onOpenSupport
                         <h1 className="text-[22px] font-bold text-slate-900 dark:text-white mb-2 leading-tight tracking-tight">
                             {language === 'bn' ? `স্বাগতম, ${firstName}!` : `Welcome, ${firstName}!`}
                         </h1>
-                        <p className="text-[15px] text-slate-600 dark:text-slate-400 leading-snug">
-                            {language === 'bn' 
-                                ? 'আপনার প্রোফাইল, কন্টেন্ট বা স্ট্যান্ডার্ডের বিরুদ্ধে নেওয়া কোনো পদক্ষেপ আপনি এখানে দেখতে পাবেন।' 
-                                : 'When we take actions on your profile or your content for going against our standards, you\'ll see them here.'}
+                        <p className={cn("text-[15px] leading-snug", strikes > 0 ? "text-amber-600 dark:text-amber-500 font-medium" : "text-slate-600 dark:text-slate-400")}>
+                            {strikes === 0 
+                                ? (language === 'bn' 
+                                    ? 'আপনার প্রোফাইল, কন্টেন্ট বা স্ট্যান্ডার্ডের বিরুদ্ধে নেওয়া কোনো পদক্ষেপ আপনি এখানে দেখতে পাবেন।' 
+                                    : 'When we take actions on your profile or your content for going against our standards, you\'ll see them here.')
+                                : (language === 'bn'
+                                    ? `সতর্কতা: আপনার অ্যাকাউন্টে ${strikes}টি স্ট্রাইক রয়েছে। দয়া করে নিয়ম মেনে চলুন।`
+                                    : `Warning: Your account has ${strikes} strike(s). Please follow our community standards.`)}
                         </p>
                     </div>
 
@@ -139,7 +143,8 @@ export function ProfileStatusModal({ isOpen, onClose, userProfile, onOpenSupport
                             <FeatureRow 
                                 icon={AlertTriangle} 
                                 title={language === 'bn' ? 'কমিউনিটি স্ট্রাইক' : 'Community Strikes'} 
-                                subtitle={language === 'bn' ? '০ স্ট্রাইক (অ্যাক্টিভ)' : '0 Strikes (Active)'} 
+                                subtitle={strikeStatus.text} 
+                                subtitleColor={strikeStatus.color}
                             />
                              <FeatureRow 
                                 icon={Calendar} 
@@ -238,7 +243,7 @@ export function ProfileStatusModal({ isOpen, onClose, userProfile, onOpenSupport
     );
 }
 
-function FeatureRow({ icon: Icon, title, subtitle }: { icon: any, title: string, subtitle: string }) {
+function FeatureRow({ icon: Icon, title, subtitle, subtitleColor }: { icon: any, title: string, subtitle: string, subtitleColor?: string }) {
     return (
         <div className="flex items-center gap-4 py-3 px-4 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer">
             <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
@@ -246,7 +251,7 @@ function FeatureRow({ icon: Icon, title, subtitle }: { icon: any, title: string,
             </div>
             <div className="flex-1 min-w-0">
                 <h4 className="text-[17px] font-medium text-slate-900 dark:text-slate-100 truncate">{title}</h4>
-                <p className="text-[14px] text-slate-500 dark:text-slate-400 truncate">{subtitle}</p>
+                <p className={cn("text-[14px] truncate", subtitleColor || "text-slate-500 dark:text-slate-400")}>{subtitle}</p>
             </div>
             <ChevronRight className="w-5 h-5 text-slate-400 shrink-0" />
         </div>

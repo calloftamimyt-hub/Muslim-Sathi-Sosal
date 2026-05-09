@@ -124,7 +124,13 @@ function CropModal({ image, onClose, onCrop }: CropModalProps) {
   );
 }
 
-function SavedPostsView({ onBack, posts, title }: { onBack: () => void, posts: any[], title: string }) {
+function SavedPostsView({ onBack, posts, videos, title }: { onBack: () => void, posts: any[], videos: any[], title: string }) {
+  const { language } = useLanguage();
+  
+  // Merge items and remove duplicates based on post.id
+  const combined = [...posts, ...videos];
+  const uniqueItems = Array.from(new Map(combined.map(item => [item.id, item])).values());
+
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 pb-safe">
       <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-100 dark:border-slate-800">
@@ -138,14 +144,14 @@ function SavedPostsView({ onBack, posts, title }: { onBack: () => void, posts: a
         </div>
       </header>
       <div className="flex-1 overflow-y-auto">
-        {posts.length === 0 ? (
+        {uniqueItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-slate-500">
             <Bookmark className="w-12 h-12 mb-4 opacity-20" />
-            <p>No saved posts found</p>
+            <p>{language === 'bn' ? 'কোনো সেভ করা আইটেম নেই' : 'No saved items found'}</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-2">
-             {posts.map((post) => (
+          <div className="flex flex-col gap-2 p-2">
+             {uniqueItems.map((post) => (
                 <PostCard key={post.id} post={post} />
              ))}
           </div>
@@ -163,14 +169,17 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
   const [showFavoriteHadiths, setShowFavoriteHadiths] = useState(false);
   const [showFavoritePosts, setShowFavoritePosts] = useState(false);
   const [favoritePosts, setFavoritePosts] = useState<any[]>([]);
+  const [favoriteVideos, setFavoriteVideos] = useState<any[]>([]);
   
   useEffect(() => {
     if (showFavoritePosts) {
       try {
         const posts = JSON.parse(localStorage.getItem('muslim_sathi_saved_posts') || '[]');
+        const videos = JSON.parse(localStorage.getItem('muslim_sathi_saved_videos') || '[]');
         setFavoritePosts(posts);
+        setFavoriteVideos(videos);
       } catch(e) {
-        console.error("Error loading saved posts", e);
+        console.error("Error loading saved items", e);
       }
     }
   }, [showFavoritePosts]);
@@ -744,7 +753,7 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
 
   const t = {
     en: {
-      welcome: "Welcome to Muslim Sathi",
+      welcome: "Welcome to Halal Circle",
       loginNote: "Login to save your settings and data",
       loginBtn: "Login / Sign Up",
       user: "User",
@@ -822,7 +831,7 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
       language: "Language"
     },
     bn: {
-      welcome: "মুসলিম সাথী-তে স্বাগতম",
+      welcome: "Halal Circle-তে স্বাগতম",
       loginNote: "আপনার সেটিংস ও তথ্য সেভ রাখতে লগইন করুন",
       loginBtn: "লগইন / সাইন আপ",
       user: "ব্যবহারকারী",
@@ -1057,7 +1066,7 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
       reflection: "प्रतिबिंब"
     }
   }[language] || {
-    welcome: "Welcome to Muslim Sathi",
+    welcome: "Welcome to Halal Circle",
     loginNote: "Login to save your settings and data",
     loginBtn: "Login",
     user: "User",
@@ -1417,6 +1426,7 @@ export function Profile({ onNavigate }: { onNavigate?: (tab: string) => void }) 
                 <SavedPostsView 
                   onBack={() => setShowFavoritePosts(false)} 
                   posts={favoritePosts}
+                  videos={favoriteVideos}
                   title={language === 'bn' ? 'সেভ করা পোস্ট' : 'Saved Posts'}
                 />
               </motion.div>

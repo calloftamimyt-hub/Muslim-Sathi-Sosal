@@ -22,6 +22,9 @@ export function ReferralDetail({ onBack }: { onBack: () => void }) {
     const fetchUserData = async () => {
       if (!auth.currentUser) return;
       try {
+        // Dispatched event to hide navigation bar
+        window.dispatchEvent(new CustomEvent('set-nav-visibility', { detail: false }));
+
         const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
         if (userDoc.exists()) {
           const data = userDoc.data();
@@ -50,6 +53,11 @@ export function ReferralDetail({ onBack }: { onBack: () => void }) {
     };
 
     fetchUserData();
+
+    // Show navigation bar again when leaving page
+    return () => {
+      window.dispatchEvent(new CustomEvent('set-nav-visibility', { detail: true }));
+    };
   }, []);
 
   const handleCopy = () => {
@@ -65,7 +73,7 @@ export function ReferralDetail({ onBack }: { onBack: () => void }) {
     try {
       if (navigator.share) {
         await navigator.share({
-          title: 'Muslim Sathi Referral',
+          title: 'Halal Circle Referral',
           text: msg,
           url: window.location.origin,
         });
@@ -110,7 +118,7 @@ export function ReferralDetail({ onBack }: { onBack: () => void }) {
           <div className="bg-gradient-to-br from-orange-400 to-orange-500 rounded-xl p-6 flex relative min-h-[140px] mb-8 overflow-hidden">
             <div className="flex-1 z-10">
                <div className="flex items-center gap-1.5 text-white/90 font-bold text-[10px] uppercase tracking-wide mb-2">
-                 Muslim Sathi App
+                 Halal Circle App
                </div>
                <h2 className="text-xl sm:text-2xl font-black text-white leading-tight mb-2">
                  রেফার করে পান <br/>
@@ -271,7 +279,7 @@ export function ReferralDetail({ onBack }: { onBack: () => void }) {
                         <Users className="w-5 h-5 text-slate-500" />
                       </div>
                       <div className="flex-1">
-                        <div className="font-bold text-slate-800 dark:text-white">{referral.referredEmail || 'Unknown User'}</div>
+                        <div className="font-bold text-slate-800 dark:text-white">{referral.refereeName || referral.referredEmail || 'Unknown User'}</div>
                         <div className="text-sm text-slate-500">{new Date(referral.createdAt?.seconds * 1000).toLocaleDateString()}</div>
                       </div>
                       <div>

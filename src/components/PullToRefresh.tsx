@@ -14,7 +14,7 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
   children,
 }) => {
   const { language } = useLanguage();
-  const appName = language === "bn" ? "মুসলিম সাথী" : "Muslim Companion";
+  const appName = language === "bn" ? "Halal Circle" : "Muslim Companion";
 
   const [pullDistance, setPullDistance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);

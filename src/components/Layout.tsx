@@ -100,7 +100,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
         ref={mainRef}
         className={cn(
           "flex-1 overflow-y-auto scrolling-touch overscroll-y-none",
-          "pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 md:pl-20 lg:pl-64",
+          isVisible ? "pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 md:pl-20 lg:pl-64" : "md:pl-20 lg:pl-64",
         )}
       >
         {children}
@@ -203,7 +203,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
                 M
               </div>
               <span className="hidden lg:block font-bold text-xl text-primary dark:text-primary-light">
-                {t("app-name" as any) || "Muslim Sathi"}
+                {t("app-name" as any) || "Halal Circle"}
               </span>
             </div>
 

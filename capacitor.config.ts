@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.muslimsathi.app',
-  appName: 'Muslim Sathi',
+  appName: 'Halal Circle',
   webDir: 'dist',
   server: {
     androidScheme: 'https',

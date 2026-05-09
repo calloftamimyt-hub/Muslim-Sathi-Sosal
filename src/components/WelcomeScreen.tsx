@@ -94,7 +94,7 @@ export function WelcomeScreen({ onLogin, onSignUp, onSkip }: WelcomeScreenProps)
               </motion.div>
               
               <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mb-2">
-                Muslim <span className="text-primary">Sathi</span>
+                Halal <span className="text-primary">Circle</span>
               </h1>
               <p className="text-slate-500 dark:text-slate-400 font-medium max-w-[220px] text-sm leading-tight">
                 Your spiritual companion for a <span className="text-primary dark:text-primary-light">better life</span>
